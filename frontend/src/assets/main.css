@@ -1,35 +1,27 @@
-@import './base.css';
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
 
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --color-brand-navy: #0f2744;
+  --color-brand-deep: #0a1d33;
+  --color-brand-blue: #0284c7;
+  --color-brand-accent: #2563eb;
+  --color-brand-light-blue: #38bdf8;
+}
+
+html,
+body,
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+  min-height: 100%;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+.hero-gradient {
+  background: radial-gradient(circle at 85% 15%, #0f3966 0%, #0a1f38 55%, #061324 100%);
 }
