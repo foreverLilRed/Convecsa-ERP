@@ -1,7 +1,7 @@
 import type { AuthSession, RequestLogin } from '@/types/auth'
 
 const SESSION_KEY = 'convecsa.auth.session'
-const MOCK_LATENCY_MS = 300
+const MOCK_LATENCY_MS = 2000
 
 // TODO: reemplazar el mock por POST /auth/login cuando exista backend.
 // Firma prevista: login(request: RequestLogin) => Promise<AuthSession>

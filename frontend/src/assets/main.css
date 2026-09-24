@@ -25,3 +25,20 @@ body {
 .hero-gradient {
   background: radial-gradient(circle at 85% 15%, #0f3966 0%, #0a1f38 55%, #061324 100%);
 }
+
+.page-enter-active,
+.page-leave-active {
+  transition:
+    opacity 400ms ease,
+    transform 400ms ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}

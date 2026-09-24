@@ -30,7 +30,6 @@ async function onSubmit() {
     await router.push({ name: 'dashboard' })
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'No se pudo iniciar sesión.'
-  } finally {
     loading.value = false
   }
 }
@@ -41,7 +40,17 @@ function onSsoClick() {
 </script>
 
 <template>
-  <main class="min-h-screen w-full flex flex-col lg:flex-row">
+  <main class="relative min-h-screen w-full flex flex-col lg:flex-row">
+    <div
+      v-if="loading"
+      class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm transition-opacity duration-300"
+    >
+      <div
+        class="h-11 w-11 rounded-full border-[3px] border-sky-200 border-t-sky-600 animate-spin"
+        aria-hidden="true"
+      />
+      <p class="mt-4 text-sm font-semibold text-slate-600">Ingresando…</p>
+    </div>
     <section
       class="lg:w-[48%] xl:w-[46%] hero-gradient text-white flex flex-col justify-between p-8 sm:p-12 lg:p-16 xl:p-20 relative overflow-hidden"
     >
@@ -115,6 +124,7 @@ function onSsoClick() {
                 required
                 type="email"
                 autocomplete="email"
+                :disabled="loading"
               />
             </div>
           </div>
@@ -133,6 +143,7 @@ function onSsoClick() {
                 required
                 type="password"
                 autocomplete="current-password"
+                :disabled="loading"
               />
             </div>
           </div>
@@ -163,6 +174,11 @@ function onSsoClick() {
               type="submit"
               :disabled="loading"
             >
+              <span
+                v-if="loading"
+                class="mr-2 inline-block h-4 w-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+                aria-hidden="true"
+              />
               {{ loading ? 'Ingresando…' : 'Entrar' }}
             </button>
           </div>
@@ -177,8 +193,9 @@ function onSsoClick() {
               </div>
             </div>
             <button
-              class="w-full inline-flex justify-center items-center gap-2 py-2.5 px-4 border border-slate-200 rounded-lg shadow-xs text-xs sm:text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 active:bg-slate-100 transition-all duration-150"
+              class="w-full inline-flex justify-center items-center gap-2 py-2.5 px-4 border border-slate-200 rounded-lg shadow-xs text-xs sm:text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 active:bg-slate-100 transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
+              :disabled="loading"
               @click="onSsoClick"
             >
               <svg class="w-4 h-4 text-sky-700 shrink-0" fill="none" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
