@@ -1,16 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { isAuthenticated } from '@/services/auth/authService'
+import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
+import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: '/',
-      redirect: () => (isAuthenticated() ? '/dashboard' : '/login'),
-    },
     {
       path: '/login',
       name: 'login',
@@ -18,10 +16,21 @@ const router = createRouter({
       meta: { guestOnly: true },
     },
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: DashboardPage,
+      path: '/',
+      component: AppLayout,
       meta: { requiresAuth: true },
+      children: [
+        {
+          path: '',
+          name: 'dashboard',
+          component: DashboardPage,
+        },
+        {
+          path: '/usuarios',
+          name: 'usuarios',
+          component: UsuariosPage,
+        },
+      ],
     },
   ],
 })
