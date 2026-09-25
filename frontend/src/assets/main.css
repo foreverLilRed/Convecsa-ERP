@@ -47,3 +47,22 @@ body {
   opacity: 0;
   transform: translateY(-8px);
 }
+
+.submenu-enter-active,
+.submenu-leave-active {
+  transition:
+    opacity 200ms ease,
+    max-height 200ms ease;
+}
+
+.submenu-enter-from,
+.submenu-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.submenu-enter-to,
+.submenu-leave-from {
+  opacity: 1;
+  max-height: 40rem;
+}
