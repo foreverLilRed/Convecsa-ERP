@@ -53,6 +53,20 @@ export const navItems: NavItem[] = [
       { name: 'gh-firmas-digitales', label: 'Firmas Digitales', path: '/gestion-humana/firmas-digitales' },
     ],
   },
+  {
+    kind: 'group',
+    id: 'proyectos',
+    label: 'Proyectos',
+    icon: 'folder',
+    children: [],
+  },
+  {
+    kind: 'group',
+    id: 'soma',
+    label: 'SOMA',
+    icon: 'shield',
+    children: [],
+  },
 ]
 
 export function getNavLabelByRouteName(name: string | symbol | null | undefined): string {

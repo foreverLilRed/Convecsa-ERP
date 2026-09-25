@@ -103,6 +103,34 @@ watch(() => route.name, syncOpenGroupFromRoute)
                 d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
               />
             </svg>
+            <svg
+              v-else-if="item.icon === 'folder'"
+              class="h-4 w-4 shrink-0 text-palette-royal"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.75"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"
+              />
+            </svg>
+            <svg
+              v-else-if="item.icon === 'shield'"
+              class="h-4 w-4 shrink-0 text-palette-royal"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="1.75"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M12 3 20 7v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4Z"
+              />
+            </svg>
             <span class="flex-1">{{ item.label }}</span>
             <svg
               class="h-4 w-4 shrink-0 text-palette-royal transition-transform duration-200"
@@ -117,7 +145,10 @@ watch(() => route.name, syncOpenGroupFromRoute)
           </button>
 
           <Transition name="submenu">
-            <ul v-show="isGroupOpen(item.id)" class="mt-1 space-y-0.5 overflow-hidden pl-4">
+            <ul
+              v-show="isGroupOpen(item.id) && item.children.length > 0"
+              class="mt-1 space-y-0.5 overflow-hidden pl-4"
+            >
               <li v-for="child in item.children" :key="child.name">
                 <RouterLink
                   :to="{ name: child.name }"
