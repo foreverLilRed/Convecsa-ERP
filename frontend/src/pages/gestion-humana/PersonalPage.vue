@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 
 import PersonaRegistroModal from '@/components/gestion-humana/PersonaRegistroModal.vue'
-import type { PersonaForm } from '@/types/persona'
 
 const tabs = [
   { id: 'ingreso', label: 'Ingreso' },
@@ -13,8 +12,7 @@ const tabs = [
 const activeTab = ref<(typeof tabs)[number]['id']>('ingreso')
 const modalOpen = ref(false)
 
-function onSubmitPersona(_form: PersonaForm) {
-  // TODO: enviar al backend cuando exista el servicio de personas
+function onPersonaCreated() {
   modalOpen.value = false
 }
 </script>
@@ -60,6 +58,6 @@ function onSubmitPersona(_form: PersonaForm) {
       </p>
     </div>
 
-    <PersonaRegistroModal :open="modalOpen" @close="modalOpen = false" @submit="onSubmitPersona" />
+    <PersonaRegistroModal :open="modalOpen" @close="modalOpen = false" @created="onPersonaCreated" />
   </section>
 </template>

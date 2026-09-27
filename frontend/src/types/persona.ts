@@ -1,7 +1,16 @@
 export type TipoDocumento = 'DNI' | 'CE' | 'PASAPORTE'
 
+export type GradoInstruccion = 'PRIMARIA' | 'SECUNDARIA' | 'TECNICO' | 'UNIVERSITARIO' | 'POSGRADO'
+
+export type Banco = 'BCP' | 'BBVA' | 'INTERBANK' | 'SCOTIABANK' | 'OTROS'
+
+export type CatalogOption<T extends string> = {
+  value: T
+  label: string
+}
+
 export type CuentaBancariaForm = {
-  banco: string
+  banco: Banco | ''
   numeroCuenta: string
   cci: string
   principal: boolean
@@ -18,7 +27,7 @@ export type PersonaForm = {
   celulares: string[]
   correo: string
   correoSecundario: string
-  gradoInstruccion: string
+  gradoInstruccion: GradoInstruccion | ''
   direccion: string
   departamento: string
   provincia: string
@@ -28,17 +37,87 @@ export type PersonaForm = {
   fotoUrl: string | null
 }
 
+export type CuentaBancariaRequest = {
+  banco: Banco
+  numeroCuenta: string
+  cci: string
+  principal: boolean
+}
+
+export type PersonaRequest = {
+  apellidos: string
+  nombres: string
+  tipoDocumento: TipoDocumento
+  numeroDocumento: string
+  fechaNacimiento: string
+  fechaEmisionDni: string | null
+  fechaCaducidadDni: string | null
+  celulares: string[]
+  correo: string
+  correoSecundario: string | null
+  gradoInstruccion: GradoInstruccion
+  direccion: string
+  departamento: string
+  provincia: string
+  distrito: string
+  residencia: string
+  fotoUrl: string | null
+  cuentasBancarias: CuentaBancariaRequest[]
+}
+
+export type CelularDTO = {
+  id: number
+  numero: string
+}
+
+export type CuentaBancariaDTO = {
+  id: number
+  banco: Banco
+  numeroCuenta: string
+  cci: string
+  principal: boolean
+}
+
+export type PersonaDTO = {
+  id: number
+  apellidos: string
+  nombres: string
+  tipoDocumento: TipoDocumento
+  numeroDocumento: string
+  fechaNacimiento: string
+  fechaEmisionDni: string | null
+  fechaCaducidadDni: string | null
+  celulares: CelularDTO[]
+  correo: string
+  correoSecundario: string | null
+  gradoInstruccion: GradoInstruccion
+  direccion: string
+  departamento: string
+  provincia: string
+  distrito: string
+  residencia: string
+  fotoUrl: string | null
+  cuentasBancarias: CuentaBancariaDTO[]
+  createdAt: string
+}
+
 export const TIPOS_DOCUMENTO: TipoDocumento[] = ['DNI', 'CE', 'PASAPORTE']
 
-export const GRADOS_INSTRUCCION = [
-  'Primaria',
-  'Secundaria',
-  'Técnico',
-  'Universitario',
-  'Posgrado',
-] as const
+export const GRADOS_INSTRUCCION: CatalogOption<GradoInstruccion>[] = [
+  { value: 'PRIMARIA', label: 'Primaria' },
+  { value: 'SECUNDARIA', label: 'Secundaria' },
+  { value: 'TECNICO', label: 'Técnico' },
+  { value: 'UNIVERSITARIO', label: 'Universitario' },
+  { value: 'POSGRADO', label: 'Posgrado' },
+]
 
-export const BANCOS = ['BCP', 'BBVA', 'Interbank', 'Scotiabank', 'Otros'] as const
+export const BANCOS: CatalogOption<Banco>[] = [
+  { value: 'BCP', label: 'BCP' },
+  { value: 'BBVA', label: 'BBVA' },
+  { value: 'INTERBANK', label: 'Interbank' },
+  { value: 'SCOTIABANK', label: 'Scotiabank' },
+  { value: 'OTROS', label: 'Otros' },
+]
 
 export function createEmptyPersonaForm(): PersonaForm {
   return {
@@ -63,4 +142,44 @@ export function createEmptyPersonaForm(): PersonaForm {
   }
 }
 
+export function toPersonaRequest(form: PersonaForm): PersonaRequest {
+  return {
+    apellidos: form.apellidos.trim(),
+    nombres: form.nombres.trim(),
+    tipoDocumento: form.tipoDocumento,
+    numeroDocumento: form.numeroDocumento.trim(),
+    fechaNacimiento: form.fechaNacimiento,
+    fechaEmisionDni: emptyToNull(form.fechaEmisionDni),
+    fechaCaducidadDni: emptyToNull(form.fechaCaducidadDni),
+    celulares: form.celulares.map((celular) => celular.trim()).filter(Boolean),
+    correo: form.correo.trim(),
+    correoSecundario: emptyToNull(form.correoSecundario),
+    gradoInstruccion: form.gradoInstruccion as GradoInstruccion,
+    direccion: form.direccion.trim(),
+    departamento: form.departamento.trim(),
+    provincia: form.provincia.trim(),
+    distrito: form.distrito.trim(),
+    residencia: form.residencia.trim(),
+    fotoUrl: toPersistedFotoUrl(form.fotoUrl),
+    cuentasBancarias: form.cuentasBancarias.map((cuenta) => ({
+      banco: cuenta.banco as Banco,
+      numeroCuenta: cuenta.numeroCuenta.trim(),
+      cci: cuenta.cci.trim(),
+      principal: cuenta.principal,
+    })),
+  }
+}
+
 export const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const
+
+function emptyToNull(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+function toPersistedFotoUrl(value: string | null): string | null {
+  if (!value || value.startsWith('blob:')) {
+    return null
+  }
+  return emptyToNull(value)
+}

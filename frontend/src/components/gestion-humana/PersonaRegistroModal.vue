@@ -7,12 +7,14 @@ import {
   findDepartamento,
   findProvincia,
 } from '@/data/ubigeo-peru'
+import { crearPersona } from '@/services/persona/personaService'
 import {
   BANCOS,
   createEmptyPersonaForm,
   GRADOS_INSTRUCCION,
   TIPOS_DOCUMENTO,
   TIPOS_IMAGEN,
+  toPersonaRequest,
   type PersonaForm,
 } from '@/types/persona'
 
@@ -22,11 +24,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  submit: [form: PersonaForm]
+  created: []
 }>()
 
 const form = reactive<PersonaForm>(createEmptyPersonaForm())
 const error = ref('')
+const submitting = ref(false)
 const fotoInput = ref<HTMLInputElement | null>(null)
 
 const provinciasDisponibles = computed(() => {
@@ -62,6 +65,7 @@ function resetForm() {
   revokeFotoUrl()
   Object.assign(form, createEmptyPersonaForm())
   error.value = ''
+  submitting.value = false
   if (fotoInput.value) {
     fotoInput.value.value = ''
   }
@@ -276,7 +280,7 @@ function validate(): string | null {
   return null
 }
 
-function onSubmit() {
+async function onSubmit() {
   error.value = ''
   const message = validate()
   if (message) {
@@ -284,32 +288,21 @@ function onSubmit() {
     return
   }
 
-  const payload: PersonaForm = {
-    ...form,
-    apellidos: form.apellidos.trim(),
-    nombres: form.nombres.trim(),
-    numeroDocumento: form.numeroDocumento.trim(),
-    celulares: form.celulares.map((celular) => celular.trim()).filter(Boolean),
-    correo: form.correo.trim(),
-    correoSecundario: form.correoSecundario.trim(),
-    direccion: form.direccion.trim(),
-    departamento: form.departamento.trim(),
-    provincia: form.provincia.trim(),
-    distrito: form.distrito.trim(),
-    residencia: form.residencia.trim(),
-    cuentasBancarias: form.cuentasBancarias.map((cuenta) => ({
-      banco: cuenta.banco,
-      numeroCuenta: cuenta.numeroCuenta.trim(),
-      cci: cuenta.cci.trim(),
-      principal: cuenta.principal,
-    })),
+  submitting.value = true
+  try {
+    await crearPersona(toPersonaRequest(form))
+    emit('created')
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'No se pudo registrar la persona.'
+  } finally {
+    submitting.value = false
   }
-
-  // TODO: POST /gestion-humana/personas cuando exista backend
-  emit('submit', payload)
 }
 
 function onOverlayClick() {
+  if (submitting.value) {
+    return
+  }
   emit('close')
 }
 </script>
@@ -340,9 +333,10 @@ function onOverlayClick() {
             </h2>
           </div>
           <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-palette-ice hover:text-palette-navy"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-palette-ice hover:text-palette-navy disabled:cursor-not-allowed disabled:opacity-50"
             type="button"
             aria-label="Cerrar"
+            :disabled="submitting"
             @click="emit('close')"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
@@ -422,8 +416,8 @@ function onOverlayClick() {
                 Grado de instrucción
                 <select v-model="form.gradoInstruccion" :class="inputClass">
                   <option value="" disabled>Seleccione</option>
-                  <option v-for="grado in GRADOS_INSTRUCCION" :key="grado" :value="grado">
-                    {{ grado }}
+                  <option v-for="grado in GRADOS_INSTRUCCION" :key="grado.value" :value="grado.value">
+                    {{ grado.label }}
                   </option>
                 </select>
               </label>
@@ -551,7 +545,9 @@ function onOverlayClick() {
                 Banco
                 <select v-model="cuenta.banco" :class="inputClass">
                   <option value="" disabled>Seleccione</option>
-                  <option v-for="banco in BANCOS" :key="banco" :value="banco">{{ banco }}</option>
+                  <option v-for="banco in BANCOS" :key="banco.value" :value="banco.value">
+                    {{ banco.label }}
+                  </option>
                 </select>
               </label>
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
@@ -616,17 +612,19 @@ function onOverlayClick() {
 
           <footer class="flex justify-end gap-2 border-t border-palette-cyan/70 pt-4">
             <button
-              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               type="button"
+              :disabled="submitting"
               @click="emit('close')"
             >
               Cancelar
             </button>
             <button
-              class="rounded-lg bg-palette-navy px-4 py-2 text-sm font-semibold text-white hover:bg-palette-royal"
+              class="rounded-lg bg-palette-navy px-4 py-2 text-sm font-semibold text-white hover:bg-palette-royal disabled:cursor-not-allowed disabled:opacity-50"
               type="submit"
+              :disabled="submitting"
             >
-              Guardar
+              {{ submitting ? 'Guardando…' : 'Guardar' }}
             </button>
           </footer>
         </form>
