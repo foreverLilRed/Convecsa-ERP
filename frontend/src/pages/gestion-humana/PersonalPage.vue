@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import PersonaRegistroModal from '@/components/gestion-humana/PersonaRegistroModal.vue'
+import type { PersonaForm } from '@/types/persona'
+
 const tabs = [
   { id: 'ingreso', label: 'Ingreso' },
   { id: 'listado', label: 'Listado' },
@@ -8,6 +11,12 @@ const tabs = [
 ] as const
 
 const activeTab = ref<(typeof tabs)[number]['id']>('ingreso')
+const modalOpen = ref(false)
+
+function onSubmitPersona(_form: PersonaForm) {
+  // TODO: enviar al backend cuando exista el servicio de personas
+  modalOpen.value = false
+}
 </script>
 
 <template>
@@ -36,9 +45,21 @@ const activeTab = ref<(typeof tabs)[number]['id']>('ingreso')
     </div>
 
     <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5">
-      <p class="text-sm text-slate-500">
+      <div v-if="activeTab === 'ingreso'" class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p class="text-sm text-slate-500">Registre una nueva persona en el padrón de personal.</p>
+        <button
+          class="inline-flex items-center justify-center rounded-lg bg-palette-navy px-4 py-2 text-sm font-semibold text-white hover:bg-palette-royal"
+          type="button"
+          @click="modalOpen = true"
+        >
+          Registrar persona
+        </button>
+      </div>
+      <p v-else class="text-sm text-slate-500">
         Vista placeholder de {{ tabs.find((tab) => tab.id === activeTab)?.label.toLowerCase() }} de personal.
       </p>
     </div>
+
+    <PersonaRegistroModal :open="modalOpen" @close="modalOpen = false" @submit="onSubmitPersona" />
   </section>
 </template>
