@@ -95,6 +95,16 @@ public class Persona {
     @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PersonaCuentaBancaria> cuentasBancarias = new ArrayList<>();
 
+    public void addCelular(PersonaCelular celular) {
+        celular.setPersona(this);
+        celulares.add(celular);
+    }
+
+    public void addCuentaBancaria(PersonaCuentaBancaria cuenta) {
+        cuenta.setPersona(this);
+        cuentasBancarias.add(cuenta);
+    }
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
