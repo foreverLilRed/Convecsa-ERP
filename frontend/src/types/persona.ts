@@ -20,6 +20,8 @@ export type PersonaForm = {
   correoSecundario: string
   gradoInstruccion: string
   direccion: string
+  departamento: string
+  provincia: string
   distrito: string
   residencia: string
   cuentasBancarias: CuentaBancariaForm[]
@@ -52,6 +54,8 @@ export function createEmptyPersonaForm(): PersonaForm {
     correoSecundario: '',
     gradoInstruccion: '',
     direccion: '',
+    departamento: '',
+    provincia: '',
     distrito: '',
     residencia: '',
     cuentasBancarias: [],

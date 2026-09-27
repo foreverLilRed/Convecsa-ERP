@@ -1,6 +1,11 @@
 <script setup lang="ts">
-import { onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 
+import {
+  DEPARTAMENTOS_PERU,
+  findDepartamento,
+  findProvincia,
+} from '@/data/ubigeo-peru'
 import {
   BANCOS,
   createEmptyPersonaForm,
@@ -22,6 +27,26 @@ const emit = defineEmits<{
 const form = reactive<PersonaForm>(createEmptyPersonaForm())
 const error = ref('')
 const fotoInput = ref<HTMLInputElement | null>(null)
+
+const provinciasDisponibles = computed(() => {
+  return findDepartamento(form.departamento)?.provincias.map((provincia) => provincia.nombre) ?? []
+})
+
+const distritosDisponibles = computed(() => {
+  return findProvincia(form.departamento, form.provincia)?.distritos ?? []
+})
+
+const provinciaHabilitada = computed(() => form.departamento.trim().length > 0)
+const distritoHabilitado = computed(() => form.provincia.trim().length > 0)
+
+function onDepartamentoInput() {
+  form.provincia = ''
+  form.distrito = ''
+}
+
+function onProvinciaInput() {
+  form.distrito = ''
+}
 
 const inputClass =
   'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
@@ -114,7 +139,11 @@ function addCuenta() {
 }
 
 function removeCuenta(index: number) {
-  const wasPrincipal = form.cuentasBancarias[index].principal
+  const cuenta = form.cuentasBancarias[index]
+  if (!cuenta) {
+    return
+  }
+  const wasPrincipal = cuenta.principal
   form.cuentasBancarias.splice(index, 1)
   if (wasPrincipal && form.cuentasBancarias[0]) {
     form.cuentasBancarias[0].principal = true
@@ -163,27 +192,43 @@ function applyDigits(target: HTMLInputElement, value: string, max?: number): str
 }
 
 function onNumeroCuentaInput(index: number, event: Event) {
+  const cuenta = form.cuentasBancarias[index]
+  if (!cuenta) {
+    return
+  }
   const target = event.target as HTMLInputElement
-  form.cuentasBancarias[index].numeroCuenta = applyDigits(target, target.value)
+  cuenta.numeroCuenta = applyDigits(target, target.value)
 }
 
 function onCciInput(index: number, event: Event) {
+  const cuenta = form.cuentasBancarias[index]
+  if (!cuenta) {
+    return
+  }
   const target = event.target as HTMLInputElement
-  form.cuentasBancarias[index].cci = applyDigits(target, target.value, 20)
+  cuenta.cci = applyDigits(target, target.value, 20)
 }
 
 function onNumeroCuentaPaste(index: number, event: ClipboardEvent) {
+  const cuenta = form.cuentasBancarias[index]
+  if (!cuenta) {
+    return
+  }
   event.preventDefault()
   const target = event.target as HTMLInputElement
   const pasted = event.clipboardData?.getData('text') ?? ''
-  form.cuentasBancarias[index].numeroCuenta = applyDigits(target, `${target.value}${pasted}`)
+  cuenta.numeroCuenta = applyDigits(target, `${target.value}${pasted}`)
 }
 
 function onCciPaste(index: number, event: ClipboardEvent) {
+  const cuenta = form.cuentasBancarias[index]
+  if (!cuenta) {
+    return
+  }
   event.preventDefault()
   const target = event.target as HTMLInputElement
   const pasted = event.clipboardData?.getData('text') ?? ''
-  form.cuentasBancarias[index].cci = applyDigits(target, `${target.value}${pasted}`, 20)
+  cuenta.cci = applyDigits(target, `${target.value}${pasted}`, 20)
 }
 
 function validate(): string | null {
@@ -203,6 +248,8 @@ function validate(): string | null {
   if (!form.correo.trim()) return 'Ingrese el correo electrónico.'
   if (!form.gradoInstruccion) return 'Seleccione el grado de instrucción.'
   if (!form.direccion.trim()) return 'Ingrese la dirección completa.'
+  if (!form.departamento.trim()) return 'Ingrese el departamento.'
+  if (!form.provincia.trim()) return 'Ingrese la provincia.'
   if (!form.distrito.trim()) return 'Ingrese el distrito.'
   if (!form.residencia.trim()) return 'Ingrese la residencia.'
 
@@ -245,6 +292,8 @@ function onSubmit() {
     correo: form.correo.trim(),
     correoSecundario: form.correoSecundario.trim(),
     direccion: form.direccion.trim(),
+    departamento: form.departamento.trim(),
+    provincia: form.provincia.trim(),
     distrito: form.distrito.trim(),
     residencia: form.residencia.trim(),
     cuentasBancarias: form.cuentasBancarias.map((cuenta) => ({
@@ -433,12 +482,51 @@ function onOverlayClick() {
             <legend class="text-sm font-semibold text-palette-navy">Domicilio</legend>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
-                Residencia
-                <input v-model="form.residencia" :class="inputClass" type="text" />
+                Departamento
+                <input
+                  v-model="form.departamento"
+                  :class="inputClass"
+                  type="text"
+                  list="departamentos-peru"
+                  placeholder="Seleccione o escriba"
+                  @input="onDepartamentoInput"
+                />
+                <datalist id="departamentos-peru">
+                  <option v-for="departamento in DEPARTAMENTOS_PERU" :key="departamento" :value="departamento" />
+                </datalist>
+              </label>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Provincia
+                <input
+                  v-model="form.provincia"
+                  type="text"
+                  list="provincias-peru"
+                  placeholder="Seleccione o escriba"
+                  :disabled="!provinciaHabilitada"
+                  :class="[!provinciaHabilitada ? 'cursor-not-allowed bg-slate-50' : '', inputClass]"
+                  @input="onProvinciaInput"
+                />
+                <datalist id="provincias-peru">
+                  <option v-for="provincia in provinciasDisponibles" :key="provincia" :value="provincia" />
+                </datalist>
               </label>
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                 Distrito
-                <input v-model="form.distrito" :class="inputClass" type="text" />
+                <input
+                  v-model="form.distrito"
+                  type="text"
+                  list="distritos-peru"
+                  placeholder="Seleccione o escriba"
+                  :disabled="!distritoHabilitado"
+                  :class="[!distritoHabilitado ? 'cursor-not-allowed bg-slate-50' : '', inputClass]"
+                />
+                <datalist id="distritos-peru">
+                  <option v-for="distrito in distritosDisponibles" :key="distrito" :value="distrito" />
+                </datalist>
+              </label>
+              <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Residencia
+                <input v-model="form.residencia" :class="inputClass" type="text" />
               </label>
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700 sm:col-span-2">
                 Dirección completa
