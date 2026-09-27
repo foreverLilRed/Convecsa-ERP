@@ -33,12 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { listarPersonas } from '@/services/persona/personaService'
-import {
-  GRADOS_INSTRUCCION,
-  type GradoInstruccion,
-  type PagedResponse,
-  type PersonaResumenDTO,
-} from '@/types/persona'
+import { type PagedResponse, type PersonaResumenDTO } from '@/types/persona'
 
 const PAGE_SIZE = 20
 const SORTABLE = ['apellidos', 'nombres', 'numeroDocumento', 'createdAt'] as const
@@ -60,10 +55,6 @@ const sort = computed(() => `${sortField.value},${sortDir.value}`)
 const displayPage = computed(() => page.value + 1)
 const totalPages = computed(() => data.value?.totalPages ?? 0)
 const totalElements = computed(() => data.value?.totalElements ?? 0)
-
-function labelGrado(value: GradoInstruccion): string {
-  return GRADOS_INSTRUCCION.find((grado) => grado.value === value)?.label ?? value
-}
 
 function ariaSort(field: SortField): 'ascending' | 'descending' | 'none' {
   if (sortField.value !== field) {
@@ -221,16 +212,13 @@ watch([page, q, sort, () => props.reloadKey], () => {
                 :aria-label="sortLabel('numeroDocumento')"
                 @click="toggleSort('numeroDocumento')"
               >
-                Documento
+                Doc. de identidad
                 <ArrowUpIcon v-if="sortField === 'numeroDocumento' && sortDir === 'asc'" class="size-3.5" />
                 <ArrowDownIcon v-else-if="sortField === 'numeroDocumento'" class="size-3.5" />
                 <ArrowUpDownIcon v-else class="size-3.5 opacity-40" />
               </Button>
             </TableHead>
             <TableHead class="px-3">Correo</TableHead>
-            <TableHead class="px-3">Grado</TableHead>
-            <TableHead class="px-3">Departamento</TableHead>
-            <TableHead class="px-3">Distrito</TableHead>
             <TableHead :aria-sort="ariaSort('createdAt')" class="px-3">
               <Button
                 variant="ghost"
@@ -246,10 +234,13 @@ watch([page, q, sort, () => props.reloadKey], () => {
                 <ArrowUpDownIcon v-else class="size-3.5 opacity-40" />
               </Button>
             </TableHead>
+            <TableHead class="px-3">
+              <span class="sr-only">Indicadores</span>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty v-if="!data?.content.length" :colspan="8">
+          <TableEmpty v-if="!data?.content.length" :colspan="6">
             <span class="text-slate-500">No hay personas registradas.</span>
           </TableEmpty>
           <TableRow v-for="persona in data?.content ?? []" :key="persona.id">
@@ -259,11 +250,32 @@ watch([page, q, sort, () => props.reloadKey], () => {
             <TableCell class="max-w-[14rem] truncate px-3 py-3" :title="persona.correo">
               {{ persona.correo }}
             </TableCell>
-            <TableCell class="px-3 py-3">{{ labelGrado(persona.gradoInstruccion) }}</TableCell>
-            <TableCell class="px-3 py-3">{{ persona.departamento }}</TableCell>
-            <TableCell class="px-3 py-3">{{ persona.distrito }}</TableCell>
             <TableCell class="px-3 py-3 whitespace-nowrap text-slate-500">
               {{ new Date(persona.createdAt).toLocaleDateString('es-PE') }}
+            </TableCell>
+            <TableCell class="px-3 py-3">
+              <div class="flex items-center gap-1.5" aria-label="Indicadores pendientes">
+                <span
+                  class="size-3.5 rounded-full bg-emerald-500"
+                  title="Activo"
+                  aria-label="Indicador activo"
+                />
+                <span
+                  class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
+                  title="Pendiente"
+                  aria-hidden="true"
+                />
+                <span
+                  class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
+                  title="Pendiente"
+                  aria-hidden="true"
+                />
+                <span
+                  class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
+                  title="Pendiente"
+                  aria-hidden="true"
+                />
+              </div>
             </TableCell>
           </TableRow>
         </TableBody>
