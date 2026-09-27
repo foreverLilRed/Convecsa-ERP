@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
 
 import UbigeoCombobox from '@/components/gestion-humana/UbigeoCombobox.vue'
 import {
@@ -285,12 +286,18 @@ async function onSubmit() {
   const message = validate()
   if (message) {
     error.value = message
+    toast.error(message)
     return
   }
 
   submitting.value = true
   try {
-    await crearPersona(toPersonaRequest(form))
+    await toast.promise(crearPersona(toPersonaRequest(form)), {
+      loading: 'Guardando persona…',
+      success: 'Persona registrada',
+      error: (err: unknown) =>
+        err instanceof Error ? err.message : 'No se pudo registrar la persona.',
+    })?.unwrap()
     emit('created')
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'No se pudo registrar la persona.'
