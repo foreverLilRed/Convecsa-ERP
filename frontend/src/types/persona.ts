@@ -78,6 +78,36 @@ export type CuentaBancariaDTO = {
   principal: boolean
 }
 
+export type PersonaResumenDTO = {
+  id: number
+  apellidos: string
+  nombres: string
+  tipoDocumento: TipoDocumento
+  numeroDocumento: string
+  correo: string
+  gradoInstruccion: GradoInstruccion
+  departamento: string
+  distrito: string
+  createdAt: string
+}
+
+export type PagedResponse<T> = {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+  first: boolean
+  last: boolean
+}
+
+export type PersonaListQuery = {
+  page?: number
+  size?: number
+  sort?: string
+  q?: string
+}
+
 export type PersonaDTO = {
   id: number
   apellidos: string

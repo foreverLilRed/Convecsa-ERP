@@ -5,6 +5,7 @@ import com.convecsa.erp.persona.dto.CuentaBancariaDTO;
 import com.convecsa.erp.persona.dto.CuentaBancariaRequest;
 import com.convecsa.erp.persona.dto.PersonaDTO;
 import com.convecsa.erp.persona.dto.PersonaRequest;
+import com.convecsa.erp.persona.dto.PersonaResumenDTO;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.entity.PersonaCelular;
 import com.convecsa.erp.persona.entity.PersonaCuentaBancaria;
@@ -85,6 +86,21 @@ public class PersonaMapper {
                                 cuenta.getCci(),
                                 cuenta.isPrincipal()))
                         .toList())
+                .createdAt(persona.getCreatedAt())
+                .build();
+    }
+
+    public PersonaResumenDTO toResumen(Persona persona) {
+        return PersonaResumenDTO.builder()
+                .id(persona.getId())
+                .apellidos(persona.getApellidos())
+                .nombres(persona.getNombres())
+                .tipoDocumento(persona.getTipoDocumento())
+                .numeroDocumento(persona.getNumeroDocumento())
+                .correo(persona.getCorreo())
+                .gradoInstruccion(persona.getGradoInstruccion())
+                .departamento(persona.getDepartamento())
+                .distrito(persona.getDistrito())
                 .createdAt(persona.getCreatedAt())
                 .build();
     }

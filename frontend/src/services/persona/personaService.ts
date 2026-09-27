@@ -1,9 +1,31 @@
 import { apiRequest } from '@/services/http'
-import type { PersonaDTO, PersonaRequest } from '@/types/persona'
+import type { PagedResponse, PersonaDTO, PersonaListQuery, PersonaRequest, PersonaResumenDTO } from '@/types/persona'
 
 export function crearPersona(request: PersonaRequest): Promise<PersonaDTO> {
   return apiRequest<PersonaDTO>('/api/gestion-humana/personas', {
     method: 'POST',
     body: JSON.stringify(request),
   })
+}
+
+export function listarPersonas(query: PersonaListQuery = {}): Promise<PagedResponse<PersonaResumenDTO>> {
+  const params = new URLSearchParams()
+  if (query.page !== undefined) {
+    params.set('page', String(query.page))
+  }
+  if (query.size !== undefined) {
+    params.set('size', String(query.size))
+  }
+  if (query.sort) {
+    params.set('sort', query.sort)
+  }
+  if (query.q?.trim()) {
+    params.set('q', query.q.trim())
+  }
+
+  const search = params.toString()
+  const path = search
+    ? `/api/gestion-humana/personas?${search}`
+    : '/api/gestion-humana/personas'
+  return apiRequest<PagedResponse<PersonaResumenDTO>>(path)
 }
