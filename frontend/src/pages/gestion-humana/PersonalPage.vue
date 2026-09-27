@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { PlusIcon } from '@lucide/vue'
 import { ref } from 'vue'
 
 import PersonaListado from '@/components/gestion-humana/PersonaListado.vue'
 import PersonaRegistroModal from '@/components/gestion-humana/PersonaRegistroModal.vue'
+import { Button } from '@/components/ui/button'
 
 const modalOpen = ref(false)
 const listadoKey = ref(0)
@@ -21,16 +23,17 @@ function onPersonaCreated() {
       Consulte el padrón de personal y registre nuevas personas.
     </p>
 
-    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5">
+    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <PersonaListado :reload-key="listadoKey">
         <template #actions>
-          <button
-            class="inline-flex items-center justify-center rounded-lg bg-palette-navy px-4 py-2 text-sm font-semibold text-white hover:bg-palette-royal"
+          <Button
+            class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
             type="button"
             @click="modalOpen = true"
           >
+            <PlusIcon data-icon="inline-start" />
             Registrar persona
-          </button>
+          </Button>
         </template>
       </PersonaListado>
     </div>

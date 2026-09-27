@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { XIcon } from '@lucide/vue'
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
 import UbigeoCombobox from '@/components/gestion-humana/UbigeoCombobox.vue'
+import { Button } from '@/components/ui/button'
 import {
   DEPARTAMENTOS_PERU,
   findDepartamento,
@@ -83,17 +85,27 @@ function unlockBodyScroll() {
   document.body.style.paddingRight = ''
 }
 
+function onDocumentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && props.open && !submitting.value) {
+    emit('close')
+  }
+}
+
 watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
       resetForm()
       lockBodyScroll()
+      document.addEventListener('keydown', onDocumentKeydown)
+    } else {
+      document.removeEventListener('keydown', onDocumentKeydown)
     }
   },
 )
 
 onUnmounted(() => {
+  document.removeEventListener('keydown', onDocumentKeydown)
   revokeFotoUrl()
   unlockBodyScroll()
 })
@@ -339,17 +351,17 @@ function onOverlayClick() {
               Registrar persona
             </h2>
           </div>
-          <button
-            class="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-500 hover:bg-palette-ice hover:text-palette-navy disabled:cursor-not-allowed disabled:opacity-50"
+          <Button
+            variant="ghost"
+            size="icon"
+            class="shrink-0"
             type="button"
             aria-label="Cerrar"
             :disabled="submitting"
             @click="emit('close')"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M18 6 6 18" />
-            </svg>
-          </button>
+            <XIcon />
+          </Button>
         </header>
 
         <form class="max-h-[75vh] space-y-8 overflow-y-auto px-5 py-5" @submit.prevent="onSubmit">
@@ -615,24 +627,28 @@ function onOverlayClick() {
             </div>
           </fieldset>
 
-          <p v-if="error" class="text-sm font-medium text-red-600">{{ error }}</p>
+          <p v-if="error" id="persona-form-error" class="text-sm font-medium text-red-600" role="alert">
+            {{ error }}
+          </p>
 
-          <footer class="flex justify-end gap-2 border-t border-palette-cyan/70 pt-4">
-            <button
-              class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          <footer class="flex flex-col-reverse gap-3 border-t border-palette-cyan/70 pt-4 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              class="h-10 px-4"
               type="button"
               :disabled="submitting"
               @click="emit('close')"
             >
               Cancelar
-            </button>
-            <button
-              class="rounded-lg bg-palette-navy px-4 py-2 text-sm font-semibold text-white hover:bg-palette-royal disabled:cursor-not-allowed disabled:opacity-50"
+            </Button>
+            <Button
+              class="h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
               type="submit"
               :disabled="submitting"
+              :aria-describedby="error ? 'persona-form-error' : undefined"
             >
               {{ submitting ? 'Guardando…' : 'Guardar' }}
-            </button>
+            </Button>
           </footer>
         </form>
       </section>

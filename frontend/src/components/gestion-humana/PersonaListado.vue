@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  SearchIcon,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   Pagination,
   PaginationContent,
@@ -17,6 +25,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableEmpty,
   TableHead,
@@ -33,6 +42,7 @@ import {
 
 const PAGE_SIZE = 20
 const SORTABLE = ['apellidos', 'nombres', 'numeroDocumento', 'createdAt'] as const
+type SortField = (typeof SORTABLE)[number]
 
 const props = defineProps<{
   reloadKey?: number
@@ -41,7 +51,7 @@ const props = defineProps<{
 const searchInput = ref('')
 const q = ref('')
 const page = ref(0)
-const sortField = ref<(typeof SORTABLE)[number]>('apellidos')
+const sortField = ref<SortField>('apellidos')
 const sortDir = ref<'asc' | 'desc'>('asc')
 const loading = ref(true)
 const data = ref<PagedResponse<PersonaResumenDTO> | null>(null)
@@ -55,14 +65,29 @@ function labelGrado(value: GradoInstruccion): string {
   return GRADOS_INSTRUCCION.find((grado) => grado.value === value)?.label ?? value
 }
 
-function sortIndicator(field: (typeof SORTABLE)[number]): string {
+function ariaSort(field: SortField): 'ascending' | 'descending' | 'none' {
   if (sortField.value !== field) {
-    return ''
+    return 'none'
   }
-  return sortDir.value === 'asc' ? ' ↑' : ' ↓'
+  return sortDir.value === 'asc' ? 'ascending' : 'descending'
 }
 
-function toggleSort(field: (typeof SORTABLE)[number]) {
+function sortLabel(field: SortField): string {
+  const labels: Record<SortField, string> = {
+    apellidos: 'apellidos',
+    nombres: 'nombres',
+    numeroDocumento: 'documento',
+    createdAt: 'fecha de registro',
+  }
+  if (sortField.value !== field) {
+    return `Ordenar por ${labels[field]}`
+  }
+  return sortDir.value === 'asc'
+    ? `${labels[field]}, orden ascendente. Activar para descendente`
+    : `${labels[field]}, orden descendente. Activar para ascendente`
+}
+
+function toggleSort(field: SortField) {
   if (sortField.value === field) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
   } else {
@@ -107,53 +132,118 @@ watch([page, q, sort, () => props.reloadKey], () => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-sm text-slate-500">Personas registradas en el padrón de personal.</p>
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Input
-          v-model="searchInput"
-          class="sm:max-w-xs"
-          type="search"
-          placeholder="Buscar por nombre, documento o correo"
-        />
-        <slot name="actions" />
+  <div class="space-y-5">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div class="min-w-0">
+        <h3 class="text-base font-semibold text-palette-navy">Padrón de personas</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Busque por nombre, documento o correo. Pulse una cabecera para ordenar.
+        </p>
+      </div>
+      <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
+        <div class="w-full sm:min-w-[18rem] sm:flex-1 lg:w-80 lg:flex-none">
+          <label class="sr-only" for="persona-busqueda">Buscar personas</label>
+          <InputGroup>
+            <InputGroupAddon>
+              <SearchIcon class="size-4" aria-hidden="true" />
+            </InputGroupAddon>
+            <InputGroupInput
+              id="persona-busqueda"
+              v-model="searchInput"
+              type="search"
+              placeholder="Nombre, documento o correo"
+              autocomplete="off"
+            />
+          </InputGroup>
+        </div>
+        <div class="shrink-0">
+          <slot name="actions" />
+        </div>
       </div>
     </div>
 
-    <div v-if="loading" class="overflow-hidden rounded-lg border border-palette-cyan/60">
+    <div
+      v-if="loading"
+      class="overflow-hidden rounded-lg border border-palette-cyan/60"
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <span class="sr-only">Cargando listado de personas</span>
       <div class="space-y-3 p-4">
-        <Skeleton class="h-8 w-full" />
-        <Skeleton v-for="row in 8" :key="row" class="h-10 w-full" />
+        <Skeleton class="h-9 w-full" />
+        <Skeleton v-for="row in 8" :key="row" class="h-11 w-full" />
       </div>
     </div>
 
     <div v-else class="overflow-hidden rounded-lg border border-palette-cyan/60">
       <Table>
+        <TableCaption class="sr-only">
+          Listado paginado de personas del padrón de personal.
+        </TableCaption>
         <TableHeader>
           <TableRow>
-            <TableHead>
-              <Button variant="ghost" size="sm" class="-ml-2" type="button" @click="toggleSort('apellidos')">
-                Apellidos{{ sortIndicator('apellidos') }}
+            <TableHead :aria-sort="ariaSort('apellidos')" class="px-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-8 gap-1.5 px-2.5 font-medium"
+                type="button"
+                :aria-label="sortLabel('apellidos')"
+                @click="toggleSort('apellidos')"
+              >
+                Apellidos
+                <ArrowUpIcon v-if="sortField === 'apellidos' && sortDir === 'asc'" class="size-3.5" />
+                <ArrowDownIcon v-else-if="sortField === 'apellidos'" class="size-3.5" />
+                <ArrowUpDownIcon v-else class="size-3.5 opacity-40" />
               </Button>
             </TableHead>
-            <TableHead>
-              <Button variant="ghost" size="sm" class="-ml-2" type="button" @click="toggleSort('nombres')">
-                Nombres{{ sortIndicator('nombres') }}
+            <TableHead :aria-sort="ariaSort('nombres')" class="px-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-8 gap-1.5 px-2.5 font-medium"
+                type="button"
+                :aria-label="sortLabel('nombres')"
+                @click="toggleSort('nombres')"
+              >
+                Nombres
+                <ArrowUpIcon v-if="sortField === 'nombres' && sortDir === 'asc'" class="size-3.5" />
+                <ArrowDownIcon v-else-if="sortField === 'nombres'" class="size-3.5" />
+                <ArrowUpDownIcon v-else class="size-3.5 opacity-40" />
               </Button>
             </TableHead>
-            <TableHead>
-              <Button variant="ghost" size="sm" class="-ml-2" type="button" @click="toggleSort('numeroDocumento')">
-                Documento{{ sortIndicator('numeroDocumento') }}
+            <TableHead :aria-sort="ariaSort('numeroDocumento')" class="px-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-8 gap-1.5 px-2.5 font-medium"
+                type="button"
+                :aria-label="sortLabel('numeroDocumento')"
+                @click="toggleSort('numeroDocumento')"
+              >
+                Documento
+                <ArrowUpIcon v-if="sortField === 'numeroDocumento' && sortDir === 'asc'" class="size-3.5" />
+                <ArrowDownIcon v-else-if="sortField === 'numeroDocumento'" class="size-3.5" />
+                <ArrowUpDownIcon v-else class="size-3.5 opacity-40" />
               </Button>
             </TableHead>
-            <TableHead>Correo</TableHead>
-            <TableHead>Grado</TableHead>
-            <TableHead>Departamento</TableHead>
-            <TableHead>Distrito</TableHead>
-            <TableHead>
-              <Button variant="ghost" size="sm" class="-ml-2" type="button" @click="toggleSort('createdAt')">
-                Registro{{ sortIndicator('createdAt') }}
+            <TableHead class="px-3">Correo</TableHead>
+            <TableHead class="px-3">Grado</TableHead>
+            <TableHead class="px-3">Departamento</TableHead>
+            <TableHead class="px-3">Distrito</TableHead>
+            <TableHead :aria-sort="ariaSort('createdAt')" class="px-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-8 gap-1.5 px-2.5 font-medium"
+                type="button"
+                :aria-label="sortLabel('createdAt')"
+                @click="toggleSort('createdAt')"
+              >
+                Registro
+                <ArrowUpIcon v-if="sortField === 'createdAt' && sortDir === 'asc'" class="size-3.5" />
+                <ArrowDownIcon v-else-if="sortField === 'createdAt'" class="size-3.5" />
+                <ArrowUpDownIcon v-else class="size-3.5 opacity-40" />
               </Button>
             </TableHead>
           </TableRow>
@@ -163,14 +253,16 @@ watch([page, q, sort, () => props.reloadKey], () => {
             <span class="text-slate-500">No hay personas registradas.</span>
           </TableEmpty>
           <TableRow v-for="persona in data?.content ?? []" :key="persona.id">
-            <TableCell class="font-medium">{{ persona.apellidos }}</TableCell>
-            <TableCell>{{ persona.nombres }}</TableCell>
-            <TableCell>{{ persona.tipoDocumento }} {{ persona.numeroDocumento }}</TableCell>
-            <TableCell>{{ persona.correo }}</TableCell>
-            <TableCell>{{ labelGrado(persona.gradoInstruccion) }}</TableCell>
-            <TableCell>{{ persona.departamento }}</TableCell>
-            <TableCell>{{ persona.distrito }}</TableCell>
-            <TableCell class="whitespace-nowrap text-slate-500">
+            <TableCell class="px-3 py-3 font-medium">{{ persona.apellidos }}</TableCell>
+            <TableCell class="px-3 py-3">{{ persona.nombres }}</TableCell>
+            <TableCell class="px-3 py-3">{{ persona.tipoDocumento }} {{ persona.numeroDocumento }}</TableCell>
+            <TableCell class="max-w-[14rem] truncate px-3 py-3" :title="persona.correo">
+              {{ persona.correo }}
+            </TableCell>
+            <TableCell class="px-3 py-3">{{ labelGrado(persona.gradoInstruccion) }}</TableCell>
+            <TableCell class="px-3 py-3">{{ persona.departamento }}</TableCell>
+            <TableCell class="px-3 py-3">{{ persona.distrito }}</TableCell>
+            <TableCell class="px-3 py-3 whitespace-nowrap text-slate-500">
               {{ new Date(persona.createdAt).toLocaleDateString('es-PE') }}
             </TableCell>
           </TableRow>
@@ -179,21 +271,24 @@ watch([page, q, sort, () => props.reloadKey], () => {
     </div>
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <p class="text-xs text-slate-500">
+      <p class="text-sm text-slate-500" aria-live="polite">
         Página {{ displayPage }} de {{ Math.max(totalPages, 1) }} · {{ totalElements }} registros
       </p>
       <Pagination
         v-if="totalPages > 1"
         v-slot="{ page: current }"
+        class="mx-0 w-auto justify-start sm:justify-end"
         :page="displayPage"
         :items-per-page="PAGE_SIZE"
         :total="totalElements"
         :disabled="loading"
+        aria-label="Paginación del padrón"
         @update:page="onDisplayPageChange"
       >
         <PaginationContent v-slot="{ items }">
           <PaginationPrevious>
-            <span class="hidden sm:block">Anterior</span>
+            <ChevronLeftIcon data-icon="inline-start" class="cn-rtl-flip" />
+            <span>Anterior</span>
           </PaginationPrevious>
           <template v-for="(item, index) in items" :key="index">
             <PaginationItem
@@ -206,7 +301,8 @@ watch([page, q, sort, () => props.reloadKey], () => {
             <PaginationEllipsis v-else-if="item.type === 'ellipsis'" :index="index" />
           </template>
           <PaginationNext>
-            <span class="hidden sm:block">Siguiente</span>
+            <span>Siguiente</span>
+            <ChevronRightIcon data-icon="inline-end" class="cn-rtl-flip" />
           </PaginationNext>
         </PaginationContent>
       </Pagination>
