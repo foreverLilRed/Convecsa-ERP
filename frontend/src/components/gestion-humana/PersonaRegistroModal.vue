@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 
+import UbigeoCombobox from '@/components/gestion-humana/UbigeoCombobox.vue'
 import {
   DEPARTAMENTOS_PERU,
   findDepartamento,
@@ -483,46 +484,31 @@ function onOverlayClick() {
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                 Departamento
-                <input
+                <UbigeoCombobox
                   v-model="form.departamento"
-                  :class="inputClass"
-                  type="text"
-                  list="departamentos-peru"
+                  :options="DEPARTAMENTOS_PERU"
                   placeholder="Seleccione o escriba"
-                  @input="onDepartamentoInput"
+                  @update:model-value="onDepartamentoInput"
                 />
-                <datalist id="departamentos-peru">
-                  <option v-for="departamento in DEPARTAMENTOS_PERU" :key="departamento" :value="departamento" />
-                </datalist>
               </label>
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                 Provincia
-                <input
+                <UbigeoCombobox
                   v-model="form.provincia"
-                  type="text"
-                  list="provincias-peru"
+                  :options="provinciasDisponibles"
                   placeholder="Seleccione o escriba"
                   :disabled="!provinciaHabilitada"
-                  :class="[!provinciaHabilitada ? 'cursor-not-allowed bg-slate-50' : '', inputClass]"
-                  @input="onProvinciaInput"
+                  @update:model-value="onProvinciaInput"
                 />
-                <datalist id="provincias-peru">
-                  <option v-for="provincia in provinciasDisponibles" :key="provincia" :value="provincia" />
-                </datalist>
               </label>
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                 Distrito
-                <input
+                <UbigeoCombobox
                   v-model="form.distrito"
-                  type="text"
-                  list="distritos-peru"
+                  :options="distritosDisponibles"
                   placeholder="Seleccione o escriba"
                   :disabled="!distritoHabilitado"
-                  :class="[!distritoHabilitado ? 'cursor-not-allowed bg-slate-50' : '', inputClass]"
                 />
-                <datalist id="distritos-peru">
-                  <option v-for="distrito in distritosDisponibles" :key="distrito" :value="distrito" />
-                </datalist>
               </label>
               <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                 Residencia
