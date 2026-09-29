@@ -1,0 +1,14 @@
+services:
+  backend:
+    build:
+      context: ./backend/erp
+      dockerfile: Dockerfile
+    image: convecsa-erp-backend:local
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://host.docker.internal:5432/convecsa}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-1343}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

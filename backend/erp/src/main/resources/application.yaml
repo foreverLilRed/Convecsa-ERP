@@ -2,7 +2,7 @@ spring:
   application:
     name: erp
   datasource:
-    url: jdbc:postgresql://localhost:5432/convecsa
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/convecsa}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:1343}
     driver-class-name: org.postgresql.Driver
