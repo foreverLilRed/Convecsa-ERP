@@ -50,9 +50,14 @@ docker build -t convecsa-erp-backend:local .\backend\erp
 
 ## Deploy VPS
 
-El API de producción se publica solo por Nginx en `https://convecsa-preview.atereal.com`. Postgres vive en la red interna de Docker y no tiene puerto en el host.
-
 Ruta en el VPS: `/home/ubuntu/apps/convecsa-erp`.
+
+| Dominio | Qué sirve |
+|---|---|
+| `https://convecsa-preview.atereal.com` | Frontend estático (`frontend/dist`) |
+| `https://convecsa-preview-backend.atereal.com` | API Spring Boot → `127.0.0.1:8093` |
+
+Postgres vive en la red interna de Docker y no tiene puerto en el host.
 
 ### Secretos de GitHub
 
@@ -65,26 +70,31 @@ En el repositorio, Settings → Secrets and variables → Actions:
 | `VPS_SSH_KEY` | clave privada SSH con acceso al VPS |
 | `POSTGRES_PASSWORD` | contraseña de PostgreSQL en producción |
 
-### Cómo se dispara
+### Backend
 
 - Push a `main` que toque `backend/erp/**`, `docker-compose.prod.yml` o el workflow.
-- O ejecución manual: Actions → **Deploy backend** → Run workflow.
+- O Actions → **Deploy backend** → Run workflow.
 
-El workflow copia los archivos, escribe `.env.prod` en el VPS y corre:
+Copia el código, escribe `.env.prod` y corre `docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build`. CORS de producción: `https://convecsa-preview.atereal.com`.
 
-```bash
-docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
-```
+### Frontend
+
+El build se hace en GitHub Actions (`npm ci` + `npm run build`) con `VITE_API_URL=https://convecsa-preview-backend.atereal.com`. El `dist` se rsync a `/home/ubuntu/apps/convecsa-erp/frontend/dist/`.
+
+- Push a `main` que toque `frontend/**`, `deploy/nginx/**` o el workflow.
+- O Actions → **Deploy frontend** → Run workflow.
 
 ### Nginx (una vez en el VPS)
 
-El perfil SSH no puede usar `sudo`. Tras el primer sync, en el VPS:
+El perfil SSH no puede usar `sudo`. DNS de ambos dominios debe apuntar a `51.222.13.100`. Tras el primer sync:
 
 ```bash
 sudo cp /home/ubuntu/apps/convecsa-erp/deploy/nginx/convecsa-preview.atereal.com /etc/nginx/sites-available/convecsa-preview.atereal.com
+sudo cp /home/ubuntu/apps/convecsa-erp/deploy/nginx/convecsa-preview-backend.atereal.com /etc/nginx/sites-available/convecsa-preview-backend.atereal.com
 sudo ln -sfn /etc/nginx/sites-available/convecsa-preview.atereal.com /etc/nginx/sites-enabled/convecsa-preview.atereal.com
+sudo ln -sfn /etc/nginx/sites-available/convecsa-preview-backend.atereal.com /etc/nginx/sites-enabled/convecsa-preview-backend.atereal.com
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d convecsa-preview.atereal.com --non-interactive --agree-tos --redirect
+sudo certbot --nginx -d convecsa-preview.atereal.com -d convecsa-preview-backend.atereal.com --non-interactive --agree-tos --redirect
 ```
 
 No tocar `erp.atereal.com` (Odoo). El puerto `8092` ya lo usa Renkey; Convecsa usa `8093`.
@@ -92,5 +102,6 @@ No tocar `erp.atereal.com` (Odoo). El puerto `8092` ya lo usa Renkey; Convecsa u
 ### Validar
 
 ```bash
-curl https://convecsa-preview.atereal.com/api/gestion-humana/personas?page=0&size=1
+curl -I https://convecsa-preview.atereal.com
+curl https://convecsa-preview-backend.atereal.com/api/gestion-humana/personas?page=0&size=1
 ```

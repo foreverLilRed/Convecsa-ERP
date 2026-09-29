@@ -26,6 +26,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-convecsa}
       DB_USER: ${POSTGRES_USER:-convecsa}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      APP_CORS_ORIGINS: https://convecsa-preview.atereal.com
     depends_on:
       postgres:
         condition: service_healthy

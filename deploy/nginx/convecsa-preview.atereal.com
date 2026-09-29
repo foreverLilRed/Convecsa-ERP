@@ -3,15 +3,19 @@ server {
     listen [::]:80;
     server_name convecsa-preview.atereal.com;
     client_max_body_size 16M;
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+    root /home/ubuntu/apps/convecsa-erp/frontend/dist;
+    index index.html;
+
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
 
     location / {
-        proxy_pass http://127.0.0.1:8093;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
-        proxy_send_timeout 60s;
+        try_files $uri $uri/ /index.html;
     }
 }
