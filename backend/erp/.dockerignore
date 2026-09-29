@@ -6,7 +6,7 @@
 .gradle
 build/
 target/
-erp/
+/erp/
 HELP.md
 .env
 .env.*

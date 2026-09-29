@@ -40,7 +40,7 @@ jobs:
             "${VPS_USER}@${VPS_HOST}:/home/ubuntu/apps/convecsa-erp/deploy/nginx/"
           rsync -az --delete \
             --exclude 'target/' \
-            --exclude 'erp/' \
+            --exclude '/erp/' \
             --exclude '.idea/' \
             --exclude '.gradle/' \
             backend/erp/ \
