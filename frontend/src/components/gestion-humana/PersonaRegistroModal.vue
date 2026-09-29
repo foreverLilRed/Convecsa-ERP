@@ -187,6 +187,19 @@ function setCuentaPrincipal(index: number) {
   })
 }
 
+function addExperiencia() {
+  form.experienciasLaborales.push({
+    organizacion: '',
+    cargo: '',
+    fechaInicioLaboral: '',
+    fechaFin: '',
+  })
+}
+
+function removeExperiencia(index: number) {
+  form.experienciasLaborales.splice(index, 1)
+}
+
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, '')
 }
@@ -283,6 +296,21 @@ function validate(): { message: string; seccion: SeccionPersona } | null {
   if (!form.provincia.trim()) return { message: 'Ingrese la provincia.', seccion: 'identidad' }
   if (!form.distrito.trim()) return { message: 'Ingrese el distrito.', seccion: 'identidad' }
   if (!form.residencia.trim()) return { message: 'Ingrese la residencia.', seccion: 'identidad' }
+
+  for (const [index, experiencia] of form.experienciasLaborales.entries()) {
+    if (!experiencia.organizacion.trim() || !experiencia.cargo.trim() || !experiencia.fechaInicioLaboral) {
+      return {
+        message: `Complete organización, cargo e inicio laboral en la fila ${index + 1}.`,
+        seccion: 'experiencia',
+      }
+    }
+    if (experiencia.fechaFin && experiencia.fechaFin < experiencia.fechaInicioLaboral) {
+      return {
+        message: `La fecha de fin de la fila ${index + 1} no puede ser menor que la de inicio.`,
+        seccion: 'experiencia',
+      }
+    }
+  }
 
   for (const [index, cuenta] of form.cuentasBancarias.entries()) {
     if (!cuenta.banco || !cuenta.numeroCuenta.trim()) {
@@ -573,9 +601,51 @@ function onOverlayClick() {
             </TabsContent>
 
             <TabsContent value="experiencia">
-              <p class="rounded-lg border border-dashed border-palette-cyan/70 bg-palette-soft/50 px-4 py-12 text-center text-sm text-slate-500">
-                Experiencia laboral se implementará más adelante.
-              </p>
+              <fieldset>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <legend class="text-sm font-semibold text-palette-navy">Experiencia laboral</legend>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Puede registrar varios trabajos. La fecha de fin es opcional si sigue laborando.
+                    </p>
+                  </div>
+                  <Button variant="outline" class="h-9 shrink-0 px-3" type="button" @click="addExperiencia">
+                    Agregar experiencia
+                  </Button>
+                </div>
+
+                <div v-if="form.experienciasLaborales.length === 0" class="mt-4 text-sm text-slate-400">
+                  Sin experiencias registradas.
+                </div>
+
+                <div
+                  v-for="(experiencia, index) in form.experienciasLaborales"
+                  :key="index"
+                  class="mt-3 grid gap-3 rounded-lg border border-palette-cyan/60 bg-palette-soft/60 p-3 sm:grid-cols-2"
+                >
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Organización
+                    <input v-model="experiencia.organizacion" :class="inputClass" type="text" />
+                  </label>
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Cargo
+                    <input v-model="experiencia.cargo" :class="inputClass" type="text" />
+                  </label>
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Inicio laboral
+                    <input v-model="experiencia.fechaInicioLaboral" :class="inputClass" type="date" />
+                  </label>
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Fecha fin
+                    <input v-model="experiencia.fechaFin" :class="inputClass" type="date" />
+                  </label>
+                  <div class="flex justify-end sm:col-span-2">
+                    <Button variant="ghost" size="sm" class="h-8 px-3" type="button" @click="removeExperiencia(index)">
+                      Quitar
+                    </Button>
+                  </div>
+                </div>
+              </fieldset>
             </TabsContent>
 
             <TabsContent value="banco">

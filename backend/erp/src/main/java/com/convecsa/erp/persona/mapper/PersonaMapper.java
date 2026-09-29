@@ -3,12 +3,15 @@ package com.convecsa.erp.persona.mapper;
 import com.convecsa.erp.persona.dto.CelularDTO;
 import com.convecsa.erp.persona.dto.CuentaBancariaDTO;
 import com.convecsa.erp.persona.dto.CuentaBancariaRequest;
+import com.convecsa.erp.persona.dto.ExperienciaLaboralDTO;
+import com.convecsa.erp.persona.dto.ExperienciaLaboralRequest;
 import com.convecsa.erp.persona.dto.PersonaDTO;
 import com.convecsa.erp.persona.dto.PersonaRequest;
 import com.convecsa.erp.persona.dto.PersonaResumenDTO;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.entity.PersonaCelular;
 import com.convecsa.erp.persona.entity.PersonaCuentaBancaria;
+import com.convecsa.erp.persona.entity.PersonaExperienciaLaboral;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -53,6 +56,17 @@ public class PersonaMapper {
             }
         }
 
+        if (request.getExperienciasLaborales() != null) {
+            for (ExperienciaLaboralRequest experienciaRequest : request.getExperienciasLaborales()) {
+                PersonaExperienciaLaboral experiencia = new PersonaExperienciaLaboral();
+                experiencia.setOrganizacion(experienciaRequest.getOrganizacion().trim());
+                experiencia.setCargo(experienciaRequest.getCargo().trim());
+                experiencia.setFechaInicioLaboral(experienciaRequest.getFechaInicioLaboral());
+                experiencia.setFechaFin(experienciaRequest.getFechaFin());
+                persona.addExperienciaLaboral(experiencia);
+            }
+        }
+
         return persona;
     }
 
@@ -85,6 +99,14 @@ public class PersonaMapper {
                                 cuenta.getNumeroCuenta(),
                                 cuenta.getCci(),
                                 cuenta.isPrincipal()))
+                        .toList())
+                .experienciasLaborales(persona.getExperienciasLaborales().stream()
+                        .map(experiencia -> new ExperienciaLaboralDTO(
+                                experiencia.getId(),
+                                experiencia.getOrganizacion(),
+                                experiencia.getCargo(),
+                                experiencia.getFechaInicioLaboral(),
+                                experiencia.getFechaFin()))
                         .toList())
                 .createdAt(persona.getCreatedAt())
                 .build();

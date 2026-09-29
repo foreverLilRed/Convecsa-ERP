@@ -82,6 +82,9 @@ public class PersonaRequest {
     @Valid
     private List<CuentaBancariaRequest> cuentasBancarias = new ArrayList<>();
 
+    @Valid
+    private List<ExperienciaLaboralRequest> experienciasLaborales = new ArrayList<>();
+
     @AssertTrue(message = "Las fechas de emisión y caducidad del DNI son obligatorias")
     public boolean isFechasDniValidas() {
         if (tipoDocumento != TipoDocumento.DNI) {

@@ -16,6 +16,13 @@ export type CuentaBancariaForm = {
   principal: boolean
 }
 
+export type ExperienciaLaboralForm = {
+  organizacion: string
+  cargo: string
+  fechaInicioLaboral: string
+  fechaFin: string
+}
+
 export type PersonaForm = {
   apellidos: string
   nombres: string
@@ -34,6 +41,7 @@ export type PersonaForm = {
   distrito: string
   residencia: string
   cuentasBancarias: CuentaBancariaForm[]
+  experienciasLaborales: ExperienciaLaboralForm[]
   fotoUrl: string | null
 }
 
@@ -42,6 +50,13 @@ export type CuentaBancariaRequest = {
   numeroCuenta: string
   cci: string
   principal: boolean
+}
+
+export type ExperienciaLaboralRequest = {
+  organizacion: string
+  cargo: string
+  fechaInicioLaboral: string
+  fechaFin: string | null
 }
 
 export type PersonaRequest = {
@@ -63,6 +78,7 @@ export type PersonaRequest = {
   residencia: string
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaRequest[]
+  experienciasLaborales: ExperienciaLaboralRequest[]
 }
 
 export type CelularDTO = {
@@ -76,6 +92,14 @@ export type CuentaBancariaDTO = {
   numeroCuenta: string
   cci: string
   principal: boolean
+}
+
+export type ExperienciaLaboralDTO = {
+  id: number
+  organizacion: string
+  cargo: string
+  fechaInicioLaboral: string
+  fechaFin: string | null
 }
 
 export type PersonaResumenDTO = {
@@ -128,6 +152,7 @@ export type PersonaDTO = {
   residencia: string
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaDTO[]
+  experienciasLaborales: ExperienciaLaboralDTO[]
   createdAt: string
 }
 
@@ -168,6 +193,7 @@ export function createEmptyPersonaForm(): PersonaForm {
     distrito: '',
     residencia: '',
     cuentasBancarias: [],
+    experienciasLaborales: [],
     fotoUrl: null,
   }
 }
@@ -196,6 +222,12 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
       numeroCuenta: cuenta.numeroCuenta.trim(),
       cci: cuenta.cci.trim(),
       principal: cuenta.principal,
+    })),
+    experienciasLaborales: form.experienciasLaborales.map((experiencia) => ({
+      organizacion: experiencia.organizacion.trim(),
+      cargo: experiencia.cargo.trim(),
+      fechaInicioLaboral: experiencia.fechaInicioLaboral,
+      fechaFin: emptyToNull(experiencia.fechaFin),
     })),
   }
 }

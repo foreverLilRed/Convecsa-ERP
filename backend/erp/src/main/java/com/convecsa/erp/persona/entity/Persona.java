@@ -95,6 +95,9 @@ public class Persona {
     @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PersonaCuentaBancaria> cuentasBancarias = new ArrayList<>();
 
+    @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PersonaExperienciaLaboral> experienciasLaborales = new ArrayList<>();
+
     public void addCelular(PersonaCelular celular) {
         celular.setPersona(this);
         celulares.add(celular);
@@ -103,6 +106,11 @@ public class Persona {
     public void addCuentaBancaria(PersonaCuentaBancaria cuenta) {
         cuenta.setPersona(this);
         cuentasBancarias.add(cuenta);
+    }
+
+    public void addExperienciaLaboral(PersonaExperienciaLaboral experiencia) {
+        experiencia.setPersona(this);
+        experienciasLaborales.add(experiencia);
     }
 
     @PrePersist

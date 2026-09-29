@@ -31,5 +31,6 @@ public class PersonaDTO {
     private final String residencia;
     private final String fotoUrl;
     private final List<CuentaBancariaDTO> cuentasBancarias;
+    private final List<ExperienciaLaboralDTO> experienciasLaborales;
     private final Instant createdAt;
 }
