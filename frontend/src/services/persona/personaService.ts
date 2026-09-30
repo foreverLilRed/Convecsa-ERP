@@ -8,6 +8,17 @@ export function crearPersona(request: PersonaRequest): Promise<PersonaDTO> {
   })
 }
 
+export function obtenerPersona(id: number): Promise<PersonaDTO> {
+  return apiRequest<PersonaDTO>(`/api/gestion-humana/personas/${id}`)
+}
+
+export function actualizarPersona(id: number, request: PersonaRequest): Promise<PersonaDTO> {
+  return apiRequest<PersonaDTO>(`/api/gestion-humana/personas/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
 export function listarPersonas(query: PersonaListQuery = {}): Promise<PagedResponse<PersonaResumenDTO>> {
   const params = new URLSearchParams()
   if (query.page !== undefined) {

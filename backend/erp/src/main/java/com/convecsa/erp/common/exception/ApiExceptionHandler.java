@@ -68,4 +68,12 @@ public class ApiExceptionHandler {
         body.put("message", exception.getMessage());
         return ResponseEntity.badRequest().body(body);
     }
+
+    @ExceptionHandler(PersonaNoEncontradaException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(PersonaNoEncontradaException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.NOT_FOUND.value());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
 }

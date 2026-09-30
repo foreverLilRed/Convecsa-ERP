@@ -11,14 +11,16 @@ import {
   findDepartamento,
   findProvincia,
 } from '@/data/ubigeo-peru'
-import { crearPersona } from '@/services/persona/personaService'
+import { crearPersona, actualizarPersona } from '@/services/persona/personaService'
 import {
   BANCOS,
   createEmptyPersonaForm,
   GRADOS_INSTRUCCION,
   TIPOS_DOCUMENTO,
   TIPOS_IMAGEN,
+  toPersonaForm,
   toPersonaRequest,
+  type PersonaDTO,
   type PersonaForm,
 } from '@/types/persona'
 
@@ -34,11 +36,12 @@ const SECCIONES: { value: SeccionPersona; label: string }[] = [
 
 const props = defineProps<{
   open: boolean
+  persona?: PersonaDTO | null
 }>()
 
 const emit = defineEmits<{
   close: []
-  created: []
+  saved: []
 }>()
 
 const form = reactive<PersonaForm>(createEmptyPersonaForm())
@@ -46,6 +49,7 @@ const error = ref('')
 const submitting = ref(false)
 const fotoInput = ref<HTMLInputElement | null>(null)
 const seccionActiva = ref<SeccionPersona>('identidad')
+const isEdit = computed(() => Boolean(props.persona?.id))
 
 const provinciasDisponibles = computed(() => {
   return findDepartamento(form.departamento)?.provincias.map((provincia) => provincia.nombre) ?? []
@@ -71,20 +75,24 @@ const inputClass =
   'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
 
 function revokeFotoUrl() {
-  if (form.fotoUrl) {
+  if (form.fotoUrl?.startsWith('blob:')) {
     URL.revokeObjectURL(form.fotoUrl)
   }
 }
 
-function resetForm() {
+function fillForm(source: PersonaForm) {
   revokeFotoUrl()
-  Object.assign(form, createEmptyPersonaForm())
+  Object.assign(form, source)
   error.value = ''
   submitting.value = false
   seccionActiva.value = 'identidad'
   if (fotoInput.value) {
     fotoInput.value.value = ''
   }
+}
+
+function resetForm() {
+  fillForm(createEmptyPersonaForm())
 }
 
 function lockBodyScroll() {
@@ -108,7 +116,11 @@ watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      resetForm()
+      if (props.persona) {
+        fillForm(toPersonaForm(props.persona))
+      } else {
+        resetForm()
+      }
       lockBodyScroll()
       document.addEventListener('keydown', onDocumentKeydown)
     } else {
@@ -346,15 +358,27 @@ async function onSubmit() {
 
   submitting.value = true
   try {
-    await toast.promise(crearPersona(toPersonaRequest(form)), {
-      loading: 'Guardando persona…',
-      success: 'Persona registrada',
+    const request = toPersonaRequest(form)
+    const save = isEdit.value && props.persona
+      ? actualizarPersona(props.persona.id, request)
+      : crearPersona(request)
+    await toast.promise(save, {
+      loading: isEdit.value ? 'Guardando cambios…' : 'Guardando persona…',
+      success: isEdit.value ? 'Persona actualizada' : 'Persona registrada',
       error: (err: unknown) =>
-        err instanceof Error ? err.message : 'No se pudo registrar la persona.',
+        err instanceof Error
+          ? err.message
+          : isEdit.value
+            ? 'No se pudo actualizar la persona.'
+            : 'No se pudo registrar la persona.',
     })?.unwrap()
-    emit('created')
+    emit('saved')
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'No se pudo registrar la persona.'
+    error.value = err instanceof Error
+      ? err.message
+      : isEdit.value
+        ? 'No se pudo actualizar la persona.'
+        : 'No se pudo registrar la persona.'
   } finally {
     submitting.value = false
   }
@@ -390,7 +414,7 @@ function onOverlayClick() {
               Gestión Humana / Personal
             </p>
             <h2 id="persona-modal-title" class="mt-1 text-lg font-bold text-palette-navy">
-              Registrar persona
+              {{ isEdit ? 'Editar persona' : 'Registrar persona' }}
             </h2>
           </div>
           <Button
@@ -769,7 +793,7 @@ function onOverlayClick() {
               :disabled="submitting"
               :aria-describedby="error ? 'persona-form-error' : undefined"
             >
-              {{ submitting ? 'Guardando…' : 'Guardar' }}
+              {{ submitting ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Guardar' }}
             </Button>
           </footer>
         </form>

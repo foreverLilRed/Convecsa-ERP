@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -35,5 +37,15 @@ public class PersonaController {
     @GetMapping
     public PagedResponse<PersonaResumenDTO> listar(@Valid @ModelAttribute PersonaListQuery query) {
         return personaService.listar(query);
+    }
+
+    @GetMapping("/{id}")
+    public PersonaDTO obtener(@PathVariable Long id) {
+        return personaService.obtener(id);
+    }
+
+    @PutMapping("/{id}")
+    public PersonaDTO actualizar(@PathVariable Long id, @Valid @RequestBody PersonaRequest request) {
+        return personaService.actualizar(id, request);
     }
 }

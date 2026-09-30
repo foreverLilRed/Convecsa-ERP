@@ -43,6 +43,10 @@ const props = defineProps<{
   reloadKey?: number
 }>()
 
+const emit = defineEmits<{
+  edit: [id: number]
+}>()
+
 const searchInput = ref('')
 const q = ref('')
 const page = ref(0)
@@ -235,7 +239,7 @@ watch([page, q, sort, () => props.reloadKey], () => {
               </Button>
             </TableHead>
             <TableHead class="px-3">
-              <span class="sr-only">Indicadores</span>
+              <span class="sr-only">Acciones</span>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -254,27 +258,38 @@ watch([page, q, sort, () => props.reloadKey], () => {
               {{ new Date(persona.createdAt).toLocaleDateString('es-PE') }}
             </TableCell>
             <TableCell class="px-3 py-3">
-              <div class="flex items-center gap-1.5" aria-label="Indicadores pendientes">
-                <span
-                  class="size-3.5 rounded-full bg-emerald-500"
-                  title="Activo"
-                  aria-label="Indicador activo"
-                />
-                <span
-                  class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
-                  title="Pendiente"
-                  aria-hidden="true"
-                />
-                <span
-                  class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
-                  title="Pendiente"
-                  aria-hidden="true"
-                />
-                <span
-                  class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
-                  title="Pendiente"
-                  aria-hidden="true"
-                />
+              <div class="flex items-center justify-end gap-2">
+                <div class="flex items-center gap-1.5" aria-label="Indicadores pendientes">
+                  <span
+                    class="size-3.5 rounded-full bg-emerald-500"
+                    title="Activo"
+                    aria-label="Indicador activo"
+                  />
+                  <span
+                    class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
+                    title="Pendiente"
+                    aria-hidden="true"
+                  />
+                  <span
+                    class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
+                    title="Pendiente"
+                    aria-hidden="true"
+                  />
+                  <span
+                    class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
+                    title="Pendiente"
+                    aria-hidden="true"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="h-8 px-3"
+                  type="button"
+                  @click="emit('edit', persona.id)"
+                >
+                  Editar
+                </Button>
               </div>
             </TableCell>
           </TableRow>

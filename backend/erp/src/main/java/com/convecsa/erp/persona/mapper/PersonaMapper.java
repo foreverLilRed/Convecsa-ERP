@@ -19,6 +19,11 @@ public class PersonaMapper {
 
     public Persona toEntity(PersonaRequest request) {
         Persona persona = new Persona();
+        updateEntity(persona, request);
+        return persona;
+    }
+
+    public void updateEntity(Persona persona, PersonaRequest request) {
         persona.setApellidos(request.getApellidos().trim());
         persona.setNombres(request.getNombres().trim());
         persona.setTipoDocumento(request.getTipoDocumento());
@@ -36,6 +41,7 @@ public class PersonaMapper {
         persona.setResidencia(request.getResidencia().trim());
         persona.setFotoUrl(blankToNull(request.getFotoUrl()));
 
+        persona.getCelulares().clear();
         request.getCelulares().stream()
                 .map(String::trim)
                 .filter(numero -> !numero.isEmpty())
@@ -45,6 +51,7 @@ public class PersonaMapper {
                     persona.addCelular(celular);
                 });
 
+        persona.getCuentasBancarias().clear();
         if (request.getCuentasBancarias() != null) {
             for (CuentaBancariaRequest cuentaRequest : request.getCuentasBancarias()) {
                 PersonaCuentaBancaria cuenta = new PersonaCuentaBancaria();
@@ -56,6 +63,7 @@ public class PersonaMapper {
             }
         }
 
+        persona.getExperienciasLaborales().clear();
         if (request.getExperienciasLaborales() != null) {
             for (ExperienciaLaboralRequest experienciaRequest : request.getExperienciasLaborales()) {
                 PersonaExperienciaLaboral experiencia = new PersonaExperienciaLaboral();
@@ -66,8 +74,6 @@ public class PersonaMapper {
                 persona.addExperienciaLaboral(experiencia);
             }
         }
-
-        return persona;
     }
 
     public PersonaDTO toDto(Persona persona) {

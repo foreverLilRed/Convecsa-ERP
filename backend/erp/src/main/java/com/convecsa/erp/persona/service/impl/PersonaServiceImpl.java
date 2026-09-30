@@ -1,6 +1,7 @@
 package com.convecsa.erp.persona.service.impl;
 
 import com.convecsa.erp.common.exception.DocumentoDuplicadoException;
+import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.persona.PersonaSort;
 import com.convecsa.erp.persona.dto.PersonaDTO;
@@ -42,6 +43,27 @@ public class PersonaServiceImpl implements InterfazPersonaService {
 
     @Override
     @Transactional(readOnly = true)
+    public PersonaDTO obtener(Long id) {
+        return personaMapper.toDto(findOrThrow(id));
+    }
+
+    @Override
+    @Transactional
+    public PersonaDTO actualizar(Long id, PersonaRequest request) {
+        Persona persona = findOrThrow(id);
+        if (personaRepository.existsByTipoDocumentoAndNumeroDocumentoAndIdNot(
+                request.getTipoDocumento(), request.getNumeroDocumento().trim(), id)) {
+            throw new DocumentoDuplicadoException(
+                    "Ya existe una persona con ese tipo y número de documento");
+        }
+
+        personaMapper.updateEntity(persona, request);
+        Persona saved = personaRepository.save(persona);
+        return personaMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PagedResponse<PersonaResumenDTO> listar(PersonaListQuery query) {
         Pageable pageable = PageRequest.of(
                 query.pageOrDefault(), query.sizeOrDefault(), PersonaSort.parse(query.sort()));
@@ -49,5 +71,11 @@ public class PersonaServiceImpl implements InterfazPersonaService {
                 .findAll(PersonaSpecifications.from(query), pageable)
                 .map(personaMapper::toResumen);
         return PagedResponse.from(page);
+    }
+
+    private Persona findOrThrow(Long id) {
+        return personaRepository
+                .findById(id)
+                .orElseThrow(() -> new PersonaNoEncontradaException("No se encontró la persona"));
     }
 }

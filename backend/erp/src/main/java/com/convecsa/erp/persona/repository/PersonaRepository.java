@@ -8,4 +8,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface PersonaRepository extends JpaRepository<Persona, Long>, JpaSpecificationExecutor<Persona> {
 
     boolean existsByTipoDocumentoAndNumeroDocumento(TipoDocumento tipoDocumento, String numeroDocumento);
+
+    boolean existsByTipoDocumentoAndNumeroDocumentoAndIdNot(
+            TipoDocumento tipoDocumento, String numeroDocumento, Long id);
 }

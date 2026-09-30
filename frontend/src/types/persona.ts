@@ -198,6 +198,40 @@ export function createEmptyPersonaForm(): PersonaForm {
   }
 }
 
+export function toPersonaForm(dto: PersonaDTO): PersonaForm {
+  return {
+    apellidos: dto.apellidos,
+    nombres: dto.nombres,
+    tipoDocumento: dto.tipoDocumento,
+    numeroDocumento: dto.numeroDocumento,
+    fechaNacimiento: dto.fechaNacimiento,
+    fechaEmisionDni: dto.fechaEmisionDni ?? '',
+    fechaCaducidadDni: dto.fechaCaducidadDni ?? '',
+    celulares: dto.celulares.length > 0 ? dto.celulares.map((celular) => celular.numero) : [''],
+    correo: dto.correo,
+    correoSecundario: dto.correoSecundario ?? '',
+    gradoInstruccion: dto.gradoInstruccion,
+    direccion: dto.direccion,
+    departamento: dto.departamento,
+    provincia: dto.provincia,
+    distrito: dto.distrito,
+    residencia: dto.residencia,
+    cuentasBancarias: dto.cuentasBancarias.map((cuenta) => ({
+      banco: cuenta.banco,
+      numeroCuenta: cuenta.numeroCuenta,
+      cci: cuenta.cci,
+      principal: cuenta.principal,
+    })),
+    experienciasLaborales: dto.experienciasLaborales.map((experiencia) => ({
+      organizacion: experiencia.organizacion,
+      cargo: experiencia.cargo,
+      fechaInicioLaboral: experiencia.fechaInicioLaboral,
+      fechaFin: experiencia.fechaFin ?? '',
+    })),
+    fotoUrl: dto.fotoUrl,
+  }
+}
+
 export function toPersonaRequest(form: PersonaForm): PersonaRequest {
   return {
     apellidos: form.apellidos.trim(),

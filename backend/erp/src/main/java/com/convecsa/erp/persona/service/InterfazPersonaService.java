@@ -10,5 +10,9 @@ public interface InterfazPersonaService {
 
     PersonaDTO crear(PersonaRequest request);
 
+    PersonaDTO obtener(Long id);
+
+    PersonaDTO actualizar(Long id, PersonaRequest request);
+
     PagedResponse<PersonaResumenDTO> listar(PersonaListQuery query);
 }
