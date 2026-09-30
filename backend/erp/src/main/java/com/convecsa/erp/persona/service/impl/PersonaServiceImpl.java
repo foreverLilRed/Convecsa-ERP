@@ -58,8 +58,49 @@ public class PersonaServiceImpl implements InterfazPersonaService {
         }
 
         personaMapper.updateEntity(persona, request);
-        Persona saved = personaRepository.save(persona);
-        return personaMapper.toDto(saved);
+        // #region agent log
+        try {
+            String line = String.format(
+                    "{\"sessionId\":\"f22012\",\"hypothesisId\":\"B\",\"location\":\"PersonaServiceImpl.actualizar\",\"message\":\"before save salud fields\",\"data\":{\"id\":%d,\"fechaVigenciaEmo\":%s,\"aptitudMedica\":%s},\"timestamp\":%d}%n",
+                    id,
+                    request.getFechaVigenciaEmo() == null ? "null" : "\"" + request.getFechaVigenciaEmo() + "\"",
+                    request.getAptitudMedica() == null ? "null" : "\"" + request.getAptitudMedica() + "\"",
+                    System.currentTimeMillis());
+            java.nio.file.Files.writeString(
+                    java.nio.file.Path.of("D:/Proyectos/Convecsa ERP/debug-f22012.log"),
+                    line,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+        }
+        // #endregion
+        try {
+            Persona saved = personaRepository.save(persona);
+            return personaMapper.toDto(saved);
+        } catch (RuntimeException ex) {
+            // #region agent log
+            try {
+                String cause = ex.getClass().getSimpleName();
+                Throwable root = ex;
+                while (root.getCause() != null) {
+                    root = root.getCause();
+                }
+                String line = String.format(
+                        "{\"sessionId\":\"f22012\",\"hypothesisId\":\"A\",\"location\":\"PersonaServiceImpl.actualizar\",\"message\":\"save failed\",\"data\":{\"exception\":\"%s\",\"root\":\"%s\",\"rootMessage\":%s},\"timestamp\":%d}%n",
+                        cause,
+                        root.getClass().getSimpleName(),
+                        root.getMessage() == null ? "null" : "\"" + root.getMessage().replace("\"", "'").replace("\n", " ") + "\"",
+                        System.currentTimeMillis());
+                java.nio.file.Files.writeString(
+                        java.nio.file.Path.of("D:/Proyectos/Convecsa ERP/debug-f22012.log"),
+                        line,
+                        java.nio.file.StandardOpenOption.CREATE,
+                        java.nio.file.StandardOpenOption.APPEND);
+            } catch (Exception ignored) {
+            }
+            // #endregion
+            throw ex;
+        }
     }
 
     @Override

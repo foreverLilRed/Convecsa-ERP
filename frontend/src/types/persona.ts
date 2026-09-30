@@ -4,6 +4,8 @@ export type GradoInstruccion = 'PRIMARIA' | 'SECUNDARIA' | 'TECNICO' | 'UNIVERSI
 
 export type Banco = 'BCP' | 'BBVA' | 'INTERBANK' | 'SCOTIABANK' | 'OTROS'
 
+export type AptitudMedica = 'APTO' | 'OBSERVADO' | 'PENDIENTE' | 'VENCIDO'
+
 export type CatalogOption<T extends string> = {
   value: T
   label: string
@@ -43,6 +45,9 @@ export type PersonaForm = {
   cuentasBancarias: CuentaBancariaForm[]
   experienciasLaborales: ExperienciaLaboralForm[]
   fotoUrl: string | null
+  fechaVigenciaEmo: string
+  aptitudMedica: AptitudMedica | ''
+  restriccionesMedicas: string
 }
 
 export type CuentaBancariaRequest = {
@@ -79,6 +84,9 @@ export type PersonaRequest = {
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaRequest[]
   experienciasLaborales: ExperienciaLaboralRequest[]
+  fechaVigenciaEmo: string | null
+  aptitudMedica: AptitudMedica | null
+  restriccionesMedicas: string | null
 }
 
 export type CelularDTO = {
@@ -153,6 +161,9 @@ export type PersonaDTO = {
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaDTO[]
   experienciasLaborales: ExperienciaLaboralDTO[]
+  fechaVigenciaEmo: string | null
+  aptitudMedica: AptitudMedica | null
+  restriccionesMedicas: string | null
   createdAt: string
 }
 
@@ -172,6 +183,13 @@ export const BANCOS: CatalogOption<Banco>[] = [
   { value: 'INTERBANK', label: 'Interbank' },
   { value: 'SCOTIABANK', label: 'Scotiabank' },
   { value: 'OTROS', label: 'Otros' },
+]
+
+export const APTITUDES_MEDICAS: CatalogOption<AptitudMedica>[] = [
+  { value: 'APTO', label: 'APTO (Sin Restricciones)' },
+  { value: 'OBSERVADO', label: 'APTO CON RESTRICCIONES' },
+  { value: 'PENDIENTE', label: 'PENDIENTE DE EVALUACIÓN' },
+  { value: 'VENCIDO', label: 'NO APTO / VENCIDO' },
 ]
 
 export function createEmptyPersonaForm(): PersonaForm {
@@ -195,6 +213,9 @@ export function createEmptyPersonaForm(): PersonaForm {
     cuentasBancarias: [],
     experienciasLaborales: [],
     fotoUrl: null,
+    fechaVigenciaEmo: '',
+    aptitudMedica: '',
+    restriccionesMedicas: '',
   }
 }
 
@@ -229,6 +250,9 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
       fechaFin: experiencia.fechaFin ?? '',
     })),
     fotoUrl: dto.fotoUrl,
+    fechaVigenciaEmo: dto.fechaVigenciaEmo ?? '',
+    aptitudMedica: dto.aptitudMedica ?? '',
+    restriccionesMedicas: dto.restriccionesMedicas ?? '',
   }
 }
 
@@ -263,7 +287,34 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
       fechaInicioLaboral: experiencia.fechaInicioLaboral,
       fechaFin: emptyToNull(experiencia.fechaFin),
     })),
+    fechaVigenciaEmo: emptyToNull(form.fechaVigenciaEmo),
+    aptitudMedica: form.aptitudMedica ? form.aptitudMedica : null,
+    restriccionesMedicas: emptyToNull(form.restriccionesMedicas),
   }
+}
+
+export function vigenciaEmoLabel(fecha: string): string {
+  if (!fecha) {
+    return 'Sin fecha de vigencia'
+  }
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const vigencia = new Date(`${fecha}T00:00:00`)
+  if (Number.isNaN(vigencia.getTime())) {
+    return 'Fecha inválida'
+  }
+  const diffMs = vigencia.getTime() - today.getTime()
+  const days = Math.round(diffMs / 86_400_000)
+  if (days < 0) {
+    return 'Vencido'
+  }
+  if (days === 0) {
+    return 'Vence hoy'
+  }
+  if (days === 1) {
+    return '1 día restante'
+  }
+  return `${days} días restantes`
 }
 
 export const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const

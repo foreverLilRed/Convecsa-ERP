@@ -1,5 +1,6 @@
 package com.convecsa.erp.persona.entity;
 
+import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
 import jakarta.persistence.CascadeType;
@@ -82,6 +83,16 @@ public class Persona {
 
     @Column(name = "foto_url", length = 500)
     private String fotoUrl;
+
+    @Column(name = "fecha_vigencia_emo")
+    private LocalDate fechaVigenciaEmo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "aptitud_medica", length = 20)
+    private AptitudMedica aptitudMedica;
+
+    @Column(name = "restricciones_medicas", length = 2000)
+    private String restriccionesMedicas;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

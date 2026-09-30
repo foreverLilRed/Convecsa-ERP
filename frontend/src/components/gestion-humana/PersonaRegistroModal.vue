@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner'
 import UbigeoCombobox from '@/components/gestion-humana/UbigeoCombobox.vue'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import {
   DEPARTAMENTOS_PERU,
   findDepartamento,
@@ -13,6 +14,7 @@ import {
 } from '@/data/ubigeo-peru'
 import { crearPersona, actualizarPersona } from '@/services/persona/personaService'
 import {
+  APTITUDES_MEDICAS,
   BANCOS,
   createEmptyPersonaForm,
   GRADOS_INSTRUCCION,
@@ -20,6 +22,7 @@ import {
   TIPOS_IMAGEN,
   toPersonaForm,
   toPersonaRequest,
+  vigenciaEmoLabel,
   type PersonaDTO,
   type PersonaForm,
 } from '@/types/persona'
@@ -50,6 +53,7 @@ const submitting = ref(false)
 const fotoInput = ref<HTMLInputElement | null>(null)
 const seccionActiva = ref<SeccionPersona>('identidad')
 const isEdit = computed(() => Boolean(props.persona?.id))
+const vigenciaEmo = computed(() => vigenciaEmoLabel(form.fechaVigenciaEmo))
 
 const provinciasDisponibles = computed(() => {
   return findDepartamento(form.departamento)?.provincias.map((provincia) => provincia.nombre) ?? []
@@ -341,6 +345,13 @@ function validate(): { message: string; seccion: SeccionPersona } | null {
     form.cuentasBancarias.filter((cuenta) => cuenta.principal).length !== 1
   ) {
     return { message: 'Marque una sola cuenta como principal.', seccion: 'banco' }
+  }
+
+  if (!form.fechaVigenciaEmo) {
+    return { message: 'Ingrese la fecha de vigencia de EMO.', seccion: 'salud' }
+  }
+  if (!form.aptitudMedica) {
+    return { message: 'Seleccione la aptitud médica ocupacional.', seccion: 'salud' }
   }
 
   return null
@@ -760,9 +771,41 @@ function onOverlayClick() {
             </TabsContent>
 
             <TabsContent value="salud">
-              <p class="rounded-lg border border-dashed border-palette-cyan/70 bg-palette-soft/50 px-4 py-12 text-center text-sm text-slate-500">
-                Salud y SOMA se implementará más adelante.
-              </p>
+              <fieldset>
+                <legend class="text-sm font-semibold text-palette-navy">Salud y SOMA</legend>
+                <p class="mt-1 text-xs text-slate-500">
+                  La vigencia se calcula automáticamente a partir de la fecha de EMO.
+                </p>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Fecha de vigencia de EMO
+                    <input v-model="form.fechaVigenciaEmo" :class="inputClass" type="date" />
+                  </label>
+                  <div class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Vigencia
+                    <p class="mt-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-800">
+                      {{ vigenciaEmo }}
+                    </p>
+                  </div>
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700 sm:col-span-2">
+                    Aptitud médica ocupacional
+                    <select v-model="form.aptitudMedica" :class="inputClass">
+                      <option value="" disabled>Seleccione</option>
+                      <option v-for="aptitud in APTITUDES_MEDICAS" :key="aptitud.value" :value="aptitud.value">
+                        {{ aptitud.label }}
+                      </option>
+                    </select>
+                  </label>
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700 sm:col-span-2">
+                    Restricciones médicas / observaciones
+                    <Textarea
+                      v-model="form.restriccionesMedicas"
+                      class="mt-1.5 min-h-24"
+                      placeholder="Opcional"
+                    />
+                  </label>
+                </div>
+              </fieldset>
             </TabsContent>
 
             <TabsContent value="documentos">

@@ -1,5 +1,6 @@
 package com.convecsa.erp.persona.dto;
 
+import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
 import jakarta.validation.Valid;
@@ -85,6 +86,13 @@ public class PersonaRequest {
     @Valid
     private List<ExperienciaLaboralRequest> experienciasLaborales = new ArrayList<>();
 
+    private LocalDate fechaVigenciaEmo;
+
+    private AptitudMedica aptitudMedica;
+
+    @Size(max = 2000)
+    private String restriccionesMedicas;
+
     @AssertTrue(message = "Las fechas de emisión y caducidad del DNI son obligatorias")
     public boolean isFechasDniValidas() {
         if (tipoDocumento != TipoDocumento.DNI) {
@@ -100,5 +108,25 @@ public class PersonaRequest {
         }
         long principales = cuentasBancarias.stream().filter(CuentaBancariaRequest::isPrincipal).count();
         return principales == 1;
+    }
+
+    @AssertTrue(message = "La fecha de vigencia de EMO es obligatoria si hay aptitud u observaciones")
+    public boolean isFechaVigenciaEmoRequerida() {
+        if (aptitudMedica == null && blank(restriccionesMedicas)) {
+            return true;
+        }
+        return fechaVigenciaEmo != null;
+    }
+
+    @AssertTrue(message = "La aptitud médica es obligatoria si hay fecha de vigencia de EMO")
+    public boolean isAptitudMedicaRequerida() {
+        if (fechaVigenciaEmo == null) {
+            return true;
+        }
+        return aptitudMedica != null;
+    }
+
+    private static boolean blank(String value) {
+        return value == null || value.isBlank();
     }
 }

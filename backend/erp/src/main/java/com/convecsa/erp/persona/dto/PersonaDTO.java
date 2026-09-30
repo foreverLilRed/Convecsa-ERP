@@ -1,5 +1,6 @@
 package com.convecsa.erp.persona.dto;
 
+import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
 import java.time.Instant;
@@ -32,5 +33,8 @@ public class PersonaDTO {
     private final String fotoUrl;
     private final List<CuentaBancariaDTO> cuentasBancarias;
     private final List<ExperienciaLaboralDTO> experienciasLaborales;
+    private final LocalDate fechaVigenciaEmo;
+    private final AptitudMedica aptitudMedica;
+    private final String restriccionesMedicas;
     private final Instant createdAt;
 }

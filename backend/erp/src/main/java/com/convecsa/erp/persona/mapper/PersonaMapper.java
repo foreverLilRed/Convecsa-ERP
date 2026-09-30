@@ -40,6 +40,12 @@ public class PersonaMapper {
         persona.setDistrito(request.getDistrito().trim());
         persona.setResidencia(request.getResidencia().trim());
         persona.setFotoUrl(blankToNull(request.getFotoUrl()));
+        persona.setFechaVigenciaEmo(request.getFechaVigenciaEmo());
+        persona.setAptitudMedica(request.getAptitudMedica());
+        persona.setRestriccionesMedicas(blankToNull(request.getRestriccionesMedicas()));
+
+        int cuentasAntes = persona.getCuentasBancarias().size();
+        long principalesAntes = persona.getCuentasBancarias().stream().filter(PersonaCuentaBancaria::isPrincipal).count();
 
         persona.getCelulares().clear();
         request.getCelulares().stream()
@@ -62,6 +68,26 @@ public class PersonaMapper {
                 persona.addCuentaBancaria(cuenta);
             }
         }
+        int cuentasDespues = persona.getCuentasBancarias().size();
+        long principalesDespues = persona.getCuentasBancarias().stream().filter(PersonaCuentaBancaria::isPrincipal).count();
+        // #region agent log
+        try {
+            String line = String.format(
+                    "{\"sessionId\":\"f22012\",\"hypothesisId\":\"A\",\"location\":\"PersonaMapper.updateEntity\",\"message\":\"cuentas around replace\",\"data\":{\"cuentasAntes\":%d,\"principalesAntes\":%d,\"cuentasDespues\":%d,\"principalesDespues\":%d,\"incomingCuentas\":%d},\"timestamp\":%d}%n",
+                    cuentasAntes,
+                    principalesAntes,
+                    cuentasDespues,
+                    principalesDespues,
+                    request.getCuentasBancarias() == null ? 0 : request.getCuentasBancarias().size(),
+                    System.currentTimeMillis());
+            java.nio.file.Files.writeString(
+                    java.nio.file.Path.of("D:/Proyectos/Convecsa ERP/debug-f22012.log"),
+                    line,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND);
+        } catch (Exception ignored) {
+        }
+        // #endregion
 
         persona.getExperienciasLaborales().clear();
         if (request.getExperienciasLaborales() != null) {
@@ -114,6 +140,9 @@ public class PersonaMapper {
                                 experiencia.getFechaInicioLaboral(),
                                 experiencia.getFechaFin()))
                         .toList())
+                .fechaVigenciaEmo(persona.getFechaVigenciaEmo())
+                .aptitudMedica(persona.getAptitudMedica())
+                .restriccionesMedicas(persona.getRestriccionesMedicas())
                 .createdAt(persona.getCreatedAt())
                 .build();
     }
