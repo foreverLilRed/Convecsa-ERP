@@ -1,6 +1,7 @@
 package com.convecsa.erp.contrato.support;
 
 import com.convecsa.erp.contrato.entity.Contrato;
+import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.persona.entity.Persona;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -10,9 +11,13 @@ import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
@@ -21,15 +26,48 @@ public class ContratoPlantillaService {
 
     private static final DateTimeFormatter FECHA_LARGA =
             DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-PE"));
+    private static final Pattern META_TOKEN = Pattern.compile("\\{\\{meta\\.([a-zA-Z0-9_]+)\\}\\}");
+    private static final Set<String> TOKENS_FIJOS = Set.of(
+            "trabajador_nombres",
+            "trabajador_apellidos",
+            "trabajador_dni",
+            "trabajador_direccion",
+            "fecha_inicio",
+            "fecha_fin",
+            "duracion",
+            "sueldo",
+            "sueldo_letras",
+            "fecha_firma",
+            "empleador_razon",
+            "empleador_ruc",
+            "empleador_domicilio",
+            "empleador_representante",
+            "empleador_dni_representante");
 
     public String render(Contrato contrato) {
-        String plantilla = load();
+        return apply(htmlDe(contrato), contrato);
+    }
+
+    String apply(String plantilla, Contrato contrato) {
         Map<String, String> valores = tokens(contrato);
         String html = plantilla;
         for (Map.Entry<String, String> entry : valores.entrySet()) {
             html = html.replace("{{" + entry.getKey() + "}}", entry.getValue());
         }
-        return html;
+        return replaceMeta(html, contrato.getMetadata());
+    }
+
+    static String replaceMeta(String html, Map<String, String> metadata) {
+        Map<String, String> valores = metadata == null ? Collections.emptyMap() : metadata;
+        Matcher matcher = META_TOKEN.matcher(html);
+        StringBuffer result = new StringBuffer();
+        while (matcher.find()) {
+            String clave = matcher.group(1);
+            String valor = valores.getOrDefault(clave, "");
+            matcher.appendReplacement(result, Matcher.quoteReplacement(valor));
+        }
+        matcher.appendTail(result);
+        return result.toString();
     }
 
     private Map<String, String> tokens(Contrato contrato) {
@@ -58,10 +96,22 @@ public class ContratoPlantillaService {
         valores.put("empleador_domicilio", "Calle Van Gogh 345, Urb. San Borja, Lima");
         valores.put("empleador_representante", "OROSCO MARTÍNEZ JORGE LUIS");
         valores.put("empleador_dni_representante", "44200831");
+        if (contrato.getMetadata() != null) {
+            for (Map.Entry<String, String> extra : contrato.getMetadata().entrySet()) {
+                if (extra.getKey() == null || TOKENS_FIJOS.contains(extra.getKey()) || extra.getValue() == null) {
+                    continue;
+                }
+                valores.put(extra.getKey(), extra.getValue());
+            }
+        }
         return valores;
     }
 
-    private static String load() {
+    private static String htmlDe(Contrato contrato) {
+        PlantillaContrato plantilla = contrato.getPlantillaContrato();
+        if (plantilla != null && plantilla.getPlantilla() != null && !plantilla.getPlantilla().isBlank()) {
+            return plantilla.getPlantilla();
+        }
         try {
             return new ClassPathResource("templates/contratos/plantillas/contrato-servicio-especifico.html")
                     .getContentAsString(StandardCharsets.UTF_8);

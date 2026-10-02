@@ -1,0 +1,147 @@
+CREATE TABLE plantillas_contrato (
+    id       BIGSERIAL PRIMARY KEY,
+    codigo   VARCHAR(40)  NOT NULL UNIQUE,
+    nombre   VARCHAR(160) NOT NULL,
+    plantilla TEXT        NOT NULL,
+    metadata  JSONB       NOT NULL DEFAULT '[]'::jsonb,
+    activo    BOOLEAN     NOT NULL DEFAULT TRUE
+);
+
+INSERT INTO plantillas_contrato (codigo, nombre, plantilla, metadata)
+VALUES (
+    'CSE',
+    'Servicio específico',
+    $html$
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Contrato - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body { width: 210mm; background: #f3f4f6; }
+    body { font-family: 'Inter', sans-serif; font-size: 7.2pt; line-height: 1.25; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pg { width: 210mm; height: 297mm; max-height: 297mm; margin: 10px auto; background: #fff; padding: 10mm 12mm 8mm; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; position: relative; overflow: hidden; box-sizing: border-box; }
+    .print-bar { background: #1e3a8a; color: #fff; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 8.5px; margin-bottom: 8px; border-radius: 4px; }
+    .print-btn { background: #fff; color: #1e3a8a; border: none; border-radius: 4px; padding: 5px 12px; font-size: 8.5px; font-weight: 700; cursor: pointer; }
+    .hdr { text-align: center; border-bottom: 1.5px solid #1f2937; padding-bottom: 3px; margin-bottom: 5px; }
+    .doc-t { font-size: 10pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #111827; }
+    .ct { font-size: 7.2pt; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid #d1d5db; padding-bottom: 1px; margin-bottom: 2px; margin-top: 4px; }
+    .cl2 p { margin-bottom: 2px; text-align: justify; font-size: 7.1pt; line-height: 1.25; }
+    .cl2 ul { margin: 1px 0 2px 14px; }
+    .cl2 ul li { margin-bottom: 1px; font-size: 7.1pt; text-align: justify; line-height: 1.25; }
+    .sigs { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; page-break-inside: avoid; align-items: end; }
+    .sb { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 100%; }
+    .sig-container { height: 72px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; margin-bottom: 0; }
+    .sl { border-top: 1.2px solid #1f2937; width: 100%; margin-top: 2px; margin-bottom: 3px; }
+    .sn { font-weight: 700; font-size: 7.5pt; color: #111827; text-transform: uppercase; }
+    .sd { font-size: 6.5pt; color: #4b5563; margin-top: 1px; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm !important; height: 297mm !important; background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+      .pg { width: 210mm !important; height: 297mm !important; max-height: 297mm !important; padding: 10mm 12mm 8mm !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; overflow: hidden !important; }
+      .print-bar, .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pg">
+    <div class="print-bar no-print">
+      <span>Ctrl+P o clic en guardar para exportar a PDF • Usar tamaño A4 • Márgenes mínimos</span>
+      <button class="print-btn" type="button" onclick="window.print()">Guardar PDF / Imprimir</button>
+    </div>
+
+    <div class="hdr">
+      <div class="doc-t">Contrato de Trabajo Sujeto a Modalidad por Servicio Específico</div>
+      <div style="font-size: 7.5pt; color: #4b5563; margin-top: 2px;">RÉGIMEN ESPECIAL MYPE (DECRETO LEGISLATIVO Nº 1086)</div>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA PRIMERA — PARTES CONTRATANTES</div>
+      <p>Conste por el presente documento el Contrato de Trabajo sujeto a modalidad por Servicio Específico, que celebran al amparo del Artículo 63º del Texto Único Ordenado del Decreto Legislativo Nº 728, Ley de Productividad y Competitividad Laboral, aprobado por Decreto Supremo Nº 003-97-TR, y bajo el régimen laboral especial de la Micro y Pequeña Empresa (MYPE) conforme al Decreto Legislativo Nº 1086 y su Reglamento y normas complementarias, de una parte <strong>{{empleador_razon}}</strong>, con RUC Nº {{empleador_ruc}} y domicilio fiscal en {{empleador_domicilio}}, debidamente representada por el señor <strong>{{empleador_representante}}</strong> con D.N.I. N° {{empleador_dni_representante}}, en su calidad de Gerente General, a quien en adelante se le denominará EL EMPLEADOR; y de la otra parte Sr. <strong>{{trabajador_nombres}} {{trabajador_apellidos}}</strong>, identificado con DNI N° <strong>{{trabajador_dni}}</strong>, de nacionalidad peruana, con domicilio en {{trabajador_direccion}}, a quien en adelante se le denominará <strong>EL TRABAJADOR</strong>; en los términos y condiciones siguientes:</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA SEGUNDA — CAUSA OBJETIVA DE CONTRATACIÓN</div>
+      <p>{{empleador_razon}}, con domicilio fiscal en {{empleador_domicilio}}. Es una empresa dedicada a actividades especializadas de construcción. Requiere personal calificado para la ejecución de los servicios en el proyecto <strong>{{proyecto}}</strong>, ubicado en <strong>{{ubicacion_obra}}</strong>. La naturaleza temporal de este contrato se justifica por la duración determinada de dicho servicio u obra. Causa objetiva: <strong>{{causa_objetiva}}</strong>.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA TERCERA — CARGO Y FUNCIONES</div>
+      <p>El trabajador desempeñará el cargo de <strong>{{cargo}}</strong>, dentro del área de <em>{{area}}</em>. Adicionalmente, el trabajador se obliga al cumplimiento de las funciones detalladas en el Manual de Organización y Funciones (MOF) de la empresa y los planes de seguridad específicos del proyecto.</p>
+      <p><strong>Pacto de Movilidad:</strong> EL EMPLEADOR podrá disponer el traslado de el trabajador a cualquier obra, sede o división en el territorio nacional, por necesidades del servicio, sin modificación sustancial de sus condiciones de trabajo y respetando sus derechos fundamentales.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA CUARTA — PLAZO DEL CONTRATO</div>
+      <p>El presente contrato tiene una duración de <strong>{{duracion}}</strong>, con inicio el <strong>{{fecha_inicio}}</strong> y término el <strong>{{fecha_fin}}</strong>. Las partes acuerdan que el contrato podrá prorrogarse sucesivamente si al término del plazo el servicio no hubiese concluido. <strong>TÉRMINO DEL CONTRATO:</strong> El presente contrato tiene una vigencia fecha inicio y fecha fin, en la cual se extinguirá automáticamente el vínculo laboral sin necesidad de preaviso, notificación o comunicación previa por escrito de EL EMPLEADOR. El cumplimiento del plazo pactado constituye una causa justa de extinción de la relación laboral conforme al literal c) del artículo 16° del Texto Único Ordenado del Decreto Legislativo N° 728.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA QUINTA — PERIODO DE PRUEBA Y PACTO DE PERMANENCIA</div>
+      <p>Se establece un periodo de prueba de tres (03) meses. Asimismo, dado que EL EMPLEADOR realiza una inversión significativa en la incorporación de el trabajador (exámenes médicos, seguros SCTR y Vida Ley, EPP, inducción y, de ser el caso, pasajes, hospedaje y viáticos), las partes acuerdan un Pacto de Permanencia de tres (03) meses. La renuncia antes de dicho plazo obligará al reembolso proporcional de esos costos, compensables de los beneficios sociales.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA SEXTA — JORNADA Y HORARIO DE TRABAJO</div>
+      <p>El trabajador cumplirá una jornada de <strong>{{jornada}}</strong>. EL EMPLEADOR podrá modificar el horario dentro de los límites establecidos por ley, previa comunicación con la anticipación razonable.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA SÉPTIMA — REMUNERACIÓN Y BENEFICIOS</div>
+      <p>EL EMPLEADOR abonará una remuneración de <strong>S/ {{sueldo}}</strong> ({{sueldo_letras}}), pagadera mediante {{metodo_pago}}. EL TRABAJADOR tendrá derecho a los siguientes beneficios en el régimen de Pequeña Empresa: ½ grat. julio y diciembre, CTS: 15 rem. diarias/año, 15 días vacaciones/año, EsSalud desde 1er día, Vida Ley desde 1er día, SCTR salud y pensión.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA OCTAVA — CONFIDENCIALIDAD</div>
+      <p>EL TRABAJADOR se obliga a mantener reserva absoluta sobre la información técnica (metodologías, planos, procedimientos), comercial (precios, costos, márgenes, clientes) y de gestión de EL EMPLEADOR. Este compromiso subsistirá por dos (02) años posteriores a la terminación del vínculo. El incumplimiento generará responsabilidad civil por daños y perjuicios y penal conforme al Art. 165° del Código Penal.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA NOVENA — DOMICILIO Y JURISDICCIÓN</div>
+      <p>Las partes señalan los domicilios indicados en la Cláusula Primera. Cualquier controversia será resuelta ante los Juzgados de Trabajo de Lima, con renuncia al fuero de sus domicilios si fuere diferente.</p>
+    </div>
+
+    <div class="cl2">
+      <div class="ct">CLÁUSULA DÉCIMA — DECLARACIÓN FINAL</div>
+      <p>EL TRABAJADOR declara conocer y aceptar el Reglamento Interno de Trabajo de EL EMPLEADOR, así como sus políticas, procedimientos de seguridad y normas de conducta vigentes. Asimismo, declara que la información proporcionada en su proceso de selección es veraz.</p>
+      <p style="margin-top: 4px;">En señal de conformidad, las partes suscriben el presente contrato en tres (03) ejemplares de igual valor, a los {{fecha_firma}}, en la ciudad de <strong>{{ciudad_firma}}</strong>.</p>
+    </div>
+
+    <div class="sigs">
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{empleador_razon}}</div>
+        <div class="sd">EL EMPLEADOR • RUC {{empleador_ruc}}</div>
+      </div>
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{trabajador_nombres}} {{trabajador_apellidos}}</div>
+        <div class="sd">EL TRABAJADOR • DNI {{trabajador_dni}}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
+$html$,
+    $json$
+[
+  {"clave": "cargo", "label": "Cargo", "tipo": "text", "requerido": true},
+  {"clave": "area", "label": "Área", "tipo": "text", "requerido": true},
+  {"clave": "proyecto", "label": "Proyecto", "tipo": "text", "requerido": true},
+  {"clave": "ubicacion_obra", "label": "Ubicación de obra", "tipo": "text", "requerido": true},
+  {"clave": "causa_objetiva", "label": "Causa objetiva", "tipo": "catalogo", "catalogo": "causasObjetivas", "requerido": true},
+  {"clave": "jornada", "label": "Jornada", "tipo": "catalogo", "catalogo": "jornadas", "requerido": true},
+  {"clave": "metodo_pago", "label": "Método de pago", "tipo": "catalogo", "catalogo": "metodosPago", "requerido": true},
+  {"clave": "ciudad_firma", "label": "Ciudad de firma", "tipo": "text", "requerido": true}
+]
+$json$::jsonb
+);
+
+ALTER TABLE contrato
+    ADD COLUMN plantilla_contrato_id BIGINT REFERENCES plantillas_contrato (id);

@@ -13,6 +13,9 @@ public class ContratoDTO {
 
     private final Long id;
     private final Long personaId;
+    private final String personaNombres;
+    private final String personaApellidos;
+    private final String numeroDocumento;
     private final EstadoContrato estado;
     private final LocalDate fechaInicio;
     private final LocalDate fechaFin;

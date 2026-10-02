@@ -10,6 +10,6 @@ public class ContratosCatalogosDTO {
 
     private final List<CatalogoItemDTO> jornadas;
     private final List<CatalogoItemDTO> causasObjetivas;
-    private final List<CatalogoItemDTO> tiposPlantilla;
     private final List<CatalogoItemDTO> metodosPago;
+    private final List<PlantillaContratoDTO> plantillas;
 }

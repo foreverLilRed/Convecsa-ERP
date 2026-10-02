@@ -17,23 +17,15 @@ import {
 } from '@/components/ui/combobox'
 import { crearContrato, obtenerContratosCatalogos } from '@/services/contrato/contratoService'
 import { listarPersonas } from '@/services/persona/personaService'
-import { contratoDocumentoUrl, type ContratosCatalogos } from '@/types/contrato'
+import type { CatalogoItem, ContratosCatalogos, PlantillaCampo, PlantillaContrato } from '@/types/contrato'
 import type { PersonaResumenDTO } from '@/types/persona'
 
 type ContratoForm = {
   personaId: number | null
-  tipoPlantillaId: string
-  causaObjetivaId: string
-  cargo: string
-  area: string
-  proyecto: string
-  ubicacionObra: string
+  plantillaContratoId: string
   fechaInicio: string
   fechaFin: string
-  jornadaId: string
   sueldo: string
-  metodoPagoId: string
-  ciudadFirma: string
 }
 
 const props = defineProps<{
@@ -48,22 +40,15 @@ const emit = defineEmits<{
 function emptyForm(): ContratoForm {
   return {
     personaId: null,
-    tipoPlantillaId: '',
-    causaObjetivaId: '',
-    cargo: '',
-    area: '',
-    proyecto: '',
-    ubicacionObra: '',
+    plantillaContratoId: '',
     fechaInicio: '',
     fechaFin: '',
-    jornadaId: '',
     sueldo: '',
-    metodoPagoId: '',
-    ciudadFirma: 'Lima',
   }
 }
 
 const form = reactive<ContratoForm>(emptyForm())
+const extras = reactive<Record<string, string>>({})
 const error = ref('')
 const submitting = ref(false)
 const catalogos = ref<ContratosCatalogos | null>(null)
@@ -74,6 +59,16 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const inputClass =
   'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
+
+const plantillaSeleccionada = computed<PlantillaContrato | null>(() => {
+  const id = Number(form.plantillaContratoId)
+  if (!Number.isFinite(id) || !catalogos.value) {
+    return null
+  }
+  return catalogos.value.plantillas.find((item) => item.id === id) ?? null
+})
+
+const camposExtra = computed(() => plantillaSeleccionada.value?.metadata ?? [])
 
 const personaLabel = computed(() => {
   const persona = personaSeleccionada.value
@@ -94,6 +89,22 @@ const personasOpciones = computed(() => {
   return [seleccion, ...personas.value]
 })
 
+function opcionesCatalogo(campo: PlantillaCampo): CatalogoItem[] {
+  if (!catalogos.value || campo.tipo !== 'catalogo') {
+    return []
+  }
+  if (campo.catalogo === 'jornadas') {
+    return catalogos.value.jornadas
+  }
+  if (campo.catalogo === 'causasObjetivas') {
+    return catalogos.value.causasObjetivas
+  }
+  if (campo.catalogo === 'metodosPago') {
+    return catalogos.value.metodosPago
+  }
+  return []
+}
+
 function lockBodyScroll() {
   const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
   document.body.style.overflow = 'hidden'
@@ -111,8 +122,18 @@ function onDocumentKeydown(event: KeyboardEvent) {
   }
 }
 
+function resetExtras(campos: PlantillaCampo[]) {
+  for (const clave of Object.keys(extras)) {
+    delete extras[clave]
+  }
+  for (const campo of campos) {
+    extras[campo.clave] = campo.clave === 'ciudad_firma' ? 'Lima' : ''
+  }
+}
+
 function resetForm() {
   Object.assign(form, emptyForm())
+  resetExtras([])
   error.value = ''
   submitting.value = false
   personaSeleccionada.value = null
@@ -146,6 +167,13 @@ watch(
   },
 )
 
+watch(
+  () => form.plantillaContratoId,
+  () => {
+    resetExtras(camposExtra.value)
+  },
+)
+
 watch(personaSearch, (query) => {
   if (!props.open) {
     return
@@ -171,20 +199,18 @@ function onPersonaChange(value: unknown) {
 
 function validate(): string | null {
   if (!form.personaId) return 'Seleccione una persona del listado.'
-  if (!form.tipoPlantillaId) return 'Seleccione la plantilla.'
-  if (!form.causaObjetivaId) return 'Seleccione la causa objetiva.'
-  if (!form.cargo.trim()) return 'Ingrese el cargo.'
-  if (!form.area.trim()) return 'Ingrese el área.'
-  if (!form.proyecto.trim()) return 'Ingrese el proyecto.'
-  if (!form.ubicacionObra.trim()) return 'Ingrese la ubicación de la obra.'
+  if (!form.plantillaContratoId) return 'Seleccione la plantilla.'
   if (!form.fechaInicio) return 'Ingrese la fecha de inicio.'
   if (!form.fechaFin) return 'Ingrese la fecha de fin.'
   if (form.fechaFin < form.fechaInicio) return 'La fecha de fin no puede ser menor que la de inicio.'
-  if (!form.jornadaId) return 'Seleccione la jornada.'
   const sueldo = Number(form.sueldo)
   if (!Number.isFinite(sueldo) || sueldo <= 0) return 'Ingrese un sueldo mayor a cero.'
-  if (!form.metodoPagoId) return 'Seleccione el método de pago.'
-  if (!form.ciudadFirma.trim()) return 'Ingrese la ciudad de firma.'
+  for (const campo of camposExtra.value) {
+    const valor = extras[campo.clave]?.trim() ?? ''
+    if (campo.requerido && !valor) {
+      return `Complete el campo ${campo.label}.`
+    }
+  }
   return null
 }
 
@@ -199,26 +225,22 @@ async function onSubmit() {
 
   submitting.value = true
   try {
-    const created = await crearContrato({
+    const metadata: Record<string, string> = {}
+    for (const campo of camposExtra.value) {
+      const valor = extras[campo.clave]?.trim() ?? ''
+      if (valor) {
+        metadata[campo.clave] = valor
+      }
+    }
+    await crearContrato({
       personaId: form.personaId as number,
-      tipoPlantillaId: Number(form.tipoPlantillaId),
-      causaObjetivaId: Number(form.causaObjetivaId),
-      cargo: form.cargo.trim(),
-      area: form.area.trim(),
-      proyecto: form.proyecto.trim(),
-      ubicacionObra: form.ubicacionObra.trim(),
+      plantillaContratoId: Number(form.plantillaContratoId),
       fechaInicio: form.fechaInicio,
       fechaFin: form.fechaFin,
-      fechaCorte: null,
-      jornadaId: Number(form.jornadaId),
       sueldo: Number(form.sueldo),
-      metodoPagoId: Number(form.metodoPagoId),
-      ciudadFirma: form.ciudadFirma.trim(),
-      numero: null,
-      observaciones: null,
+      metadata,
     })
     toast.success('Contrato creado.')
-    window.open(contratoDocumentoUrl(created.id), '_blank', 'noopener,noreferrer')
     emit('saved')
   } catch (err) {
     const message = err instanceof Error ? err.message : 'No se pudo crear el contrato.'
@@ -233,6 +255,16 @@ function onOverlayClick() {
   if (!submitting.value) {
     emit('close')
   }
+}
+
+function inputType(campo: PlantillaCampo): string {
+  if (campo.tipo === 'date') {
+    return 'date'
+  }
+  if (campo.tipo === 'number') {
+    return 'number'
+  }
+  return 'text'
 }
 
 onUnmounted(() => {
@@ -326,55 +358,18 @@ onUnmounted(() => {
                   </Combobox>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-plantilla">Plantilla</label>
-                    <select id="contrato-plantilla" v-model="form.tipoPlantillaId" :class="inputClass">
-                      <option value="">Seleccione</option>
-                      <option
-                        v-for="item in catalogos?.tiposPlantilla ?? []"
-                        :key="item.id"
-                        :value="String(item.id)"
-                      >
-                        {{ item.label }}
-                      </option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-causa">Causa objetiva</label>
-                    <select id="contrato-causa" v-model="form.causaObjetivaId" :class="inputClass">
-                      <option value="">Seleccione</option>
-                      <option
-                        v-for="item in catalogos?.causasObjetivas ?? []"
-                        :key="item.id"
-                        :value="String(item.id)"
-                      >
-                        {{ item.label }}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-cargo">Cargo</label>
-                    <input id="contrato-cargo" v-model="form.cargo" type="text" :class="inputClass" maxlength="160" />
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-area">Área</label>
-                    <input id="contrato-area" v-model="form.area" type="text" :class="inputClass" maxlength="160" />
-                  </div>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-proyecto">Proyecto</label>
-                    <input id="contrato-proyecto" v-model="form.proyecto" type="text" :class="inputClass" maxlength="200" />
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-ubicacion">Ubicación de obra</label>
-                    <input id="contrato-ubicacion" v-model="form.ubicacionObra" type="text" :class="inputClass" maxlength="200" />
-                  </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="contrato-plantilla">Plantilla</label>
+                  <select id="contrato-plantilla" v-model="form.plantillaContratoId" :class="inputClass">
+                    <option value="">Seleccione</option>
+                    <option
+                      v-for="item in catalogos?.plantillas ?? []"
+                      :key="item.id"
+                      :value="String(item.id)"
+                    >
+                      {{ item.nombre }}
+                    </option>
+                  </select>
                 </div>
 
                 <div class="grid gap-4 sm:grid-cols-2">
@@ -388,50 +383,45 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-jornada">Jornada</label>
-                    <select id="contrato-jornada" v-model="form.jornadaId" :class="inputClass">
-                      <option value="">Seleccione</option>
-                      <option
-                        v-for="item in catalogos?.jornadas ?? []"
-                        :key="item.id"
-                        :value="String(item.id)"
-                      >
-                        {{ item.label }}
-                      </option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-sueldo">Sueldo</label>
-                    <input
-                      id="contrato-sueldo"
-                      v-model="form.sueldo"
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      :class="inputClass"
-                    />
-                  </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="contrato-sueldo">Sueldo</label>
+                  <input
+                    id="contrato-sueldo"
+                    v-model="form.sueldo"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    :class="inputClass"
+                  />
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-pago">Método de pago</label>
-                    <select id="contrato-pago" v-model="form.metodoPagoId" :class="inputClass">
+                <div v-if="camposExtra.length" class="grid gap-4 sm:grid-cols-2">
+                  <div v-for="campo in camposExtra" :key="campo.clave">
+                    <label class="text-sm font-medium text-slate-700" :for="`contrato-extra-${campo.clave}`">
+                      {{ campo.label }}
+                    </label>
+                    <select
+                      v-if="campo.tipo === 'catalogo'"
+                      :id="`contrato-extra-${campo.clave}`"
+                      v-model="extras[campo.clave]"
+                      :class="inputClass"
+                    >
                       <option value="">Seleccione</option>
                       <option
-                        v-for="item in catalogos?.metodosPago ?? []"
+                        v-for="item in opcionesCatalogo(campo)"
                         :key="item.id"
                         :value="String(item.id)"
                       >
                         {{ item.label }}
                       </option>
                     </select>
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-slate-700" for="contrato-ciudad">Ciudad de firma</label>
-                    <input id="contrato-ciudad" v-model="form.ciudadFirma" type="text" :class="inputClass" maxlength="80" />
+                    <input
+                      v-else
+                      :id="`contrato-extra-${campo.clave}`"
+                      v-model="extras[campo.clave]"
+                      :type="inputType(campo)"
+                      :class="inputClass"
+                    />
                   </div>
                 </div>
               </fieldset>

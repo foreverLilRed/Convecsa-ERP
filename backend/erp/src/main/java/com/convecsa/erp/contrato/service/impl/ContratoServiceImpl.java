@@ -2,27 +2,36 @@ package com.convecsa.erp.contrato.service.impl;
 
 import com.convecsa.erp.common.exception.ContratoNoEncontradoException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
+import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.catalogo.CausaObjetiva;
 import com.convecsa.erp.contrato.catalogo.Jornada;
 import com.convecsa.erp.contrato.catalogo.MetodoPago;
-import com.convecsa.erp.contrato.catalogo.TipoPlantilla;
+import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
 import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.dto.ContratoDTO;
 import com.convecsa.erp.contrato.dto.ContratoRequest;
 import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
 import com.convecsa.erp.contrato.dto.ContratosResumeDTO;
+import com.convecsa.erp.contrato.dto.PlantillaCampoDTO;
+import com.convecsa.erp.contrato.dto.PlantillaContratoDTO;
 import com.convecsa.erp.contrato.entity.Contrato;
+import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.contrato.repository.CausaObjetivaRepository;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.JornadaRepository;
 import com.convecsa.erp.contrato.repository.MetodoPagoRepository;
-import com.convecsa.erp.contrato.repository.TipoPlantillaRepository;
+import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +43,8 @@ public class ContratoServiceImpl implements InterfazContratoService {
     private final PersonaRepository personaRepository;
     private final JornadaRepository jornadaRepository;
     private final CausaObjetivaRepository causaObjetivaRepository;
-    private final TipoPlantillaRepository tipoPlantillaRepository;
     private final MetodoPagoRepository metodoPagoRepository;
+    private final PlantillaContratoRepository plantillaContratoRepository;
     private final ContratoPlantillaService contratoPlantillaService;
 
     @Override
@@ -57,12 +66,22 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 causaObjetivaRepository.findByActivoTrueOrderByIdAsc().stream()
                         .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
                         .toList(),
-                tipoPlantillaRepository.findByActivoTrueOrderByIdAsc().stream()
-                        .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
-                        .toList(),
                 metodoPagoRepository.findByActivoTrueOrderByIdAsc().stream()
                         .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
+                        .toList(),
+                plantillaContratoRepository.findByActivoTrueOrderByIdAsc().stream()
+                        .map(ContratoServiceImpl::toPlantillaDto)
                         .toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponse<ContratoDTO> listar(int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = size < 1 ? 20 : Math.min(size, 100);
+        return PagedResponse.from(
+                contratoRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(safePage, safeSize))
+                        .map(ContratoServiceImpl::toDto));
     }
 
     @Override
@@ -70,33 +89,17 @@ public class ContratoServiceImpl implements InterfazContratoService {
     public ContratoDTO crear(ContratoRequest request) {
         Persona persona = personaRepository.findById(request.getPersonaId())
                 .orElseThrow(() -> new PersonaNoEncontradaException("No se encontró la persona"));
-        TipoPlantilla plantilla = tipoPlantillaRepository.findById(request.getTipoPlantillaId())
-                .orElseThrow(() -> new IllegalArgumentException("Tipo de plantilla inválido"));
-        CausaObjetiva causa = causaObjetivaRepository.findById(request.getCausaObjetivaId())
-                .orElseThrow(() -> new IllegalArgumentException("Causa objetiva inválida"));
-        Jornada jornada = jornadaRepository.findById(request.getJornadaId())
-                .orElseThrow(() -> new IllegalArgumentException("Jornada inválida"));
-        MetodoPago metodoPago = metodoPagoRepository.findById(request.getMetodoPagoId())
-                .orElseThrow(() -> new IllegalArgumentException("Método de pago inválido"));
+        PlantillaContrato plantilla = plantillaContratoRepository.findById(request.getPlantillaContratoId())
+                .orElseThrow(() -> new IllegalArgumentException("Plantilla inválida"));
 
         Contrato contrato = new Contrato();
         contrato.setPersona(persona);
         contrato.setEstado(EstadoContrato.ACTIVO);
-        contrato.setTipoPlantilla(plantilla);
-        contrato.setCausaObjetiva(causa);
-        contrato.setCargo(request.getCargo().trim());
-        contrato.setArea(request.getArea().trim());
-        contrato.setProyecto(request.getProyecto().trim());
-        contrato.setUbicacionObra(request.getUbicacionObra().trim());
+        contrato.setPlantillaContrato(plantilla);
         contrato.setFechaInicio(request.getFechaInicio());
         contrato.setFechaFin(request.getFechaFin());
-        contrato.setFechaCorte(request.getFechaCorte());
-        contrato.setJornada(jornada);
         contrato.setSueldo(request.getSueldo());
-        contrato.setMetodoPago(metodoPago);
-        contrato.setCiudadFirma(request.getCiudadFirma().trim());
-        contrato.setNumero(blankToNull(request.getNumero()));
-        contrato.setObservaciones(blankToNull(request.getObservaciones()));
+        contrato.setMetadata(aplicarExtras(contrato, plantilla.getMetadata(), request.getMetadata()));
         Contrato saved = contratoRepository.save(contrato);
         return toDto(saved);
     }
@@ -107,6 +110,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
         Contrato contrato = contratoRepository.findById(id)
                 .orElseThrow(() -> new ContratoNoEncontradoException("No se encontró el contrato"));
         contrato.getPersona().getNombres();
+        if (contrato.getPlantillaContrato() != null) {
+            contrato.getPlantillaContrato().getPlantilla();
+        }
         if (contrato.getCausaObjetiva() != null) {
             contrato.getCausaObjetiva().getLabel();
         }
@@ -119,10 +125,110 @@ public class ContratoServiceImpl implements InterfazContratoService {
         return contratoPlantillaService.render(contrato);
     }
 
+    private Map<String, String> aplicarExtras(
+            Contrato contrato,
+            List<PlantillaCampoEsquema> esquema,
+            Map<String, String> enviados) {
+        Map<String, String> origen = enviados == null ? Map.of() : enviados;
+        Map<String, String> guardados = new LinkedHashMap<>();
+        if (esquema == null) {
+            return guardados;
+        }
+        for (PlantillaCampoEsquema campo : esquema) {
+            if (campo == null || campo.getClave() == null || campo.getClave().isBlank()) {
+                continue;
+            }
+            String clave = campo.getClave().trim();
+            String crudo = origen.get(clave);
+            String valor = crudo == null ? "" : crudo.trim();
+            if (campo.isRequerido() && valor.isEmpty()) {
+                throw new IllegalArgumentException("Complete el campo " + labelDe(campo) + ".");
+            }
+            if (valor.isEmpty()) {
+                continue;
+            }
+            if ("catalogo".equals(campo.getTipo())) {
+                valor = resolverCatalogo(contrato, campo.getCatalogo(), valor);
+            } else {
+                copiarColumna(contrato, clave, valor);
+            }
+            guardados.put(clave, valor);
+        }
+        return guardados;
+    }
+
+    private String resolverCatalogo(Contrato contrato, String catalogo, String idCrudo) {
+        Long id;
+        try {
+            id = Long.valueOf(idCrudo);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("Valor de catálogo inválido");
+        }
+        if ("jornadas".equals(catalogo)) {
+            Jornada jornada = jornadaRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Jornada inválida"));
+            contrato.setJornada(jornada);
+            return jornada.getLabel();
+        }
+        if ("causasObjetivas".equals(catalogo)) {
+            CausaObjetiva causa = causaObjetivaRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Causa objetiva inválida"));
+            contrato.setCausaObjetiva(causa);
+            return causa.getLabel();
+        }
+        if ("metodosPago".equals(catalogo)) {
+            MetodoPago metodoPago = metodoPagoRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Método de pago inválido"));
+            contrato.setMetodoPago(metodoPago);
+            return metodoPago.getLabel();
+        }
+        throw new IllegalArgumentException("Catálogo no soportado");
+    }
+
+    private static void copiarColumna(Contrato contrato, String clave, String valor) {
+        switch (clave) {
+            case "cargo" -> contrato.setCargo(valor);
+            case "area" -> contrato.setArea(valor);
+            case "proyecto" -> contrato.setProyecto(valor);
+            case "ubicacion_obra" -> contrato.setUbicacionObra(valor);
+            case "ciudad_firma" -> contrato.setCiudadFirma(valor);
+            case "numero" -> contrato.setNumero(valor);
+            case "observaciones" -> contrato.setObservaciones(valor);
+            case "fecha_corte" -> contrato.setFechaCorte(LocalDate.parse(valor));
+            default -> {
+            }
+        }
+    }
+
+    private static String labelDe(PlantillaCampoEsquema campo) {
+        if (campo.getLabel() == null || campo.getLabel().isBlank()) {
+            return campo.getClave();
+        }
+        return campo.getLabel();
+    }
+
+    private static PlantillaContratoDTO toPlantillaDto(PlantillaContrato plantilla) {
+        List<PlantillaCampoDTO> campos = plantilla.getMetadata() == null
+                ? List.of()
+                : plantilla.getMetadata().stream()
+                        .map(campo -> new PlantillaCampoDTO(
+                                campo.getClave(),
+                                campo.getLabel(),
+                                campo.getTipo(),
+                                campo.getCatalogo(),
+                                campo.isRequerido()))
+                        .toList();
+        return new PlantillaContratoDTO(plantilla.getId(), plantilla.getCodigo(), plantilla.getNombre(), campos);
+    }
+
     private static ContratoDTO toDto(Contrato contrato) {
+        Persona persona = contrato.getPersona();
         return ContratoDTO.builder()
                 .id(contrato.getId())
-                .personaId(contrato.getPersona().getId())
+                .personaId(persona.getId())
+                .personaNombres(persona.getNombres())
+                .personaApellidos(persona.getApellidos())
+                .numeroDocumento(persona.getNumeroDocumento())
                 .estado(contrato.getEstado())
                 .fechaInicio(contrato.getFechaInicio())
                 .fechaFin(contrato.getFechaFin())
@@ -131,12 +237,5 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .createdAt(contrato.getCreatedAt())
                 .sueldo(contrato.getSueldo())
                 .build();
-    }
-
-    private static String blankToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        return value.trim();
     }
 }

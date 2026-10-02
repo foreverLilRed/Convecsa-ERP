@@ -1,5 +1,6 @@
 package com.convecsa.erp.contrato.service;
 
+import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.dto.ContratoDTO;
 import com.convecsa.erp.contrato.dto.ContratoRequest;
 import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
@@ -10,6 +11,8 @@ public interface InterfazContratoService {
     ContratosResumeDTO resume();
 
     ContratosCatalogosDTO catalogos();
+
+    PagedResponse<ContratoDTO> listar(int page, int size);
 
     ContratoDTO crear(ContratoRequest request);
 

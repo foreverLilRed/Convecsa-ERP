@@ -22,9 +22,13 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "contrato")
@@ -57,6 +61,10 @@ public class Contrato {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "tipo_plantilla_id")
     private TipoPlantilla tipoPlantilla;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plantilla_contrato_id")
+    private PlantillaContrato plantillaContrato;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "jornada_id")
@@ -97,6 +105,10 @@ public class Contrato {
 
     @Column(name = "ciudad_firma", length = 80)
     private String ciudadFirma;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false)
+    private Map<String, String> metadata = new LinkedHashMap<>();
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;

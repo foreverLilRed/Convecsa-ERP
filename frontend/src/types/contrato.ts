@@ -9,38 +9,46 @@ export type CatalogoItem = {
   label: string
 }
 
+export type PlantillaCampo = {
+  clave: string
+  label: string
+  tipo: 'text' | 'date' | 'number' | 'catalogo' | string
+  catalogo?: string | null
+  requerido: boolean
+}
+
+export type PlantillaContrato = {
+  id: number
+  codigo: string
+  nombre: string
+  metadata: PlantillaCampo[]
+}
+
 export type ContratosCatalogos = {
   jornadas: CatalogoItem[]
   causasObjetivas: CatalogoItem[]
-  tiposPlantilla: CatalogoItem[]
   metodosPago: CatalogoItem[]
+  plantillas: PlantillaContrato[]
 }
 
 export type ContratoRequest = {
   personaId: number
-  tipoPlantillaId: number
-  causaObjetivaId: number
-  cargo: string
-  area: string
-  proyecto: string
-  ubicacionObra: string
+  plantillaContratoId: number
   fechaInicio: string
   fechaFin: string
-  fechaCorte: string | null
-  jornadaId: number
   sueldo: number
-  metodoPagoId: number
-  ciudadFirma: string
-  numero: string | null
-  observaciones: string | null
+  metadata: Record<string, string>
 }
 
 export type ContratoDTO = {
   id: number
   personaId: number
+  personaNombres: string
+  personaApellidos: string
+  numeroDocumento: string
   estado: string
-  fechaInicio: string
-  fechaFin: string
+  fechaInicio: string | null
+  fechaFin: string | null
   cargo: string
   proyecto: string
   createdAt: string
