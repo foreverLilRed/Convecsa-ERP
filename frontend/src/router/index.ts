@@ -3,13 +3,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { isAuthenticated } from '@/services/auth/authService'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
+import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
 import PlaceholderPage from '@/pages/gestion-humana/PlaceholderPage.vue'
 import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
-  { path: 'contratos', name: 'gh-contratos', title: 'Contratos' },
   { path: 'onboarding', name: 'gh-onboarding', title: 'Onboarding' },
   { path: 'nominas', name: 'gh-nominas', title: 'Nóminas' },
   { path: 'asistencia', name: 'gh-asistencia', title: 'Asistencia' },
@@ -54,6 +54,11 @@ const router = createRouter({
           path: 'gestion-humana/personal',
           name: 'gh-personal',
           component: PersonalPage,
+        },
+        {
+          path: 'gestion-humana/contratos',
+          name: 'gh-contratos',
+          component: ContratosPage,
         },
         ...gestionHumanaPages.map((page) => ({
           path: `gestion-humana/${page.path}`,
