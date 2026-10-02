@@ -69,8 +69,16 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler(PersonaNoEncontradaException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(PersonaNoEncontradaException exception) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler({PersonaNoEncontradaException.class, ContratoNoEncontradoException.class})
+    public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.NOT_FOUND.value());
         body.put("message", exception.getMessage());

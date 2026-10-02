@@ -86,6 +86,18 @@ public class Contrato {
     @Column(length = 2000)
     private String observaciones;
 
+    @Column(length = 200)
+    private String proyecto;
+
+    @Column(name = "ubicacion_obra", length = 200)
+    private String ubicacionObra;
+
+    @Column(length = 160)
+    private String area;
+
+    @Column(name = "ciudad_firma", length = 80)
+    private String ciudadFirma;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
