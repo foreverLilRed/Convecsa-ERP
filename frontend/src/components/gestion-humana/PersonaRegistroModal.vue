@@ -16,7 +16,11 @@ import { crearPersona, actualizarPersona } from '@/services/persona/personaServi
 import {
   APTITUDES_MEDICAS,
   BANCOS,
+  cicloEstadoChecklist,
   createEmptyPersonaForm,
+  DOCUMENTOS_CHECKLIST,
+  estadoChecklistLabel,
+  ESTADOS_CHECKLIST_VALIDOS,
   GRADOS_INSTRUCCION,
   TIPOS_DOCUMENTO,
   TIPOS_IMAGEN,
@@ -216,6 +220,37 @@ function removeExperiencia(index: number) {
   form.experienciasLaborales.splice(index, 1)
 }
 
+function cicloDocumento(index: number) {
+  const item = form.documentosChecklist[index]
+  if (!item) {
+    return
+  }
+  item.estado = cicloEstadoChecklist(item.tipo, item.estado)
+}
+
+function marcarTodosConformes() {
+  form.documentosChecklist.forEach((item) => {
+    item.estado = 'CONFORME'
+  })
+}
+
+function documentoLabel(tipo: string): string {
+  return DOCUMENTOS_CHECKLIST.find((documento) => documento.tipo === tipo)?.label ?? tipo
+}
+
+function estadoBadgeClass(estado: string): string {
+  if (estado === 'CONFORME') {
+    return 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+  }
+  if (estado === 'OBSERVADO') {
+    return 'bg-amber-50 text-amber-800 ring-amber-200'
+  }
+  if (estado === 'NO_APLICA') {
+    return 'bg-slate-100 text-slate-600 ring-slate-200'
+  }
+  return 'bg-sky-50 text-sky-800 ring-sky-200'
+}
+
 function onlyDigits(value: string): string {
   return value.replace(/\D/g, '')
 }
@@ -352,6 +387,15 @@ function validate(): { message: string; seccion: SeccionPersona } | null {
   }
   if (!form.aptitudMedica) {
     return { message: 'Seleccione la aptitud médica ocupacional.', seccion: 'salud' }
+  }
+
+  for (const item of form.documentosChecklist) {
+    if (!ESTADOS_CHECKLIST_VALIDOS.includes(item.estado)) {
+      return { message: `El documento ${documentoLabel(item.tipo)} no tiene un estado válido.`, seccion: 'documentos' }
+    }
+    if (item.estado === 'NO_APLICA' && item.tipo !== 'CARNET_RETCC') {
+      return { message: 'No aplica solo está permitido en Carnet RETCC.', seccion: 'documentos' }
+    }
   }
 
   return null
@@ -809,9 +853,52 @@ function onOverlayClick() {
             </TabsContent>
 
             <TabsContent value="documentos">
-              <p class="rounded-lg border border-dashed border-palette-cyan/70 bg-palette-soft/50 px-4 py-12 text-center text-sm text-slate-500">
-                Checklist de documentos se implementará más adelante.
-              </p>
+              <fieldset>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <legend class="text-sm font-semibold text-palette-navy">Checklist de documentos</legend>
+                    <p class="mt-1 text-xs text-slate-500">
+                      Haz clic en cada documento para alternar su estado
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    class="h-9 shrink-0 px-3"
+                    type="button"
+                    @click="marcarTodosConformes"
+                  >
+                    Marcar todos conformes
+                  </Button>
+                </div>
+
+                <ul class="mt-4 space-y-2">
+                  <li v-for="(item, index) in form.documentosChecklist" :key="item.tipo">
+                    <button
+                      class="flex w-full items-center justify-between gap-3 rounded-lg border border-palette-cyan/60 bg-white px-3 py-2.5 text-left transition hover:border-palette-royal/50 hover:bg-palette-soft/70"
+                      type="button"
+                      @click="cicloDocumento(index)"
+                    >
+                      <span class="min-w-0">
+                        <span class="block text-sm font-medium text-palette-navy">
+                          {{ documentoLabel(item.tipo) }}
+                        </span>
+                        <span
+                          v-if="item.criticidad === 'CRITICO'"
+                          class="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-200"
+                        >
+                          Crítico
+                        </span>
+                      </span>
+                      <span
+                        class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1"
+                        :class="estadoBadgeClass(item.estado)"
+                      >
+                        {{ estadoChecklistLabel(item.estado) }}
+                      </span>
+                    </button>
+                  </li>
+                </ul>
+              </fieldset>
             </TabsContent>
             </div>
           </Tabs>

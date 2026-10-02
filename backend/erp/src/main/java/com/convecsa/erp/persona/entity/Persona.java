@@ -109,6 +109,9 @@ public class Persona {
     @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PersonaExperienciaLaboral> experienciasLaborales = new ArrayList<>();
 
+    @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PersonaDocumentoChecklist> documentosChecklist = new ArrayList<>();
+
     public void addCelular(PersonaCelular celular) {
         celular.setPersona(this);
         celulares.add(celular);
@@ -122,6 +125,11 @@ public class Persona {
     public void addExperienciaLaboral(PersonaExperienciaLaboral experiencia) {
         experiencia.setPersona(this);
         experienciasLaborales.add(experiencia);
+    }
+
+    public void addDocumentoChecklist(PersonaDocumentoChecklist documento) {
+        documento.setPersona(this);
+        documentosChecklist.add(documento);
     }
 
     @PrePersist

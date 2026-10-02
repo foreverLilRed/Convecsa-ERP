@@ -6,6 +6,26 @@ export type Banco = 'BCP' | 'BBVA' | 'INTERBANK' | 'SCOTIABANK' | 'OTROS'
 
 export type AptitudMedica = 'APTO' | 'OBSERVADO' | 'PENDIENTE' | 'VENCIDO'
 
+export type TipoDocumentoChecklist =
+  | 'DNI_2_CARAS'
+  | 'CV_CERTIFICADO_TRABAJO'
+  | 'CARNET_RETCC'
+  | 'CUL'
+  | 'ANTECEDENTES_POLICIALES'
+  | 'ANTECEDENTES_JUDICIALES'
+  | 'ANTECEDENTES_PENALES'
+  | 'CARNET_VACUNACION'
+  | 'EMO_APTO_VIGENTE'
+  | 'SCTR'
+  | 'POLIZA_VIDA_LEY'
+  | 'CHECKLIST_INGRESO'
+  | 'FICHA_TRABAJADOR'
+  | 'ALTA_T_REGISTRO'
+
+export type CriticidadDocumento = 'CRITICO' | 'NORMAL'
+
+export type EstadoDocumentoChecklist = 'CONFORME' | 'PENDIENTE' | 'OBSERVADO' | 'NO_APLICA'
+
 export type CatalogOption<T extends string> = {
   value: T
   label: string
@@ -23,6 +43,12 @@ export type ExperienciaLaboralForm = {
   cargo: string
   fechaInicioLaboral: string
   fechaFin: string
+}
+
+export type DocumentoChecklistForm = {
+  tipo: TipoDocumentoChecklist
+  criticidad: CriticidadDocumento
+  estado: EstadoDocumentoChecklist
 }
 
 export type PersonaForm = {
@@ -48,6 +74,7 @@ export type PersonaForm = {
   fechaVigenciaEmo: string
   aptitudMedica: AptitudMedica | ''
   restriccionesMedicas: string
+  documentosChecklist: DocumentoChecklistForm[]
 }
 
 export type CuentaBancariaRequest = {
@@ -62,6 +89,11 @@ export type ExperienciaLaboralRequest = {
   cargo: string
   fechaInicioLaboral: string
   fechaFin: string | null
+}
+
+export type DocumentoChecklistRequest = {
+  tipo: TipoDocumentoChecklist
+  estado: EstadoDocumentoChecklist
 }
 
 export type PersonaRequest = {
@@ -87,6 +119,7 @@ export type PersonaRequest = {
   fechaVigenciaEmo: string | null
   aptitudMedica: AptitudMedica | null
   restriccionesMedicas: string | null
+  documentosChecklist: DocumentoChecklistRequest[]
 }
 
 export type CelularDTO = {
@@ -108,6 +141,13 @@ export type ExperienciaLaboralDTO = {
   cargo: string
   fechaInicioLaboral: string
   fechaFin: string | null
+}
+
+export type DocumentoChecklistDTO = {
+  id: number
+  tipo: TipoDocumentoChecklist
+  criticidad: CriticidadDocumento
+  estado: EstadoDocumentoChecklist
 }
 
 export type PersonaResumenDTO = {
@@ -164,6 +204,7 @@ export type PersonaDTO = {
   fechaVigenciaEmo: string | null
   aptitudMedica: AptitudMedica | null
   restriccionesMedicas: string | null
+  documentosChecklist: DocumentoChecklistDTO[]
   createdAt: string
 }
 
@@ -192,6 +233,83 @@ export const APTITUDES_MEDICAS: CatalogOption<AptitudMedica>[] = [
   { value: 'VENCIDO', label: 'NO APTO / VENCIDO' },
 ]
 
+export const DOCUMENTOS_CHECKLIST: {
+  tipo: TipoDocumentoChecklist
+  label: string
+  criticidad: CriticidadDocumento
+}[] = [
+  { tipo: 'DNI_2_CARAS', label: 'DNI 2 Caras Vigente', criticidad: 'CRITICO' },
+  { tipo: 'CV_CERTIFICADO_TRABAJO', label: 'CV / Certificado Trabajo', criticidad: 'NORMAL' },
+  { tipo: 'CARNET_RETCC', label: 'Carnet RETCC (Solo RCC / No Aplica Régimen Común)', criticidad: 'NORMAL' },
+  { tipo: 'CUL', label: 'Certificado Único Laboral (CUL)', criticidad: 'NORMAL' },
+  { tipo: 'ANTECEDENTES_POLICIALES', label: 'Antecedentes Policiales', criticidad: 'NORMAL' },
+  { tipo: 'ANTECEDENTES_JUDICIALES', label: 'Antecedentes Judiciales', criticidad: 'NORMAL' },
+  { tipo: 'ANTECEDENTES_PENALES', label: 'Antecedentes Penales', criticidad: 'NORMAL' },
+  { tipo: 'CARNET_VACUNACION', label: 'Carnet Vacunación / MINSA', criticidad: 'NORMAL' },
+  { tipo: 'EMO_APTO_VIGENTE', label: 'EMO Apto y Vigente', criticidad: 'CRITICO' },
+  { tipo: 'SCTR', label: 'SCTR Salud y Pensión', criticidad: 'CRITICO' },
+  { tipo: 'POLIZA_VIDA_LEY', label: 'Póliza Seguro Vida Ley', criticidad: 'NORMAL' },
+  { tipo: 'CHECKLIST_INGRESO', label: 'Check list de ingreso', criticidad: 'NORMAL' },
+  { tipo: 'FICHA_TRABAJADOR', label: 'Ficha del trabajador', criticidad: 'NORMAL' },
+  { tipo: 'ALTA_T_REGISTRO', label: 'Alta en T-Registro SUNAT', criticidad: 'CRITICO' },
+]
+
+export const ESTADOS_CHECKLIST: CatalogOption<EstadoDocumentoChecklist>[] = [
+  { value: 'CONFORME', label: 'OK' },
+  { value: 'PENDIENTE', label: 'Pendiente' },
+  { value: 'OBSERVADO', label: 'Observado' },
+  { value: 'NO_APLICA', label: 'No aplica' },
+]
+
+export const ESTADOS_CHECKLIST_VALIDOS: EstadoDocumentoChecklist[] = [
+  'CONFORME',
+  'PENDIENTE',
+  'OBSERVADO',
+  'NO_APLICA',
+]
+
+export function createDefaultChecklist(): DocumentoChecklistForm[] {
+  return DOCUMENTOS_CHECKLIST.map((documento) => ({
+    tipo: documento.tipo,
+    criticidad: documento.criticidad,
+    estado: 'PENDIENTE',
+  }))
+}
+
+export function completeChecklist(
+  items: DocumentoChecklistForm[] | undefined,
+): DocumentoChecklistForm[] {
+  const byTipo = new Map((items ?? []).map((item) => [item.tipo, item]))
+  return DOCUMENTOS_CHECKLIST.map((documento) => {
+    const saved = byTipo.get(documento.tipo)
+    const estado = saved && ESTADOS_CHECKLIST_VALIDOS.includes(saved.estado)
+      ? saved.estado
+      : 'PENDIENTE'
+    return {
+      tipo: documento.tipo,
+      criticidad: documento.criticidad,
+      estado,
+    }
+  })
+}
+
+export function cicloEstadoChecklist(
+  tipo: TipoDocumentoChecklist,
+  estado: EstadoDocumentoChecklist,
+): EstadoDocumentoChecklist {
+  const ciclo: EstadoDocumentoChecklist[] =
+    tipo === 'CARNET_RETCC'
+      ? ['CONFORME', 'PENDIENTE', 'OBSERVADO', 'NO_APLICA']
+      : ['CONFORME', 'PENDIENTE', 'OBSERVADO']
+  const actual = ciclo.indexOf(estado)
+  const siguiente = actual === -1 ? 0 : (actual + 1) % ciclo.length
+  return ciclo[siguiente] ?? 'PENDIENTE'
+}
+
+export function estadoChecklistLabel(estado: EstadoDocumentoChecklist): string {
+  return ESTADOS_CHECKLIST.find((item) => item.value === estado)?.label ?? estado
+}
+
 export function createEmptyPersonaForm(): PersonaForm {
   return {
     apellidos: '',
@@ -216,6 +334,7 @@ export function createEmptyPersonaForm(): PersonaForm {
     fechaVigenciaEmo: '',
     aptitudMedica: '',
     restriccionesMedicas: '',
+    documentosChecklist: createDefaultChecklist(),
   }
 }
 
@@ -253,6 +372,7 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     fechaVigenciaEmo: dto.fechaVigenciaEmo ?? '',
     aptitudMedica: dto.aptitudMedica ?? '',
     restriccionesMedicas: dto.restriccionesMedicas ?? '',
+    documentosChecklist: completeChecklist(dto.documentosChecklist),
   }
 }
 
@@ -290,6 +410,10 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
     fechaVigenciaEmo: emptyToNull(form.fechaVigenciaEmo),
     aptitudMedica: form.aptitudMedica ? form.aptitudMedica : null,
     restriccionesMedicas: emptyToNull(form.restriccionesMedicas),
+    documentosChecklist: completeChecklist(form.documentosChecklist).map((item) => ({
+      tipo: item.tipo,
+      estado: item.estado,
+    })),
   }
 }
 

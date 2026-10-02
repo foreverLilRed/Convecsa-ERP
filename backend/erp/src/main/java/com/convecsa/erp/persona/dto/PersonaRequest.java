@@ -3,6 +3,7 @@ package com.convecsa.erp.persona.dto;
 import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
+import com.convecsa.erp.persona.domain.TipoDocumentoChecklist;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
@@ -12,7 +13,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -86,6 +89,9 @@ public class PersonaRequest {
     @Valid
     private List<ExperienciaLaboralRequest> experienciasLaborales = new ArrayList<>();
 
+    @Valid
+    private List<DocumentoChecklistRequest> documentosChecklist = new ArrayList<>();
+
     private LocalDate fechaVigenciaEmo;
 
     private AptitudMedica aptitudMedica;
@@ -124,6 +130,23 @@ public class PersonaRequest {
             return true;
         }
         return aptitudMedica != null;
+    }
+
+    @AssertTrue(message = "Los tipos de documento del checklist no pueden repetirse")
+    public boolean isChecklistTiposUnicos() {
+        if (documentosChecklist == null || documentosChecklist.isEmpty()) {
+            return true;
+        }
+        Set<TipoDocumentoChecklist> vistos = new HashSet<>();
+        for (DocumentoChecklistRequest item : documentosChecklist) {
+            if (item.getTipo() == null) {
+                continue;
+            }
+            if (!vistos.add(item.getTipo())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static boolean blank(String value) {

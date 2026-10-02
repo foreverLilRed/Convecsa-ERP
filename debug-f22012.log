@@ -1,0 +1,3 @@
+{"sessionId":"f22012","hypothesisId":"A","location":"PersonaMapper.updateEntity","message":"cuentas around replace","data":{"cuentasAntes":0,"principalesAntes":0,"cuentasDespues":0,"principalesDespues":0,"incomingCuentas":0},"timestamp":1790741207681}
+{"sessionId":"f22012","hypothesisId":"B","location":"PersonaServiceImpl.actualizar","message":"before save salud fields","data":{"id":4,"fechaVigenciaEmo":"2027-12-31","aptitudMedica":"VENCIDO"},"timestamp":1790741207701}
+{"sessionId":"f22012","hypothesisId":"A","location":"PersonaMapper.updateEntity","message":"cuentas around replace","data":{"cuentasAntes":0,"principalesAntes":0,"cuentasDespues":0,"principalesDespues":0,"incomingCuentas":0},"timestamp":1790741213914}

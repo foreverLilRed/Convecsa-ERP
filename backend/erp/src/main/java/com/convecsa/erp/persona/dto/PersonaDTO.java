@@ -33,6 +33,7 @@ public class PersonaDTO {
     private final String fotoUrl;
     private final List<CuentaBancariaDTO> cuentasBancarias;
     private final List<ExperienciaLaboralDTO> experienciasLaborales;
+    private final List<DocumentoChecklistDTO> documentosChecklist;
     private final LocalDate fechaVigenciaEmo;
     private final AptitudMedica aptitudMedica;
     private final String restriccionesMedicas;

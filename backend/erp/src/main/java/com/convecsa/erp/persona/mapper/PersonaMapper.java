@@ -1,8 +1,12 @@
 package com.convecsa.erp.persona.mapper;
 
+import com.convecsa.erp.persona.domain.EstadoDocumentoChecklist;
+import com.convecsa.erp.persona.domain.TipoDocumentoChecklist;
 import com.convecsa.erp.persona.dto.CelularDTO;
 import com.convecsa.erp.persona.dto.CuentaBancariaDTO;
 import com.convecsa.erp.persona.dto.CuentaBancariaRequest;
+import com.convecsa.erp.persona.dto.DocumentoChecklistDTO;
+import com.convecsa.erp.persona.dto.DocumentoChecklistRequest;
 import com.convecsa.erp.persona.dto.ExperienciaLaboralDTO;
 import com.convecsa.erp.persona.dto.ExperienciaLaboralRequest;
 import com.convecsa.erp.persona.dto.PersonaDTO;
@@ -11,7 +15,12 @@ import com.convecsa.erp.persona.dto.PersonaResumenDTO;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.entity.PersonaCelular;
 import com.convecsa.erp.persona.entity.PersonaCuentaBancaria;
+import com.convecsa.erp.persona.entity.PersonaDocumentoChecklist;
 import com.convecsa.erp.persona.entity.PersonaExperienciaLaboral;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -100,6 +109,38 @@ public class PersonaMapper {
                 persona.addExperienciaLaboral(experiencia);
             }
         }
+
+        applyChecklist(persona, request.getDocumentosChecklist());
+    }
+
+    private void applyChecklist(Persona persona, List<DocumentoChecklistRequest> requestItems) {
+        Map<TipoDocumentoChecklist, EstadoDocumentoChecklist> estados = new EnumMap<>(TipoDocumentoChecklist.class);
+        for (TipoDocumentoChecklist tipo : TipoDocumentoChecklist.values()) {
+            estados.put(tipo, EstadoDocumentoChecklist.PENDIENTE);
+        }
+        if (requestItems != null) {
+            for (DocumentoChecklistRequest item : requestItems) {
+                if (item.getTipo() != null && item.getEstado() != null) {
+                    estados.put(item.getTipo(), item.getEstado());
+                }
+            }
+        }
+
+        Map<TipoDocumentoChecklist, PersonaDocumentoChecklist> actuales = new EnumMap<>(TipoDocumentoChecklist.class);
+        for (PersonaDocumentoChecklist existente : persona.getDocumentosChecklist()) {
+            actuales.put(existente.getTipoDocumento(), existente);
+        }
+
+        for (TipoDocumentoChecklist tipo : TipoDocumentoChecklist.values()) {
+            PersonaDocumentoChecklist fila = actuales.get(tipo);
+            if (fila == null) {
+                fila = new PersonaDocumentoChecklist();
+                fila.setTipoDocumento(tipo);
+                persona.addDocumentoChecklist(fila);
+            }
+            fila.setCriticidad(tipo.getCriticidad());
+            fila.setEstado(estados.get(tipo));
+        }
     }
 
     public PersonaDTO toDto(Persona persona) {
@@ -139,6 +180,14 @@ public class PersonaMapper {
                                 experiencia.getCargo(),
                                 experiencia.getFechaInicioLaboral(),
                                 experiencia.getFechaFin()))
+                        .toList())
+                .documentosChecklist(persona.getDocumentosChecklist().stream()
+                        .sorted(Comparator.comparing(item -> item.getTipoDocumento().ordinal()))
+                        .map(item -> new DocumentoChecklistDTO(
+                                item.getId(),
+                                item.getTipoDocumento(),
+                                item.getCriticidad(),
+                                item.getEstado()))
                         .toList())
                 .fechaVigenciaEmo(persona.getFechaVigenciaEmo())
                 .aptitudMedica(persona.getAptitudMedica())
