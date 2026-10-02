@@ -29,8 +29,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       <SearchIcon class="size-4 shrink-0 opacity-50" />
     </InputGroupAddon>
     <ComboboxInput
-      data-slot="combobox-input"
-      :class="cn('flex-1 outline-hidden disabled:cursor-not-allowed disabled:opacity-50', props.class)"
+      data-slot="input-group-control"
+      :class="cn(
+        'flex-1 rounded-none border-0 bg-transparent px-2.5 py-1 text-sm shadow-none outline-none ring-0 placeholder:text-muted-foreground focus-visible:border-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-transparent',
+        props.class,
+      )"
       v-bind="{ ...$attrs, ...forwarded }"
     />
   </InputGroup>

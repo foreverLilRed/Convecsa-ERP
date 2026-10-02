@@ -339,8 +339,12 @@ onUnmounted(() => {
                         </Button>
                       </ComboboxTrigger>
                     </ComboboxAnchor>
-                    <ComboboxList class="z-80 w-(--reka-combobox-trigger-width)" align="start">
-                      <ComboboxInput v-model="personaSearch" placeholder="Buscar persona..." />
+                    <ComboboxList class="z-100 w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput
+                        v-model="personaSearch"
+                        placeholder="Buscar persona..."
+                        autocomplete="off"
+                      />
                       <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
                       <ComboboxGroup>
                         <ComboboxItem
