@@ -37,6 +37,7 @@ export const navItems: NavItem[] = [
     icon: 'users',
     children: [
       { name: 'gh-personal', label: 'Personal', path: '/gestion-humana/personal' },
+      { name: 'gh-contratos', label: 'Contratos', path: '/gestion-humana/contratos' },
       { name: 'gh-onboarding', label: 'Onboarding', path: '/gestion-humana/onboarding' },
       { name: 'gh-nominas', label: 'Nóminas', path: '/gestion-humana/nominas' },
       { name: 'gh-asistencia', label: 'Asistencia', path: '/gestion-humana/asistencia' },

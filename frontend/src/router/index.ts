@@ -9,6 +9,7 @@ import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
+  { path: 'contratos', name: 'gh-contratos', title: 'Contratos' },
   { path: 'onboarding', name: 'gh-onboarding', title: 'Onboarding' },
   { path: 'nominas', name: 'gh-nominas', title: 'Nóminas' },
   { path: 'asistencia', name: 'gh-asistencia', title: 'Asistencia' },
