@@ -1,5 +1,9 @@
 package com.convecsa.erp.contrato.entity;
 
+import com.convecsa.erp.contrato.catalogo.CausaObjetiva;
+import com.convecsa.erp.contrato.catalogo.Jornada;
+import com.convecsa.erp.contrato.catalogo.MetodoPago;
+import com.convecsa.erp.contrato.catalogo.TipoPlantilla;
 import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.persona.entity.Persona;
 import jakarta.persistence.Column;
@@ -15,7 +19,9 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -38,6 +44,47 @@ public class Contrato {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoContrato estado;
+
+    @Column(name = "fecha_inicio")
+    private LocalDate fechaInicio;
+
+    @Column(name = "fecha_fin")
+    private LocalDate fechaFin;
+
+    @Column(name = "fecha_corte")
+    private LocalDate fechaCorte;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_plantilla_id")
+    private TipoPlantilla tipoPlantilla;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "jornada_id")
+    private Jornada jornada;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "metodo_pago_id")
+    private MetodoPago metodoPago;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "causa_objetiva_id")
+    private CausaObjetiva causaObjetiva;
+
+    @Column(length = 160)
+    private String cargo;
+
+    @Column(precision = 12, scale = 2)
+    private BigDecimal sueldo;
+
+    @Column(length = 40)
+    private String numero;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contrato_origen_id")
+    private Contrato contratoOrigen;
+
+    @Column(length = 2000)
+    private String observaciones;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
