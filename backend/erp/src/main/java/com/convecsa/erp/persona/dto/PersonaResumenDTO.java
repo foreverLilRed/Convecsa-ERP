@@ -1,8 +1,11 @@
 package com.convecsa.erp.persona.dto;
 
+import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -15,9 +18,21 @@ public class PersonaResumenDTO {
     private final String nombres;
     private final TipoDocumento tipoDocumento;
     private final String numeroDocumento;
+    private final LocalDate fechaNacimiento;
+    private final LocalDate fechaEmisionDni;
+    private final LocalDate fechaCaducidadDni;
+    private final List<CelularDTO> celulares;
     private final String correo;
     private final GradoInstruccion gradoInstruccion;
+    private final String direccion;
     private final String departamento;
+    private final String provincia;
     private final String distrito;
+    private final String residencia;
+    private final List<CuentaBancariaDTO> cuentasBancarias;
+    private final List<ExperienciaLaboralDTO> experienciasLaborales;
+    private final LocalDate fechaVigenciaEmo;
+    private final AptitudMedica aptitudMedica;
+    private final List<DocumentoChecklistDTO> documentosChecklist;
     private final Instant createdAt;
 }

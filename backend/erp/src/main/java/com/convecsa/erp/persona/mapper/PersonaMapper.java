@@ -154,9 +154,7 @@ public class PersonaMapper {
                 .fechaNacimiento(persona.getFechaNacimiento())
                 .fechaEmisionDni(persona.getFechaEmisionDni())
                 .fechaCaducidadDni(persona.getFechaCaducidadDni())
-                .celulares(persona.getCelulares().stream()
-                        .map(celular -> new CelularDTO(celular.getId(), celular.getNumero()))
-                        .toList())
+                .celulares(toCelularDtos(persona))
                 .correo(persona.getCorreo())
                 .correoSecundario(persona.getCorreoSecundario())
                 .gradoInstruccion(persona.getGradoInstruccion())
@@ -166,30 +164,9 @@ public class PersonaMapper {
                 .distrito(persona.getDistrito())
                 .residencia(persona.getResidencia())
                 .fotoUrl(persona.getFotoUrl())
-                .cuentasBancarias(persona.getCuentasBancarias().stream()
-                        .map(cuenta -> new CuentaBancariaDTO(
-                                cuenta.getId(),
-                                cuenta.getBanco(),
-                                cuenta.getNumeroCuenta(),
-                                cuenta.getCci(),
-                                cuenta.isPrincipal()))
-                        .toList())
-                .experienciasLaborales(persona.getExperienciasLaborales().stream()
-                        .map(experiencia -> new ExperienciaLaboralDTO(
-                                experiencia.getId(),
-                                experiencia.getOrganizacion(),
-                                experiencia.getCargo(),
-                                experiencia.getFechaInicioLaboral(),
-                                experiencia.getFechaFin()))
-                        .toList())
-                .documentosChecklist(persona.getDocumentosChecklist().stream()
-                        .sorted(Comparator.comparing(item -> item.getTipoDocumento().ordinal()))
-                        .map(item -> new DocumentoChecklistDTO(
-                                item.getId(),
-                                item.getTipoDocumento(),
-                                item.getCriticidad(),
-                                item.getEstado()))
-                        .toList())
+                .cuentasBancarias(toCuentaDtos(persona))
+                .experienciasLaborales(toExperienciaDtos(persona))
+                .documentosChecklist(toDocumentoDtos(persona))
                 .fechaVigenciaEmo(persona.getFechaVigenciaEmo())
                 .aptitudMedica(persona.getAptitudMedica())
                 .restriccionesMedicas(persona.getRestriccionesMedicas())
@@ -204,12 +181,63 @@ public class PersonaMapper {
                 .nombres(persona.getNombres())
                 .tipoDocumento(persona.getTipoDocumento())
                 .numeroDocumento(persona.getNumeroDocumento())
+                .fechaNacimiento(persona.getFechaNacimiento())
+                .fechaEmisionDni(persona.getFechaEmisionDni())
+                .fechaCaducidadDni(persona.getFechaCaducidadDni())
+                .celulares(toCelularDtos(persona))
                 .correo(persona.getCorreo())
                 .gradoInstruccion(persona.getGradoInstruccion())
+                .direccion(persona.getDireccion())
                 .departamento(persona.getDepartamento())
+                .provincia(persona.getProvincia())
                 .distrito(persona.getDistrito())
+                .residencia(persona.getResidencia())
+                .cuentasBancarias(toCuentaDtos(persona))
+                .experienciasLaborales(toExperienciaDtos(persona))
+                .fechaVigenciaEmo(persona.getFechaVigenciaEmo())
+                .aptitudMedica(persona.getAptitudMedica())
+                .documentosChecklist(toDocumentoDtos(persona))
                 .createdAt(persona.getCreatedAt())
                 .build();
+    }
+
+    private static List<CelularDTO> toCelularDtos(Persona persona) {
+        return persona.getCelulares().stream()
+                .map(celular -> new CelularDTO(celular.getId(), celular.getNumero()))
+                .toList();
+    }
+
+    private static List<CuentaBancariaDTO> toCuentaDtos(Persona persona) {
+        return persona.getCuentasBancarias().stream()
+                .map(cuenta -> new CuentaBancariaDTO(
+                        cuenta.getId(),
+                        cuenta.getBanco(),
+                        cuenta.getNumeroCuenta(),
+                        cuenta.getCci(),
+                        cuenta.isPrincipal()))
+                .toList();
+    }
+
+    private static List<ExperienciaLaboralDTO> toExperienciaDtos(Persona persona) {
+        return persona.getExperienciasLaborales().stream()
+                .map(experiencia -> new ExperienciaLaboralDTO(
+                        experiencia.getId(),
+                        experiencia.getOrganizacion(),
+                        experiencia.getCargo(),
+                        experiencia.getFechaInicioLaboral(),
+                        experiencia.getFechaFin()))
+                .toList();
+    }
+
+    private static List<DocumentoChecklistDTO> toDocumentoDtos(Persona persona) {
+        return persona.getDocumentosChecklist().stream()
+                .sorted(Comparator.comparing(item -> item.getTipoDocumento().ordinal()))
+                .map(item -> new DocumentoChecklistDTO(
+                        item.getId(),
+                        item.getTipoDocumento(),
+                        item.getCriticidad(),
+                        item.getEstado()))
+                .toList();
     }
 
     private String blankToNull(String value) {

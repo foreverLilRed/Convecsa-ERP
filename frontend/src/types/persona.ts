@@ -156,10 +156,22 @@ export type PersonaResumenDTO = {
   nombres: string
   tipoDocumento: TipoDocumento
   numeroDocumento: string
+  fechaNacimiento: string | null
+  fechaEmisionDni: string | null
+  fechaCaducidadDni: string | null
+  celulares: CelularDTO[]
   correo: string
   gradoInstruccion: GradoInstruccion
+  direccion: string
   departamento: string
+  provincia: string
   distrito: string
+  residencia: string
+  cuentasBancarias: CuentaBancariaDTO[]
+  experienciasLaborales: ExperienciaLaboralDTO[]
+  fechaVigenciaEmo: string | null
+  aptitudMedica: AptitudMedica | null
+  documentosChecklist: DocumentoChecklistDTO[]
   createdAt: string
 }
 

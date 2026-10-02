@@ -32,6 +32,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  calcularIndicadores,
+  SECCIONES_INDICADOR,
+  type IndicadorSeccion,
+} from '@/services/persona/indicadoresPersona'
 import { listarPersonas } from '@/services/persona/personaService'
 import { type PagedResponse, type PersonaResumenDTO } from '@/types/persona'
 
@@ -124,6 +129,22 @@ watchDebounced(
 watch([page, q, sort, () => props.reloadKey], () => {
   void load()
 }, { immediate: true })
+
+function indicadorClass(indicador: IndicadorSeccion): string {
+  if (indicador === 'COMPLETO') {
+    return 'bg-emerald-500'
+  }
+  if (indicador === 'INCOMPLETO') {
+    return 'bg-amber-500'
+  }
+  return 'bg-red-500'
+}
+
+function indicadorLabel(seccion: string, indicador: IndicadorSeccion): string {
+  const estado =
+    indicador === 'COMPLETO' ? 'completo' : indicador === 'INCOMPLETO' ? 'incompleto' : 'vacío'
+  return `${seccion}: ${estado}`
+}
 </script>
 
 <template>
@@ -259,26 +280,14 @@ watch([page, q, sort, () => props.reloadKey], () => {
             </TableCell>
             <TableCell class="px-3 py-3">
               <div class="flex items-center justify-end gap-2">
-                <div class="flex items-center gap-1.5" aria-label="Indicadores pendientes">
+                <div class="flex items-center gap-1.5" aria-label="Indicadores por sección">
                   <span
-                    class="size-3.5 rounded-full bg-emerald-500"
-                    title="Activo"
-                    aria-label="Indicador activo"
-                  />
-                  <span
-                    class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
-                    title="Pendiente"
-                    aria-hidden="true"
-                  />
-                  <span
-                    class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
-                    title="Pendiente"
-                    aria-hidden="true"
-                  />
-                  <span
-                    class="size-3.5 rounded-full border-2 border-slate-300 bg-transparent"
-                    title="Pendiente"
-                    aria-hidden="true"
+                    v-for="(indicador, index) in calcularIndicadores(persona)"
+                    :key="SECCIONES_INDICADOR[index]?.key"
+                    class="size-3.5 rounded-full"
+                    :class="indicadorClass(indicador)"
+                    :title="indicadorLabel(SECCIONES_INDICADOR[index]?.label ?? '', indicador)"
+                    :aria-label="indicadorLabel(SECCIONES_INDICADOR[index]?.label ?? '', indicador)"
                   />
                 </div>
                 <Button
