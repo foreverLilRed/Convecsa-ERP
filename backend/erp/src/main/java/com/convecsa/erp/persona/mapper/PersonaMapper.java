@@ -115,9 +115,6 @@ public class PersonaMapper {
 
     private void applyChecklist(Persona persona, List<DocumentoChecklistRequest> requestItems) {
         Map<TipoDocumentoChecklist, EstadoDocumentoChecklist> estados = new EnumMap<>(TipoDocumentoChecklist.class);
-        for (TipoDocumentoChecklist tipo : TipoDocumentoChecklist.values()) {
-            estados.put(tipo, EstadoDocumentoChecklist.PENDIENTE);
-        }
         if (requestItems != null) {
             for (DocumentoChecklistRequest item : requestItems) {
                 if (item.getTipo() != null && item.getEstado() != null) {
@@ -126,12 +123,16 @@ public class PersonaMapper {
             }
         }
 
+        persona.getDocumentosChecklist()
+                .removeIf(existente -> !estados.containsKey(existente.getTipoDocumento()));
+
         Map<TipoDocumentoChecklist, PersonaDocumentoChecklist> actuales = new EnumMap<>(TipoDocumentoChecklist.class);
         for (PersonaDocumentoChecklist existente : persona.getDocumentosChecklist()) {
             actuales.put(existente.getTipoDocumento(), existente);
         }
 
-        for (TipoDocumentoChecklist tipo : TipoDocumentoChecklist.values()) {
+        for (Map.Entry<TipoDocumentoChecklist, EstadoDocumentoChecklist> entry : estados.entrySet()) {
+            TipoDocumentoChecklist tipo = entry.getKey();
             PersonaDocumentoChecklist fila = actuales.get(tipo);
             if (fila == null) {
                 fila = new PersonaDocumentoChecklist();
@@ -139,7 +140,7 @@ public class PersonaMapper {
                 persona.addDocumentoChecklist(fila);
             }
             fila.setCriticidad(tipo.getCriticidad());
-            fila.setEstado(estados.get(tipo));
+            fila.setEstado(entry.getValue());
         }
     }
 

@@ -268,29 +268,26 @@ export const ESTADOS_CHECKLIST_VALIDOS: EstadoDocumentoChecklist[] = [
   'NO_APLICA',
 ]
 
-export function createDefaultChecklist(): DocumentoChecklistForm[] {
-  return DOCUMENTOS_CHECKLIST.map((documento) => ({
-    tipo: documento.tipo,
-    criticidad: documento.criticidad,
-    estado: 'PENDIENTE',
-  }))
+export function documentosDisponibles(
+  agregados: { tipo: TipoDocumentoChecklist }[],
+): typeof DOCUMENTOS_CHECKLIST {
+  const usados = new Set(agregados.map((item) => item.tipo))
+  return DOCUMENTOS_CHECKLIST.filter((documento) => !usados.has(documento.tipo))
 }
 
-export function completeChecklist(
-  items: DocumentoChecklistForm[] | undefined,
+export function toChecklistForm(
+  items: Array<DocumentoChecklistForm | DocumentoChecklistDTO> | undefined,
 ): DocumentoChecklistForm[] {
-  const byTipo = new Map((items ?? []).map((item) => [item.tipo, item]))
-  return DOCUMENTOS_CHECKLIST.map((documento) => {
-    const saved = byTipo.get(documento.tipo)
-    const estado = saved && ESTADOS_CHECKLIST_VALIDOS.includes(saved.estado)
-      ? saved.estado
-      : 'PENDIENTE'
-    return {
-      tipo: documento.tipo,
-      criticidad: documento.criticidad,
-      estado,
-    }
-  })
+  return (items ?? [])
+    .filter((item) => ESTADOS_CHECKLIST_VALIDOS.includes(item.estado))
+    .map((item) => {
+      const catalogo = DOCUMENTOS_CHECKLIST.find((documento) => documento.tipo === item.tipo)
+      return {
+        tipo: item.tipo,
+        criticidad: catalogo?.criticidad ?? item.criticidad,
+        estado: item.estado,
+      }
+    })
 }
 
 export function cicloEstadoChecklist(
@@ -334,7 +331,7 @@ export function createEmptyPersonaForm(): PersonaForm {
     fechaVigenciaEmo: '',
     aptitudMedica: '',
     restriccionesMedicas: '',
-    documentosChecklist: createDefaultChecklist(),
+    documentosChecklist: [],
   }
 }
 
@@ -372,7 +369,7 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     fechaVigenciaEmo: dto.fechaVigenciaEmo ?? '',
     aptitudMedica: dto.aptitudMedica ?? '',
     restriccionesMedicas: dto.restriccionesMedicas ?? '',
-    documentosChecklist: completeChecklist(dto.documentosChecklist),
+    documentosChecklist: toChecklistForm(dto.documentosChecklist),
   }
 }
 
@@ -410,7 +407,7 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
     fechaVigenciaEmo: emptyToNull(form.fechaVigenciaEmo),
     aptitudMedica: form.aptitudMedica ? form.aptitudMedica : null,
     restriccionesMedicas: emptyToNull(form.restriccionesMedicas),
-    documentosChecklist: completeChecklist(form.documentosChecklist).map((item) => ({
+    documentosChecklist: toChecklistForm(form.documentosChecklist).map((item) => ({
       tipo: item.tipo,
       estado: item.estado,
     })),

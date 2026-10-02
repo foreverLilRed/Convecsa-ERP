@@ -19,6 +19,7 @@ import {
   cicloEstadoChecklist,
   createEmptyPersonaForm,
   DOCUMENTOS_CHECKLIST,
+  documentosDisponibles,
   estadoChecklistLabel,
   ESTADOS_CHECKLIST_VALIDOS,
   GRADOS_INSTRUCCION,
@@ -29,6 +30,7 @@ import {
   vigenciaEmoLabel,
   type PersonaDTO,
   type PersonaForm,
+  type TipoDocumentoChecklist,
 } from '@/types/persona'
 
 type SeccionPersona = 'identidad' | 'experiencia' | 'banco' | 'salud' | 'documentos'
@@ -58,6 +60,7 @@ const fotoInput = ref<HTMLInputElement | null>(null)
 const seccionActiva = ref<SeccionPersona>('identidad')
 const isEdit = computed(() => Boolean(props.persona?.id))
 const vigenciaEmo = computed(() => vigenciaEmoLabel(form.fechaVigenciaEmo))
+const checklistDisponibles = computed(() => documentosDisponibles(form.documentosChecklist))
 
 const provinciasDisponibles = computed(() => {
   return findDepartamento(form.departamento)?.provincias.map((provincia) => provincia.nombre) ?? []
@@ -232,6 +235,67 @@ function marcarTodosConformes() {
   form.documentosChecklist.forEach((item) => {
     item.estado = 'CONFORME'
   })
+}
+
+function agregarDocumento(tipo: TipoDocumentoChecklist) {
+  if (form.documentosChecklist.some((item) => item.tipo === tipo)) {
+    return
+  }
+  const catalogo = DOCUMENTOS_CHECKLIST.find((documento) => documento.tipo === tipo)
+  if (!catalogo) {
+    return
+  }
+  form.documentosChecklist.push({
+    tipo: catalogo.tipo,
+    criticidad: catalogo.criticidad,
+    estado: 'PENDIENTE',
+  })
+}
+
+function quitarDocumento(tipo: TipoDocumentoChecklist) {
+  const index = form.documentosChecklist.findIndex((item) => item.tipo === tipo)
+  if (index >= 0) {
+    form.documentosChecklist.splice(index, 1)
+  }
+}
+
+function onChecklistDragStart(event: DragEvent, tipo: TipoDocumentoChecklist) {
+  if (!event.dataTransfer) {
+    return
+  }
+  event.dataTransfer.setData('text/plain', tipo)
+  event.dataTransfer.effectAllowed = 'move'
+}
+
+function onChecklistDragOver(event: DragEvent) {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+}
+
+function tipoDesdeDrag(event: DragEvent): TipoDocumentoChecklist | null {
+  const tipo = event.dataTransfer?.getData('text/plain')
+  if (!tipo || !DOCUMENTOS_CHECKLIST.some((documento) => documento.tipo === tipo)) {
+    return null
+  }
+  return tipo as TipoDocumentoChecklist
+}
+
+function onDropEnAgregados(event: DragEvent) {
+  event.preventDefault()
+  const tipo = tipoDesdeDrag(event)
+  if (tipo) {
+    agregarDocumento(tipo)
+  }
+}
+
+function onDropEnDisponibles(event: DragEvent) {
+  event.preventDefault()
+  const tipo = tipoDesdeDrag(event)
+  if (tipo) {
+    quitarDocumento(tipo)
+  }
 }
 
 function documentoLabel(tipo: string): string {
@@ -858,46 +922,106 @@ function onOverlayClick() {
                   <div>
                     <legend class="text-sm font-semibold text-palette-navy">Checklist de documentos</legend>
                     <p class="mt-1 text-xs text-slate-500">
-                      Haz clic en cada documento para alternar su estado
+                      Arrastra para agregar. Clic en un agregado para cambiar su estado.
                     </p>
                   </div>
                   <Button
                     variant="outline"
                     class="h-9 shrink-0 px-3"
                     type="button"
+                    :disabled="form.documentosChecklist.length === 0"
                     @click="marcarTodosConformes"
                   >
                     Marcar todos conformes
                   </Button>
                 </div>
 
-                <ul class="mt-4 space-y-2">
-                  <li v-for="(item, index) in form.documentosChecklist" :key="item.tipo">
-                    <button
-                      class="flex w-full items-center justify-between gap-3 rounded-lg border border-palette-cyan/60 bg-white px-3 py-2.5 text-left transition hover:border-palette-royal/50 hover:bg-palette-soft/70"
-                      type="button"
-                      @click="cicloDocumento(index)"
-                    >
-                      <span class="min-w-0">
+                <div class="mt-4 grid gap-4 lg:grid-cols-2">
+                  <section
+                    class="rounded-lg border border-dashed border-slate-300 bg-slate-50/80 p-3"
+                    @dragover="onChecklistDragOver"
+                    @drop="onDropEnDisponibles"
+                  >
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Disponibles
+                    </h3>
+                    <p v-if="checklistDisponibles.length === 0" class="mt-3 text-sm text-slate-400">
+                      Todos los documentos están agregados.
+                    </p>
+                    <ul class="mt-3 space-y-2">
+                      <li
+                        v-for="documento in checklistDisponibles"
+                        :key="documento.tipo"
+                        class="cursor-grab rounded-lg border border-slate-200 bg-white px-3 py-2.5 active:cursor-grabbing"
+                        draggable="true"
+                        @dragstart="onChecklistDragStart($event, documento.tipo)"
+                      >
                         <span class="block text-sm font-medium text-palette-navy">
-                          {{ documentoLabel(item.tipo) }}
+                          {{ documento.label }}
                         </span>
                         <span
-                          v-if="item.criticidad === 'CRITICO'"
+                          v-if="documento.criticidad === 'CRITICO'"
                           class="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-200"
                         >
                           Crítico
                         </span>
-                      </span>
-                      <span
-                        class="inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1"
-                        :class="estadoBadgeClass(item.estado)"
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section
+                    class="rounded-lg border border-palette-cyan/70 bg-white p-3"
+                    @dragover="onChecklistDragOver"
+                    @drop="onDropEnAgregados"
+                  >
+                    <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                      Agregados
+                    </h3>
+                    <p v-if="form.documentosChecklist.length === 0" class="mt-3 text-sm text-slate-400">
+                      Arrastra aquí los documentos de la persona.
+                    </p>
+                    <ul class="mt-3 space-y-2">
+                      <li
+                        v-for="(item, index) in form.documentosChecklist"
+                        :key="item.tipo"
+                        class="flex items-start justify-between gap-2 rounded-lg border border-palette-cyan/60 bg-palette-soft/40 px-3 py-2.5"
+                        draggable="true"
+                        @dragstart="onChecklistDragStart($event, item.tipo)"
                       >
-                        {{ estadoChecklistLabel(item.estado) }}
-                      </span>
-                    </button>
-                  </li>
-                </ul>
+                        <button
+                          class="min-w-0 flex-1 text-left"
+                          type="button"
+                          @click="cicloDocumento(index)"
+                        >
+                          <span class="block text-sm font-medium text-palette-navy">
+                            {{ documentoLabel(item.tipo) }}
+                          </span>
+                          <span
+                            v-if="item.criticidad === 'CRITICO'"
+                            class="mt-1 mr-1 inline-flex rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 ring-1 ring-rose-200"
+                          >
+                            Crítico
+                          </span>
+                          <span
+                            class="mt-1 inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1"
+                            :class="estadoBadgeClass(item.estado)"
+                          >
+                            {{ estadoChecklistLabel(item.estado) }}
+                          </span>
+                        </button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          class="h-8 shrink-0 px-2"
+                          type="button"
+                          @click="quitarDocumento(item.tipo)"
+                        >
+                          Quitar
+                        </Button>
+                      </li>
+                    </ul>
+                  </section>
+                </div>
               </fieldset>
             </TabsContent>
             </div>
