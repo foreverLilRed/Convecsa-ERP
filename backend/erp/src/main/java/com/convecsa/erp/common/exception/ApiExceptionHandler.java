@@ -28,8 +28,8 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler(DocumentoDuplicadoException.class)
-    public ResponseEntity<Map<String, Object>> handleDuplicate(DocumentoDuplicadoException exception) {
+    @ExceptionHandler({DocumentoDuplicadoException.class, PlantillaCodigoDuplicadoException.class})
+    public ResponseEntity<Map<String, Object>> handleDuplicate(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.CONFLICT.value());
         body.put("message", exception.getMessage());

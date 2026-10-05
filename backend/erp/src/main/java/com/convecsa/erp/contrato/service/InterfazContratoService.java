@@ -5,6 +5,9 @@ import com.convecsa.erp.contrato.dto.ContratoDTO;
 import com.convecsa.erp.contrato.dto.ContratoRequest;
 import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
 import com.convecsa.erp.contrato.dto.ContratosResumeDTO;
+import com.convecsa.erp.contrato.dto.PlantillaContratoDTO;
+import com.convecsa.erp.contrato.dto.PlantillaContratoRequest;
+import java.util.List;
 
 public interface InterfazContratoService {
 
@@ -17,4 +20,8 @@ public interface InterfazContratoService {
     ContratoDTO crear(ContratoRequest request);
 
     String documento(Long id);
+
+    List<PlantillaContratoDTO> listarPlantillas();
+
+    PlantillaContratoDTO crearPlantilla(PlantillaContratoRequest request);
 }

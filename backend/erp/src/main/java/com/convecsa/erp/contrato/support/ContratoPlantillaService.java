@@ -1,5 +1,6 @@
 package com.convecsa.erp.contrato.support;
 
+import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.persona.entity.Persona;
@@ -11,8 +12,11 @@ import java.text.DecimalFormatSymbols;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +72,39 @@ public class ContratoPlantillaService {
         }
         matcher.appendTail(result);
         return result.toString();
+    }
+
+    public static List<PlantillaCampoEsquema> esquemaDesdeHtml(String html) {
+        if (html == null || html.isBlank()) {
+            return new ArrayList<>();
+        }
+        LinkedHashSet<String> claves = new LinkedHashSet<>();
+        Matcher matcher = META_TOKEN.matcher(html);
+        while (matcher.find()) {
+            String clave = matcher.group(1);
+            if (clave != null && !clave.isBlank()) {
+                claves.add(clave);
+            }
+        }
+        List<PlantillaCampoEsquema> esquema = new ArrayList<>();
+        for (String clave : claves) {
+            PlantillaCampoEsquema campo = new PlantillaCampoEsquema();
+            campo.setClave(clave);
+            campo.setLabel(labelDesdeClave(clave));
+            campo.setTipo("text");
+            campo.setCatalogo(null);
+            campo.setRequerido(true);
+            esquema.add(campo);
+        }
+        return esquema;
+    }
+
+    static String labelDesdeClave(String clave) {
+        String conEspacios = clave.replace('_', ' ');
+        if (conEspacios.isEmpty()) {
+            return clave;
+        }
+        return Character.toUpperCase(conEspacios.charAt(0)) + conEspacios.substring(1);
     }
 
     private Map<String, String> tokens(Contrato contrato) {

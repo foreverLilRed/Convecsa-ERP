@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PlantillaContratoRepository extends JpaRepository<PlantillaContrato, Long> {
 
     List<PlantillaContrato> findByActivoTrueOrderByIdAsc();
+
+    boolean existsByCodigoIgnoreCase(String codigo);
 }

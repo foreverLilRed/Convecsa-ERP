@@ -1,13 +1,17 @@
 package com.convecsa.erp.contrato.support;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.persona.entity.Persona;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ContratoPlantillaServiceTest {
@@ -63,6 +67,31 @@ class ContratoPlantillaServiceTest {
         assertTrue(html.contains("PEDRO"));
         assertTrue(html.contains("INGENIERO"));
         assertFalse(html.contains("{{cargo}}"));
+    }
+
+    @Test
+    void esquemaDesdeHtmlExtraeCamposUnicosEnOrden() {
+        List<PlantillaCampoEsquema> esquema = ContratoPlantillaService.esquemaDesdeHtml(
+                "<p>{{fecha_inicio}} {{meta.campo}} y {{meta.ciudad_firma}} otra vez {{meta.campo}}</p>");
+
+        assertEquals(2, esquema.size());
+        assertEquals("campo", esquema.get(0).getClave());
+        assertEquals("Campo", esquema.get(0).getLabel());
+        assertEquals("text", esquema.get(0).getTipo());
+        assertNull(esquema.get(0).getCatalogo());
+        assertTrue(esquema.get(0).isRequerido());
+        assertEquals("ciudad_firma", esquema.get(1).getClave());
+        assertEquals("Ciudad firma", esquema.get(1).getLabel());
+        assertEquals("text", esquema.get(1).getTipo());
+        assertTrue(esquema.get(1).isRequerido());
+    }
+
+    @Test
+    void esquemaDesdeHtmlSinTokensMetaQuedaVacio() {
+        List<PlantillaCampoEsquema> esquema = ContratoPlantillaService.esquemaDesdeHtml(
+                "<p>{{trabajador_nombres}} {{fecha_inicio}}</p>");
+
+        assertTrue(esquema.isEmpty());
     }
 
     private static Contrato contratoBase() {

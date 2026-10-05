@@ -6,6 +6,7 @@ import DashboardPage from '@/pages/DashboardPage.vue'
 import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
 import PlaceholderPage from '@/pages/gestion-humana/PlaceholderPage.vue'
 import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
+import PlantillasContratoPage from '@/pages/gestion-humana/PlantillasContratoPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
@@ -59,6 +60,11 @@ const router = createRouter({
           path: 'gestion-humana/contratos',
           name: 'gh-contratos',
           component: ContratosPage,
+        },
+        {
+          path: 'gestion-humana/plantillas-contrato',
+          name: 'gh-plantillas-contrato',
+          component: PlantillasContratoPage,
         },
         ...gestionHumanaPages.map((page) => ({
           path: `gestion-humana/${page.path}`,

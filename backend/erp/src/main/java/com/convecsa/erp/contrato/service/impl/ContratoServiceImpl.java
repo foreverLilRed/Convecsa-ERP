@@ -2,6 +2,7 @@ package com.convecsa.erp.contrato.service.impl;
 
 import com.convecsa.erp.common.exception.ContratoNoEncontradoException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
+import com.convecsa.erp.common.exception.PlantillaCodigoDuplicadoException;
 import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.catalogo.CausaObjetiva;
 import com.convecsa.erp.contrato.catalogo.Jornada;
@@ -15,6 +16,7 @@ import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
 import com.convecsa.erp.contrato.dto.ContratosResumeDTO;
 import com.convecsa.erp.contrato.dto.PlantillaCampoDTO;
 import com.convecsa.erp.contrato.dto.PlantillaContratoDTO;
+import com.convecsa.erp.contrato.dto.PlantillaContratoRequest;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.contrato.repository.CausaObjetivaRepository;
@@ -99,7 +101,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
         contrato.setFechaInicio(request.getFechaInicio());
         contrato.setFechaFin(request.getFechaFin());
         contrato.setSueldo(request.getSueldo());
-        contrato.setMetadata(aplicarExtras(contrato, plantilla.getMetadata(), request.getMetadata()));
+        contrato.setMetadata(aplicarExtras(contrato, esquemaDe(plantilla), request.getMetadata()));
         Contrato saved = contratoRepository.save(contrato);
         return toDto(saved);
     }
@@ -125,13 +127,37 @@ public class ContratoServiceImpl implements InterfazContratoService {
         return contratoPlantillaService.render(contrato);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<PlantillaContratoDTO> listarPlantillas() {
+        return plantillaContratoRepository.findByActivoTrueOrderByIdAsc().stream()
+                .map(ContratoServiceImpl::toPlantillaDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public PlantillaContratoDTO crearPlantilla(PlantillaContratoRequest request) {
+        String codigo = request.getCodigo().trim().toUpperCase();
+        if (plantillaContratoRepository.existsByCodigoIgnoreCase(codigo)) {
+            throw new PlantillaCodigoDuplicadoException("Ya existe una plantilla con ese código");
+        }
+        PlantillaContrato plantilla = new PlantillaContrato();
+        plantilla.setCodigo(codigo);
+        plantilla.setNombre(request.getNombre().trim());
+        plantilla.setPlantilla(request.getPlantilla());
+        plantilla.setMetadata(ContratoPlantillaService.esquemaDesdeHtml(request.getPlantilla()));
+        plantilla.setActivo(true);
+        return toPlantillaDto(plantillaContratoRepository.save(plantilla));
+    }
+
     private Map<String, String> aplicarExtras(
             Contrato contrato,
             List<PlantillaCampoEsquema> esquema,
             Map<String, String> enviados) {
         Map<String, String> origen = enviados == null ? Map.of() : enviados;
         Map<String, String> guardados = new LinkedHashMap<>();
-        if (esquema == null) {
+        if (esquema == null || esquema.isEmpty()) {
             return guardados;
         }
         for (PlantillaCampoEsquema campo : esquema) {
@@ -207,17 +233,23 @@ public class ContratoServiceImpl implements InterfazContratoService {
         return campo.getLabel();
     }
 
+    private static List<PlantillaCampoEsquema> esquemaDe(PlantillaContrato plantilla) {
+        List<PlantillaCampoEsquema> guardado = plantilla.getMetadata();
+        if (guardado != null && !guardado.isEmpty()) {
+            return guardado;
+        }
+        return ContratoPlantillaService.esquemaDesdeHtml(plantilla.getPlantilla());
+    }
+
     private static PlantillaContratoDTO toPlantillaDto(PlantillaContrato plantilla) {
-        List<PlantillaCampoDTO> campos = plantilla.getMetadata() == null
-                ? List.of()
-                : plantilla.getMetadata().stream()
-                        .map(campo -> new PlantillaCampoDTO(
-                                campo.getClave(),
-                                campo.getLabel(),
-                                campo.getTipo(),
-                                campo.getCatalogo(),
-                                campo.isRequerido()))
-                        .toList();
+        List<PlantillaCampoDTO> campos = esquemaDe(plantilla).stream()
+                .map(campo -> new PlantillaCampoDTO(
+                        campo.getClave(),
+                        campo.getLabel(),
+                        campo.getTipo(),
+                        campo.getCatalogo(),
+                        campo.isRequerido()))
+                .toList();
         return new PlantillaContratoDTO(plantilla.getId(), plantilla.getCodigo(), plantilla.getNombre(), campos);
     }
 

@@ -24,6 +24,12 @@ export type PlantillaContrato = {
   metadata: PlantillaCampo[]
 }
 
+export type PlantillaContratoRequest = {
+  codigo: string
+  nombre: string
+  plantilla: string
+}
+
 export type ContratosCatalogos = {
   jornadas: CatalogoItem[]
   causasObjetivas: CatalogoItem[]
