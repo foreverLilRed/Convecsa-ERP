@@ -55,8 +55,8 @@ export type ContratoDTO = {
   estado: string
   fechaInicio: string | null
   fechaFin: string | null
-  cargo: string
-  proyecto: string
+  plantillaCodigo: string | null
+  plantillaNombre: string | null
   createdAt: string
   sueldo: number
 }

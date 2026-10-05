@@ -11,6 +11,6 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
 
     long countDistinctPersonaIdByEstado(EstadoContrato estado);
 
-    @EntityGraph(attributePaths = "persona")
+    @EntityGraph(attributePaths = {"persona", "plantillaContrato"})
     Page<Contrato> findAllByOrderByCreatedAtDesc(Pageable pageable);
 }

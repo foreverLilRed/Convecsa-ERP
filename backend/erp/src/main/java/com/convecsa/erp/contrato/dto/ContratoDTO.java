@@ -19,8 +19,8 @@ public class ContratoDTO {
     private final EstadoContrato estado;
     private final LocalDate fechaInicio;
     private final LocalDate fechaFin;
-    private final String cargo;
-    private final String proyecto;
+    private final String plantillaCodigo;
+    private final String plantillaNombre;
     private final Instant createdAt;
     private final BigDecimal sueldo;
 }

@@ -255,6 +255,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
 
     private static ContratoDTO toDto(Contrato contrato) {
         Persona persona = contrato.getPersona();
+        PlantillaContrato plantilla = contrato.getPlantillaContrato();
         return ContratoDTO.builder()
                 .id(contrato.getId())
                 .personaId(persona.getId())
@@ -264,8 +265,8 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .estado(contrato.getEstado())
                 .fechaInicio(contrato.getFechaInicio())
                 .fechaFin(contrato.getFechaFin())
-                .cargo(contrato.getCargo())
-                .proyecto(contrato.getProyecto())
+                .plantillaCodigo(plantilla == null ? null : plantilla.getCodigo())
+                .plantillaNombre(plantilla == null ? null : plantilla.getNombre())
                 .createdAt(contrato.getCreatedAt())
                 .sueldo(contrato.getSueldo())
                 .build();

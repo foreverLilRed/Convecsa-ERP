@@ -59,6 +59,15 @@ function estadoLabel(estado: string): string {
   return labels[estado] ?? estado
 }
 
+function etiquetaPlantilla(contrato: ContratoDTO): string {
+  const codigo = contrato.plantillaCodigo?.trim()
+  const nombre = contrato.plantillaNombre?.trim()
+  if (codigo && nombre) {
+    return `${codigo} · ${nombre}`
+  }
+  return codigo || nombre || '—'
+}
+
 function onDisplayPageChange(nextPage: number) {
   page.value = Math.max(0, nextPage - 1)
   void load()
@@ -172,8 +181,7 @@ onMounted(() => {
             <TableRow>
               <TableHead class="px-3">Persona</TableHead>
               <TableHead class="px-3">Documento</TableHead>
-              <TableHead class="px-3">Cargo</TableHead>
-              <TableHead class="px-3">Proyecto</TableHead>
+              <TableHead class="px-3">Plantilla</TableHead>
               <TableHead class="px-3">Fechas</TableHead>
               <TableHead class="px-3">Estado</TableHead>
               <TableHead class="px-3">
@@ -182,7 +190,7 @@ onMounted(() => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableEmpty v-if="!data?.content.length" :colspan="7">
+            <TableEmpty v-if="!data?.content.length" :colspan="6">
               <span class="text-slate-500">No hay contratos generados.</span>
             </TableEmpty>
             <TableRow v-for="contrato in data?.content ?? []" :key="contrato.id">
@@ -190,9 +198,8 @@ onMounted(() => {
                 {{ contrato.personaApellidos }}, {{ contrato.personaNombres }}
               </TableCell>
               <TableCell class="px-3 py-3">{{ contrato.numeroDocumento }}</TableCell>
-              <TableCell class="px-3 py-3">{{ contrato.cargo }}</TableCell>
-              <TableCell class="max-w-56 truncate px-3 py-3" :title="contrato.proyecto">
-                {{ contrato.proyecto }}
+              <TableCell class="max-w-56 truncate px-3 py-3" :title="etiquetaPlantilla(contrato)">
+                {{ etiquetaPlantilla(contrato) }}
               </TableCell>
               <TableCell class="px-3 py-3 whitespace-nowrap text-slate-500">
                 {{ formatFecha(contrato.fechaInicio) }} – {{ formatFecha(contrato.fechaFin) }}
