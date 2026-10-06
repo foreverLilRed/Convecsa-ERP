@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>5ta Categoria - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body { width: 100%; background: #F1F5F9; font-family: 'Inter', sans-serif; color: #0F172A; font-size: 8.2pt; line-height: 1.4; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page-wrap { max-width: 820px; margin: 0 auto; padding: 20px; }
+    .doc-card { background: #fff; border: 1px solid #CBD5E1; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); padding: 20px 24px; }
+    .hdr { border-bottom: 2px solid #0052CC; padding-bottom: 5px; margin-bottom: 8px; }
+    .co { font-size: 11.5pt; font-weight: 800; color: #0052CC; }
+    .ruc { font-size: 7pt; color: #6B7280; margin-top: 1px; }
+    .doc-t { font-size: 9.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; text-align: center; margin-top: 5px; color: #111827; }
+    .doc-sub { font-size: 6.8pt; color: #6B7280; text-align: center; margin-top: 1px; }
+    .legal-tag { display: inline-block; background: #EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8; font-size: 7pt; font-weight: 700; padding: 2.5px 8px; border-radius: 4px; margin-bottom: 6px; }
+    .data-box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 6px 10px; margin-bottom: 6px; font-size: 7.8pt; }
+    .data-row { display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 2px; }
+    .label { font-weight: 700; color: #334155; }
+    .val { color: #0F172A; font-weight: 600; margin-left: auto; }
+    p.paragraph { text-align: justify; margin-bottom: 5px; font-size: 7.8pt; line-height: 1.38; color: #1E293B; }
+    .sigs-container { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; page-break-inside: avoid; align-items: end; }
+    .sig-col { text-align: center; }
+    .sig-graphic-area { height: 42px; }
+    .sig-line { width: 85%; max-width: 170px; border-top: 1.2px solid #0F172A; margin: 1px auto 2px; }
+    .sig-title { font-size: 7.5pt; font-weight: 800; color: #0F172A; text-transform: uppercase; }
+    .sig-sub { font-size: 6.8pt; color: #475569; margin-top: 1px; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      .page-wrap { padding: 5mm 8mm !important; max-width: 100% !important; }
+      .doc-card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="doc-card">
+      <div class="hdr">
+        <div class="co">{{empleador_razon}}</div>
+        <div class="ruc">RUC Nº {{empleador_ruc}} | {{empleador_domicilio}}</div>
+        <div class="doc-t">DECLARACIÓN JURADA DE RENTAS DE 5TA CATEGORÍA</div>
+        <div class="doc-sub">EXPEDIENTE LABORAL DNI N° {{trabajador_dni}} — EMISIÓN: {{fecha_firma}}</div>
+      </div>
+      <div class="legal-tag">MARCO LEGAL: Art. 44 D.S. Nº 122-94-EF y Art. 34 D.S. Nº 179-2004-EF (TUO Ley Impuesto a la Renta)</div>
+      <div class="data-box">
+        <div class="data-row"><span class="label">Trabajador:</span> <span class="val">{{trabajador_nombres}} {{trabajador_apellidos}}</span></div>
+        <div class="data-row"><span class="label">DNI / Pasaporte:</span> <span class="val">{{trabajador_dni}}</span></div>
+        <div class="data-row"><span class="label">Cargo:</span> <span class="val">{{cargo}}</span></div>
+        <div class="data-row"><span class="label">Ejercicio Fiscal / Año:</span> <span class="val"><strong>{{meta.ejercicio_fiscal}}</strong></span></div>
+      </div>
+      <p class="paragraph">En cumplimiento del Artículo 44 del Reglamento de la Ley del Impuesto a la Renta aprobado por el <strong>D.S. Nº 122-94-EF</strong>, cumplo con formular ante mi empleador <strong>{{empleador_razon}}</strong> la presente declaración jurada de ingresos percibidos de otros empleadores durante el ejercicio fiscal <strong>{{meta.ejercicio_fiscal}}</strong>:</p>
+      <div style="background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:6px;padding:12px;margin:12px 0;">
+        <div style="font-weight:800;color:#15803D;font-size:9.5pt;">DECLARA QUE {{empleador_razon}} ES SU ÚNICO EMPLEADOR (NO PERCIBE OTRAS RENTAS DE 5TA CATEGORÍA)</div>
+      </div>
+      <p class="paragraph">Acepto expresamente que cualquier inexactitud o falsedad en los datos consignados será de mi entera responsabilidad frente a la SUNAT, facultando a <strong>{{empleador_razon}}</strong> a efectuar las retenciones complementarias de Ley en caso de verificarse diferencias.</p>
+      <div style="text-align:right;margin-top:20px;font-size:8.5pt;color:#334155;">{{ciudad_firma}}, {{fecha_firma}}</div>
+      <div class="sigs-container">
+        <div class="sig-col">
+          <div class="sig-graphic-area"></div>
+          <div class="sig-line"></div>
+          <div class="sig-title">{{empleador_razon}}</div>
+          <div class="sig-sub">EL EMPLEADOR • RUC {{empleador_ruc}}</div>
+        </div>
+        <div class="sig-col">
+          <div class="sig-graphic-area"></div>
+          <div class="sig-line"></div>
+          <div class="sig-title">{{trabajador_nombres}} {{trabajador_apellidos}}</div>
+          <div class="sig-sub">EL TRABAJADOR • DNI {{trabajador_dni}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

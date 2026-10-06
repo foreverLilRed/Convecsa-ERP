@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>MOF - {{empleador_razon}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body { background: #F1F5F9; font-family: Inter, sans-serif; color: #0F172A; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 16px; }
+    .iso-header { width: 100%; border-collapse: collapse; background: #fff; border: 2px solid #0F172A; margin-bottom: 24px; }
+    .iso-header td { border: 1px solid #CBD5E1; padding: 8px 12px; vertical-align: middle; }
+    .iso-logo { width: 25%; text-align: center; background: #FAFAFA; }
+    .iso-title { width: 50%; text-align: center; }
+    .iso-meta { width: 25%; font-size: 7.5pt; color: #334155; line-height: 1.4; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      .wrap { padding: 10mm 12mm !important; margin: 0 auto !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <table class="iso-header">
+      <tr>
+        <td class="iso-logo">
+          <div style="font-size:16pt;font-weight:900;color:#1D4ED8;letter-spacing:-0.02em;">CONVECSA</div>
+        </td>
+        <td class="iso-title">
+          <div style="font-size:10pt;font-weight:800;color:#0F172A;letter-spacing:.02em;text-transform:uppercase;">{{empleador_razon}}</div>
+          <div style="font-size:11pt;font-weight:900;color:#1D4ED8;margin:2px 0;letter-spacing:-.01em;">MANUAL DE ORGANIZACIÓN Y FUNCIONES</div>
+          <div style="font-size:7.5pt;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Sistema de Gestión de Calidad (SGC)</div>
+        </td>
+        <td class="iso-meta">
+          <div style="border-bottom:1px solid #E2E8F0;margin-bottom:3px;"><strong>Código:</strong> CVSA-MOF</div>
+          <div style="border-bottom:1px solid #E2E8F0;margin-bottom:3px;"><strong>Versión:</strong> Rev. 00</div>
+          <div><strong>Fecha:</strong> {{fecha_firma}}</div>
+        </td>
+      </tr>
+    </table>
+
+    <div style="page-break-inside:avoid;margin-bottom:24px;border:1px solid #D1D5DB;border-radius:8px;overflow:hidden;background:#fff;">
+      <div style="background:#F8FAFC;padding:12px 16px;border-bottom:2px solid #1D4ED8;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+            <span style="background:#1D4ED8;color:#fff;font-size:7.5pt;font-weight:800;padding:2px 8px;border-radius:4px;letter-spacing:.05em;">CVSA-MOF</span>
+            <span style="font-size:8pt;color:#4B5563;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">{{area}}</span>
+          </div>
+          <div style="font-size:13pt;font-weight:800;color:#0F172A;text-transform:uppercase;letter-spacing:.01em;">{{cargo}}</div>
+        </div>
+        <div style="text-align:right;font-size:7.5pt;color:#64748B;">
+          <div>{{empleador_razon}} · SGC</div>
+          <div style="font-weight:700;color:#1E293B;">FICHA DE DESCRIPCIÓN DE PUESTO</div>
+        </div>
+      </div>
+      <div style="padding:14px 16px;">
+        <div style="margin-bottom:12px;">
+          <div style="font-size:7.5pt;color:#1D4ED8;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;">1. PROPÓSITO GENERAL DEL CARGO</div>
+          <div style="background:#EFF6FF;border-left:3px solid #1D4ED8;padding:8px 12px;border-radius:0 6px 6px 0;font-size:8.5pt;color:#1E293B;line-height:1.55;">
+            Garantizar la ejecución integral y el desarrollo coordinado de las actividades correspondientes a las directrices de la empresa, bajo estándares de calidad óptimos y prevención SSOMA.
+          </div>
+        </div>
+        <div style="margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:8.5pt;">
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:8px 12px;">
+            <span style="font-weight:800;font-size:7.5pt;text-transform:uppercase;display:block;margin-bottom:2px;color:#475569;">SUPERIOR INMEDIATO:</span>
+            <span style="color:#1E293B;font-weight:600;">Residente de Obra / Gerencia de Proyectos</span>
+          </div>
+          <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:8px 12px;">
+            <span style="font-weight:800;font-size:7.5pt;text-transform:uppercase;display:block;margin-bottom:2px;color:#475569;">PERSONAL A CARGO (SUBORDINADOS):</span>
+            <span style="color:#1E293B;font-weight:600;">Asistentes y Auxiliares de frentes de obra</span>
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <div style="font-size:7.5pt;color:#1D4ED8;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">2. FUNCIONES Y RESPONSABILIDADES PRINCIPALES</div>
+          <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #E5E7EB;">
+            <tr style="border-bottom:1px solid #F3F4F6;">
+              <td style="padding:5px 8px 5px 4px;font-size:8.5pt;color:#1D4ED8;font-weight:700;vertical-align:top;width:24px;">a.</td>
+              <td style="padding:5px 4px;font-size:8.5pt;line-height:1.5;color:#374151;">Ejecutar y supervisar las funciones asignadas conforme a las especificaciones técnicas.</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 8px 5px 4px;font-size:8.5pt;color:#1D4ED8;font-weight:700;vertical-align:top;width:24px;">b.</td>
+              <td style="padding:5px 4px;font-size:8.5pt;line-height:1.5;color:#374151;">Desempeñar las labores inherentes al cargo asignado por la supervisión de obra.</td>
+            </tr>
+          </table>
+        </div>
+        <div>
+          <div style="font-size:7.5pt;color:#1D4ED8;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">3. PERFIL Y REQUISITOS MÍNIMOS DEL PUESTO</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+            <div style="background:#F0F9FF;border:1px solid #BAE6FD;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:7pt;font-weight:800;color:#0284C7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">EDUCACIÓN / FORMACIÓN</div>
+              <div style="font-size:7.5pt;color:#334155;">Estudios superiores o técnicos en la especialidad.</div>
+            </div>
+            <div style="background:#FFF7ED;border:1px solid #FFEDD5;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:7pt;font-weight:800;color:#EA580C;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">EXPERIENCIA PREVIA</div>
+              <div style="font-size:7.5pt;color:#334155;">Experiencia previa en la especialidad.</div>
+            </div>
+            <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:7pt;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">COMPETENCIAS CLAVE</div>
+              <div style="font-size:7.5pt;color:#334155;">Liderazgo, orientación a resultados y trabajo en equipo.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

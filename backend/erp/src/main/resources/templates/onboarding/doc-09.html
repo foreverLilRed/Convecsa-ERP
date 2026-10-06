@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Ficha - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body { background: #F1F5F9; font-family: Arial, Helvetica, sans-serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page-wrap { max-width: 820px; margin: 0 auto; padding: 16px; background: #fff; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      .page-wrap { padding: 1.2cm 1.5cm 1cm !important; max-width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <table style="width:100%;border-collapse:collapse;border:1.5px solid #000;margin-bottom:10px;">
+      <tr style="background:#0052CC;color:#fff;">
+        <td colspan="3" style="text-align:center;font-weight:bold;font-size:10.5pt;padding:4px 0;letter-spacing:0.5px;border-bottom:1.5px solid #000;text-transform:uppercase;">
+          {{empleador_razon}} — DEPARTAMENTO DE RECURSOS HUMANOS
+        </td>
+      </tr>
+      <tr style="height:58px;">
+        <td style="width:26%;border-right:1.5px solid #000;text-align:center;vertical-align:middle;padding:4px 8px;">
+          <div style="font-size:14pt;font-weight:900;color:#0052CC;">CONVECSA</div>
+        </td>
+        <td style="width:50%;border-right:1.5px solid #000;text-align:center;vertical-align:middle;padding:4px 8px;">
+          <div style="font-size:10.5pt;font-weight:bold;color:#000;line-height:1.25;text-transform:uppercase;">FICHA DEL TRABAJADOR</div>
+        </td>
+        <td style="width:24%;vertical-align:middle;padding:0;">
+          <table style="width:100%;border-collapse:collapse;font-size:8pt;color:#000;">
+            <tr>
+              <td style="padding:2.5px 6px;width:60px;border-bottom:1px solid #000;border-right:1px solid #000;">Código:</td>
+              <td style="padding:2.5px 6px;border-bottom:1px solid #000;">CVSA-PRH.07.F02</td>
+            </tr>
+            <tr>
+              <td style="padding:2.5px 6px;border-bottom:1px solid #000;border-right:1px solid #000;">Revisión:</td>
+              <td style="padding:2.5px 6px;border-bottom:1px solid #000;">01</td>
+            </tr>
+            <tr>
+              <td style="padding:2.5px 6px;border-right:1px solid #000;">Fecha:</td>
+              <td style="padding:2.5px 6px;">{{fecha_firma}}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px;">
+      <tr>
+        <td style="width:18%;font-weight:bold;padding:2px 0;">OBRA:</td>
+        <td style="border-bottom:1px solid #000;padding:2px 4px;">{{proyecto}}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;padding:2px 0;">EMPRESA:</td>
+        <td style="border-bottom:1px solid #000;padding:2px 4px;">{{empleador_razon}}</td>
+      </tr>
+      <tr>
+        <td style="font-weight:bold;padding:2px 0;">FECHA DE INGRESO:</td>
+        <td style="border-bottom:1px solid #000;padding:2px 4px;">{{fecha_inicio}}</td>
+      </tr>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;border:2px solid #000;font-size:8pt;margin-bottom:8px;">
+      <thead>
+        <tr style="background:#0052CC;color:#fff;">
+          <th colspan="6" style="text-align:center;font-weight:bold;padding:4px;font-size:9pt;border-bottom:1px solid #000;text-transform:uppercase;">DATOS PERSONALES</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td colspan="2" style="width:33.33%;border:1px solid #000;padding:6px 6px 2px;text-align:center;"><div style="font-size:9pt;min-height:16px;">{{meta.apellido_paterno}}</div></td>
+          <td colspan="2" style="width:33.33%;border:1px solid #000;padding:6px 6px 2px;text-align:center;"><div style="font-size:9pt;min-height:16px;">{{meta.apellido_materno}}</div></td>
+          <td colspan="2" style="width:33.34%;border:1px solid #000;padding:6px 6px 2px;text-align:center;"><div style="font-size:9pt;min-height:16px;">{{trabajador_nombres}}</div></td>
+        </tr>
+        <tr style="font-size:7pt;font-weight:bold;text-align:center;">
+          <td colspan="2" style="border:1px solid #000;padding:2px;">APELLIDO PATERNO</td>
+          <td colspan="2" style="border:1px solid #000;padding:2px;">APELLIDO MATERNO</td>
+          <td colspan="2" style="border:1px solid #000;padding:2px;">NOMBRES</td>
+        </tr>
+        <tr>
+          <td style="width:14%;border:1px solid #000;padding:3.5px 6px;font-weight:bold;">DNI</td>
+          <td style="width:20%;border:1px solid #000;padding:3.5px 6px;">{{trabajador_dni}}</td>
+          <td style="width:14%;border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Sexo</td>
+          <td style="width:18%;border:1px solid #000;padding:3.5px 6px;">{{meta.sexo}}</td>
+          <td style="width:16%;border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Nacionalidad</td>
+          <td style="width:18%;border:1px solid #000;padding:3.5px 6px;">{{meta.nacionalidad}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Fecha de Nacimiento</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;">{{meta.fecha_nacimiento}}</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Estado civil</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;">{{meta.estado_civil}}</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Grupo Sanguíneo</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;color:#b91c1c;">{{meta.grupo_sanguineo}}</td>
+        </tr>
+        <tr>
+          <td colspan="6" style="border:1px solid #000;padding:3.5px 6px;">
+            <span style="font-weight:bold;">Direccion domicilio actual:</span>
+            <span style="margin-left:8px;">{{trabajador_direccion}}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Distrito</td>
+          <td colspan="2" style="border:1px solid #000;padding:3.5px 6px;">{{meta.distrito}}</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">N° Teléfonico y/o Celular:</td>
+          <td colspan="2" style="border:1px solid #000;padding:3.5px 6px;">{{meta.telefono}}</td>
+        </tr>
+        <tr>
+          <td colspan="6" style="border:1px solid #000;padding:3.5px 6px;">
+            <span style="font-weight:bold;">Correo electrónico</span>
+            <span style="margin-left:8px;">{{meta.correo}}</span>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="6" style="border:1px solid #000;padding:3.5px 6px;">
+            <span style="font-weight:bold;">Nombre y teléfono de contacto para emergencias:</span>
+            <span style="margin-left:8px;">{{meta.contacto_emergencia}}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;border:2px solid #000;font-size:8pt;margin-bottom:8px;">
+      <thead>
+        <tr style="background:#0052CC;color:#fff;">
+          <th colspan="2" style="text-align:center;font-weight:bold;padding:4px;font-size:9pt;border-bottom:1px solid #000;text-transform:uppercase;">DATOS LABORALES</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="width:35%;border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Ocupación o puesto</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;">{{cargo}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Categoría</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;">{{meta.categoria_laboral}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:3.5px 6px;font-weight:bold;">Nivel de educación</td>
+          <td style="border:1px solid #000;padding:3.5px 6px;">{{meta.nivel_educacion}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;border:2px solid #000;font-size:8pt;margin-bottom:8px;">
+      <thead>
+        <tr style="background:#0052CC;color:#fff;font-weight:bold;text-align:center;font-size:8pt;">
+          <th style="border:1px solid #000;padding:4px;width:36%;">EXPERIENCIA LABORAL</th>
+          <th style="border:1px solid #000;padding:4px;width:32%;">EMPRESA</th>
+          <th style="border:1px solid #000;padding:4px;width:18%;">CARGO</th>
+          <th style="border:1px solid #000;padding:4px;width:14%;">TIEMPO DE SERVICIO</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="5" style="border:1px solid #000;padding:6px;font-weight:bold;font-size:7pt;vertical-align:top;">Datos de experiencia laboral (indicar del mas reciente al mas antiguo)</td>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp1_empresa}}</td>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp1_cargo}}</td>
+          <td style="border:1px solid #000;padding:2.5px 4px;text-align:center;">{{meta.exp1_tiempo}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp2_empresa}}</td>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp2_cargo}}</td>
+          <td style="border:1px solid #000;padding:2.5px 4px;text-align:center;">{{meta.exp2_tiempo}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp3_empresa}}</td>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp3_cargo}}</td>
+          <td style="border:1px solid #000;padding:2.5px 4px;text-align:center;">{{meta.exp3_tiempo}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp4_empresa}}</td>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp4_cargo}}</td>
+          <td style="border:1px solid #000;padding:2.5px 4px;text-align:center;">{{meta.exp4_tiempo}}</td>
+        </tr>
+        <tr>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp5_empresa}}</td>
+          <td style="border:1px solid #000;padding:2.5px 5px;">{{meta.exp5_cargo}}</td>
+          <td style="border:1px solid #000;padding:2.5px 4px;text-align:center;">{{meta.exp5_tiempo}}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table style="width:100%;border-collapse:collapse;border:2px solid #000;font-size:8pt;margin-bottom:12px;">
+      <tr>
+        <td style="width:16%;border-right:1px solid #000;padding:6px 8px;vertical-align:top;font-weight:bold;">Observaciones:</td>
+        <td style="padding:6px 8px;vertical-align:top;min-height:50px;">{{meta.observaciones}}</td>
+      </tr>
+    </table>
+
+    <div style="text-align:right;font-size:8.5pt;margin:15px 0 35px;">{{ciudad_firma}}, {{fecha_firma}}</div>
+
+    <table style="width:100%;border-collapse:collapse;margin-top:20px;">
+      <tr>
+        <td style="width:44%;text-align:center;vertical-align:bottom;">
+          <div style="height:35px;"></div>
+          <div style="border-top:2px solid #000;padding-top:4px;font-size:8pt;font-weight:bold;">Firma del trabajador</div>
+        </td>
+        <td style="width:12%;"></td>
+        <td style="width:44%;text-align:center;vertical-align:bottom;">
+          <div style="height:35px;"></div>
+          <div style="border-top:2px solid #000;padding-top:4px;font-size:7.5pt;font-weight:bold;text-transform:uppercase;">V°B° DEL REPRESENTANTE LEGAL DE LA EMPRESA</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>

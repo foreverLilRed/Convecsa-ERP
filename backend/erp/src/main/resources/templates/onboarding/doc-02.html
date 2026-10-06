@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Adenda - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    body { font-family: 'Libre Franklin', sans-serif; font-size: 9.5pt; line-height: 1.6; color: #111; background: #e8edf5; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pg { width: 21cm; margin: 0 auto; background: #fff; padding: 1.5cm 1.8cm; box-shadow: 0 2px 20px rgba(0,0,0,.18); }
+    .hdr { border-bottom: 2.5px solid #1D4ED8; padding-bottom: 8px; margin-bottom: 10px; }
+    .co { font-size: 14pt; font-weight: 800; color: #1D4ED8; }
+    .ruc { font-size: 7.5pt; color: #6B7280; margin-top: 2px; }
+    .doc-t { font-size: 10pt; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; text-align: center; margin-top: 6px; }
+    .sub { font-size: 7.5pt; color: #6B7280; text-align: center; margin-bottom: 6px; }
+    .ct { font-size: 7.5pt; font-weight: 700; color: #1D4ED8; text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid #BFDBFE; padding-bottom: 2px; margin-bottom: 5px; margin-top: 14px; }
+    .cl { margin-bottom: 6px; }
+    .cl p { margin-bottom: 5px; text-align: justify; font-size: 9.5pt; line-height: 1.6; }
+    .highlight { border-top: 1px solid #E5E7EB; border-bottom: 1px solid #E5E7EB; padding: 10px 0; margin: 14px 0; font-size: 9.5pt; text-align: center; color: #111; font-weight: 700; }
+    .sigs { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; page-break-inside: avoid; align-items: end; }
+    .sb { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 100%; }
+    .sig-container { height: 72px; width: 100%; }
+    .sl { border-top: 1.5px solid #374151; width: 100%; margin-top: 2px; margin-bottom: 4px; }
+    .sn { font-weight: 700; font-size: 7.5pt; color: #111; }
+    .sd { font-size: 6.5pt; color: #555; margin-top: 1px; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+      .pg { width: 100% !important; padding: 1.5cm 1.8cm 0.5cm !important; box-shadow: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pg">
+    <div class="hdr">
+      <div class="co">{{empleador_razon}}</div>
+      <div class="ruc">RUC Nº {{empleador_ruc}} | {{empleador_domicilio}}</div>
+      <div class="doc-t">Adenda al Contrato de Trabajo</div>
+      <div class="sub">Prórroga del Plazo Contractual — Régimen MYPE D.Leg. Nº 1086</div>
+    </div>
+    <div class="cl">
+      <div class="ct">Cláusula Primera: Partes Contratantes y Antecedentes</div>
+      <p>Conste por el presente documento la Adenda al Contrato de Trabajo sujeto a Modalidad por Servicio Específico, suscrito entre {{empleador_razon}}, con RUC Nº {{empleador_ruc}} y domicilio fiscal en {{empleador_domicilio}}, debidamente representada por el señor {{empleador_representante}} con D.N.I. N° {{empleador_dni_representante}}, en su calidad de Gerente General, a quien en adelante se le denominará EL EMPLEADOR; y de la otra parte Sr. {{trabajador_nombres}} {{trabajador_apellidos}}, identificado con DNI N° {{trabajador_dni}}, quien desempeña el cargo de {{cargo}} para los servicios en el proyecto <strong>{{proyecto}}</strong>, ubicado en <strong>{{ubicacion_obra}}</strong>, a quien en adelante se le denominará EL TRABAJADOR.</p>
+      <p>Con fecha <strong>{{fecha_inicio}}</strong>, venció el contrato de trabajo original celebrado entre las partes. Ambas partes, de común acuerdo y por {{meta.motivo_prorroga}}, deciden suscribir la presente adenda para prorrogar la vigencia del vínculo laboral.</p>
+    </div>
+    <div class="cl">
+      <div class="ct">Cláusula Segunda — Objeto</div>
+      <p>Las partes acuerdan extender el plazo del contrato original en {{duracion}} adicionales, hasta el {{fecha_fin}}. Esta prórroga se enmarca dentro del D.Leg. N° 1086 (Régimen MYPE) y el Art. 74° del D.S. N° 003-97-TR.</p>
+      <div class="highlight">Nueva fecha de término: {{fecha_fin}}</div>
+    </div>
+    <div class="cl">
+      <div class="ct">Cláusula Tercera — Condiciones Inalterables</div>
+      <p>Todas las demás cláusulas, condiciones, remuneración, cargo, jornada laboral y beneficios del contrato original permanecen inalterables y con plena vigencia durante la prórroga.</p>
+    </div>
+    <div class="cl">
+      <div class="ct">Cláusula Cuarta — Declaración Final</div>
+      <p>En señal de conformidad, las partes suscriben la presente adenda en dos (02) ejemplares de igual valor legal, en la ciudad de {{ciudad_firma}}, a los {{fecha_firma}}.</p>
+    </div>
+    <div class="sigs">
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{empleador_razon}}</div>
+        <div class="sd">RUC: {{empleador_ruc}}</div>
+      </div>
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{trabajador_nombres}} {{trabajador_apellidos}}</div>
+        <div class="sd">DNI Nº {{trabajador_dni}}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

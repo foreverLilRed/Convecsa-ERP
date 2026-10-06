@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Certificado - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    body { font-family: Inter, sans-serif; background: #d1d5db; display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .page { width: 210mm; min-height: 297mm; background: #fff; box-shadow: 0 4px 24px rgba(0,0,0,.2); display: flex; flex-direction: column; }
+    .page-inner { flex: 1; padding: 20mm 22mm 16mm; display: flex; flex-direction: column; }
+    .logo-area { height: 25mm; display: flex; align-items: center; justify-content: flex-start; margin-bottom: 2mm; border-bottom: 2px solid #0052CC; padding-bottom: 10px; font-size: 16pt; font-weight: 900; color: #0052CC; letter-spacing: -0.02em; }
+    .doc-title { font-size: 16pt; font-weight: 800; text-align: center; letter-spacing: .08em; color: #0052CC; margin: 12mm 0 8mm; text-transform: uppercase; }
+    .saludo { font-size: 8.5pt; color: #111; margin-bottom: 4mm; font-weight: 600; }
+    .body-text { font-size: 8.5pt; line-height: 1.6; text-align: justify; margin-bottom: 4mm; color: #1f2937; }
+    .fecha-line { font-style: italic; color: #374151; font-size: 8.5pt; text-align: right; margin-top: auto; margin-bottom: 10mm; padding-top: 4mm; }
+    .sig-block { width: 55mm; display: flex; flex-direction: column; align-items: flex-start; }
+    .sig-container { height: 55px; width: 55mm; }
+    .sig-line { border-top: 1.5px solid #111827; width: 55mm; margin-top: 2px; margin-bottom: 4px; }
+    .sig-name { font-size: 7.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: .01em; color: #111827; margin-top: 2px; }
+    .sig-role { font-size: 7pt; color: #4b5563; margin-top: 1px; font-weight: 600; }
+    .sig-company { font-size: 7pt; color: #0052CC; font-weight: 800; margin-top: 1px; }
+    .footer-bar { border-top: 1px solid #E5E7EB; padding: 4mm 22mm; text-align: center; font-size: 7.5pt; color: #6B7280; letter-spacing: .05em; text-transform: uppercase; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
+      .page { box-shadow: none !important; width: 100% !important; min-height: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-inner">
+      <div class="logo-area">CONVECSA</div>
+      <div class="doc-title">CERTIFICADO DE TRABAJO</div>
+      <p class="saludo">A QUIEN CORRESPONDA:</p>
+      <p class="body-text">Por medio de la presente, <strong>{{empleador_razon}}</strong>, con RUC Nº <strong>{{empleador_ruc}}</strong> y domicilio fiscal en {{empleador_domicilio}}, certifica que el Sr. <strong>{{trabajador_nombres}} {{trabajador_apellidos}}</strong>, identificado con DNI Nº <strong>{{trabajador_dni}}</strong>, ha laborado para nuestra empresa desde el <strong>{{fecha_inicio}}</strong> hasta el <strong>{{fecha_fin}}</strong>.</p>
+      <p class="body-text">Durante dicho período, desempeñó el cargo de <strong>{{cargo}}</strong>, en el proyecto <strong>{{proyecto}}</strong>, demostrando en todo momento un alto nivel de eficiencia, responsabilidad, puntualidad, honestidad y compromiso profesional en el cumplimiento de las labores asignadas.</p>
+      <p class="body-text">Se expide el presente certificado a solicitud de parte interesada para los fines que estime convenientes.</p>
+      <div class="fecha-line">{{ciudad_firma}}, {{fecha_firma}}</div>
+      <div class="sig-block">
+        <div class="sig-container"></div>
+        <div class="sig-line"></div>
+        <div class="sig-name">CAMPOS VEGA EDUARDO FELIX</div>
+        <div class="sig-role">Gerente de Gestión de Personas</div>
+        <div class="sig-company">{{empleador_razon}}</div>
+      </div>
+    </div>
+    <div class="footer-bar">{{empleador_razon}} · RUC {{empleador_ruc}}</div>
+  </div>
+</body>
+</html>
