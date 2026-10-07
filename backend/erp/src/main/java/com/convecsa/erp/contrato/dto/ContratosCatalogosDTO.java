@@ -12,4 +12,5 @@ public class ContratosCatalogosDTO {
     private final List<CatalogoItemDTO> causasObjetivas;
     private final List<CatalogoItemDTO> metodosPago;
     private final List<PlantillaContratoDTO> plantillas;
+    private final List<CatalogoItemDTO> afps;
 }

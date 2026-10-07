@@ -4,7 +4,9 @@ import { isAuthenticated } from '@/services/auth/authService'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
+import NominasPage from '@/pages/gestion-humana/NominasPage.vue'
 import OnboardingPage from '@/pages/gestion-humana/OnboardingPage.vue'
+import PeriodoNominaPage from '@/pages/gestion-humana/PeriodoNominaPage.vue'
 import PlaceholderPage from '@/pages/gestion-humana/PlaceholderPage.vue'
 import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
 import PlantillasContratoPage from '@/pages/gestion-humana/PlantillasContratoPage.vue'
@@ -12,7 +14,6 @@ import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
-  { path: 'nominas', name: 'gh-nominas', title: 'Nóminas' },
   { path: 'asistencia', name: 'gh-asistencia', title: 'Asistencia' },
   { path: 'kpis', name: 'gh-kpis', title: 'KPIs' },
   { path: 'capacitaciones', name: 'gh-capacitaciones', title: 'Capacitaciones' },
@@ -70,6 +71,17 @@ const router = createRouter({
           path: 'gestion-humana/onboarding',
           name: 'gh-onboarding',
           component: OnboardingPage,
+        },
+        {
+          path: 'gestion-humana/nominas',
+          name: 'gh-nominas',
+          component: NominasPage,
+        },
+        {
+          path: 'gestion-humana/nominas/:id(\\d+)',
+          name: 'gh-nomina-detalle',
+          component: PeriodoNominaPage,
+          props: true,
         },
         ...gestionHumanaPages.map((page) => ({
           path: `gestion-humana/${page.path}`,

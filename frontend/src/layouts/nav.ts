@@ -76,6 +76,10 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'Dashboard'
   }
 
+  if (name === 'gh-nomina-detalle') {
+    return 'Nóminas'
+  }
+
   for (const item of navItems) {
     if (item.kind === 'link' && item.name === name) {
       return item.label

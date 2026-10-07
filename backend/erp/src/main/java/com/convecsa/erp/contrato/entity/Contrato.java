@@ -5,6 +5,7 @@ import com.convecsa.erp.contrato.catalogo.Jornada;
 import com.convecsa.erp.contrato.catalogo.MetodoPago;
 import com.convecsa.erp.contrato.catalogo.TipoPlantilla;
 import com.convecsa.erp.contrato.domain.EstadoContrato;
+import com.convecsa.erp.nomina.catalogo.Afp;
 import com.convecsa.erp.persona.entity.Persona;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -83,6 +84,13 @@ public class Contrato {
 
     @Column(precision = 12, scale = 2)
     private BigDecimal sueldo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "afp_id")
+    private Afp afp;
+
+    @Column(name = "tiene_asignacion_familiar", nullable = false)
+    private boolean tieneAsignacionFamiliar;
 
     @Column(length = 40)
     private String numero;

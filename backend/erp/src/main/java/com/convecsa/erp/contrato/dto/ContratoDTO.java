@@ -23,4 +23,8 @@ public class ContratoDTO {
     private final String plantillaNombre;
     private final Instant createdAt;
     private final BigDecimal sueldo;
+    private final Long afpId;
+    private final String afpCodigo;
+    private final String afpNombre;
+    private final boolean tieneAsignacionFamiliar;
 }

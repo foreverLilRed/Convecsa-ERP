@@ -30,6 +30,10 @@ public class ContratoRequest {
     @DecimalMin("0.01")
     private BigDecimal sueldo;
 
+    private Long afpId;
+
+    private Boolean tieneAsignacionFamiliar;
+
     private Map<String, String> metadata = new LinkedHashMap<>();
 
     @AssertTrue(message = "La fecha de fin no puede ser menor que la de inicio")

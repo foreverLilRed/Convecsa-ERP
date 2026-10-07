@@ -35,6 +35,7 @@ export type ContratosCatalogos = {
   causasObjetivas: CatalogoItem[]
   metodosPago: CatalogoItem[]
   plantillas: PlantillaContrato[]
+  afps: CatalogoItem[]
 }
 
 export type ContratoRequest = {
@@ -43,6 +44,8 @@ export type ContratoRequest = {
   fechaInicio: string
   fechaFin: string
   sueldo: number
+  afpId?: number | null
+  tieneAsignacionFamiliar?: boolean
   metadata: Record<string, string>
 }
 
@@ -59,6 +62,10 @@ export type ContratoDTO = {
   plantillaNombre: string | null
   createdAt: string
   sueldo: number
+  afpId: number | null
+  afpCodigo: string | null
+  afpNombre: string | null
+  tieneAsignacionFamiliar: boolean
 }
 
 export function contratoDocumentoUrl(id: number): string {

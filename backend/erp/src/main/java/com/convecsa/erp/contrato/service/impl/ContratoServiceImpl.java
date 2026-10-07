@@ -26,6 +26,8 @@ import com.convecsa.erp.contrato.repository.MetodoPagoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
+import com.convecsa.erp.nomina.catalogo.Afp;
+import com.convecsa.erp.nomina.repository.AfpRepository;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
 import java.time.LocalDate;
@@ -47,6 +49,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
     private final CausaObjetivaRepository causaObjetivaRepository;
     private final MetodoPagoRepository metodoPagoRepository;
     private final PlantillaContratoRepository plantillaContratoRepository;
+    private final AfpRepository afpRepository;
     private final ContratoPlantillaService contratoPlantillaService;
 
     @Override
@@ -73,6 +76,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
                         .toList(),
                 plantillaContratoRepository.findByActivoTrueOrderByIdAsc().stream()
                         .map(ContratoServiceImpl::toPlantillaDto)
+                        .toList(),
+                afpRepository.findByActivoTrueOrderByIdAsc().stream()
+                        .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
                         .toList());
     }
 
@@ -101,6 +107,12 @@ public class ContratoServiceImpl implements InterfazContratoService {
         contrato.setFechaInicio(request.getFechaInicio());
         contrato.setFechaFin(request.getFechaFin());
         contrato.setSueldo(request.getSueldo());
+        contrato.setTieneAsignacionFamiliar(Boolean.TRUE.equals(request.getTieneAsignacionFamiliar()));
+        if (request.getAfpId() != null) {
+            Afp afp = afpRepository.findById(request.getAfpId())
+                    .orElseThrow(() -> new IllegalArgumentException("AFP inválida"));
+            contrato.setAfp(afp);
+        }
         contrato.setMetadata(aplicarExtras(contrato, esquemaDe(plantilla), request.getMetadata()));
         Contrato saved = contratoRepository.save(contrato);
         return toDto(saved);
@@ -256,6 +268,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
     private static ContratoDTO toDto(Contrato contrato) {
         Persona persona = contrato.getPersona();
         PlantillaContrato plantilla = contrato.getPlantillaContrato();
+        Afp afp = contrato.getAfp();
         return ContratoDTO.builder()
                 .id(contrato.getId())
                 .personaId(persona.getId())
@@ -269,6 +282,10 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .plantillaNombre(plantilla == null ? null : plantilla.getNombre())
                 .createdAt(contrato.getCreatedAt())
                 .sueldo(contrato.getSueldo())
+                .afpId(afp == null ? null : afp.getId())
+                .afpCodigo(afp == null ? null : afp.getCodigo())
+                .afpNombre(afp == null ? null : afp.getLabel())
+                .tieneAsignacionFamiliar(contrato.isTieneAsignacionFamiliar())
                 .build();
     }
 }

@@ -28,7 +28,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler({DocumentoDuplicadoException.class, PlantillaCodigoDuplicadoException.class})
+    @ExceptionHandler({
+        DocumentoDuplicadoException.class,
+        PlantillaCodigoDuplicadoException.class,
+        PeriodoNominaDuplicadoException.class
+    })
     public ResponseEntity<Map<String, Object>> handleDuplicate(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.CONFLICT.value());
@@ -80,7 +84,9 @@ public class ApiExceptionHandler {
     @ExceptionHandler({
         PersonaNoEncontradaException.class,
         ContratoNoEncontradoException.class,
-        GeneracionOnboardingNoEncontradaException.class
+        GeneracionOnboardingNoEncontradaException.class,
+        PeriodoNominaNoEncontradoException.class,
+        BoletaPagoNoEncontradaException.class
     })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();

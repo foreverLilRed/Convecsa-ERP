@@ -26,6 +26,8 @@ type ContratoForm = {
   fechaInicio: string
   fechaFin: string
   sueldo: string
+  afpId: string
+  tieneAsignacionFamiliar: boolean
 }
 
 const props = defineProps<{
@@ -44,6 +46,8 @@ function emptyForm(): ContratoForm {
     fechaInicio: '',
     fechaFin: '',
     sueldo: '',
+    afpId: '',
+    tieneAsignacionFamiliar: false,
   }
 }
 
@@ -238,6 +242,8 @@ async function onSubmit() {
       fechaInicio: form.fechaInicio,
       fechaFin: form.fechaFin,
       sueldo: Number(form.sueldo),
+      afpId: form.afpId ? Number(form.afpId) : null,
+      tieneAsignacionFamiliar: form.tieneAsignacionFamiliar,
       metadata,
     })
     toast.success('Contrato creado.')
@@ -398,6 +404,30 @@ onUnmounted(() => {
                     :class="inputClass"
                   />
                 </div>
+
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="contrato-afp">AFP / ONP</label>
+                  <select id="contrato-afp" v-model="form.afpId" :class="inputClass">
+                    <option value="">ONP por defecto al generar nómina</option>
+                    <option
+                      v-for="item in catalogos?.afps ?? []"
+                      :key="item.id"
+                      :value="String(item.id)"
+                    >
+                      {{ item.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <label class="flex items-center gap-2 text-sm text-slate-700" for="contrato-asig">
+                  <input
+                    id="contrato-asig"
+                    v-model="form.tieneAsignacionFamiliar"
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300"
+                  />
+                  Tiene asignación familiar
+                </label>
 
                 <div v-if="camposExtra.length" class="grid gap-4 sm:grid-cols-2">
                   <div v-for="campo in camposExtra" :key="campo.clave">
