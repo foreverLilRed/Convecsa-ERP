@@ -58,6 +58,18 @@ public final class OnboardingHtmlPacket {
         return html;
     }
 
+    public static String conImpresionAutomatica(String html) {
+        if (html == null || html.isBlank()) {
+            return "";
+        }
+        String script = "<script>window.addEventListener('load',function(){window.print();});</script>";
+        int cierre = html.toLowerCase().lastIndexOf("</body>");
+        if (cierre >= 0) {
+            return html.substring(0, cierre) + script + html.substring(cierre);
+        }
+        return html + script;
+    }
+
     static String estilosDe(String html) {
         if (html == null || html.isBlank()) {
             return "";

@@ -29,4 +29,13 @@ class OnboardingHtmlPacketTest {
         assertTrue(paquete.contains(".b{color:blue}"));
         assertFalse(paquete.contains("<body><p>Uno</p></body>"));
     }
+
+    @Test
+    void conImpresionAutomaticaInsertaScriptAntesDelBody() {
+        String html = "<html><body><p>Uno</p></body></html>";
+        String conPrint = OnboardingHtmlPacket.conImpresionAutomatica(html);
+        assertTrue(conPrint.contains("window.print()"));
+        assertTrue(conPrint.contains("</body>"));
+        assertTrue(conPrint.indexOf("window.print()") < conPrint.toLowerCase().indexOf("</body>"));
+    }
 }

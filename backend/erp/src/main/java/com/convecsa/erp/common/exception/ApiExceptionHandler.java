@@ -77,7 +77,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
-    @ExceptionHandler({PersonaNoEncontradaException.class, ContratoNoEncontradoException.class})
+    @ExceptionHandler({
+        PersonaNoEncontradaException.class,
+        ContratoNoEncontradoException.class,
+        GeneracionOnboardingNoEncontradaException.class
+    })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.NOT_FOUND.value());
