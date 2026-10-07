@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,4 +30,10 @@ public class Jornada {
 
     @Column(nullable = false)
     private boolean activo = true;
+
+    @Column(name = "horas_semanales", precision = 5, scale = 2)
+    private BigDecimal horasSemanales;
+
+    @Column(name = "horas_diarias", precision = 5, scale = 2)
+    private BigDecimal horasDiarias;
 }

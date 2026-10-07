@@ -22,7 +22,7 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
     @EntityGraph(attributePaths = {"persona", "jornada", "metodoPago", "causaObjetiva"})
     Optional<Contrato> findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(Long personaId, EstadoContrato estado);
 
-    @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "afp"})
+    @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "afp", "jornada"})
     @Query("""
             SELECT c FROM Contrato c
             WHERE c.estado = :estado

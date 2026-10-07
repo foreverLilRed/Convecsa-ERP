@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { isAuthenticated } from '@/services/auth/authService'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
+import AsistenciaPage from '@/pages/gestion-humana/AsistenciaPage.vue'
 import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
 import NominasPage from '@/pages/gestion-humana/NominasPage.vue'
 import OnboardingPage from '@/pages/gestion-humana/OnboardingPage.vue'
@@ -14,7 +15,6 @@ import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
-  { path: 'asistencia', name: 'gh-asistencia', title: 'Asistencia' },
   { path: 'kpis', name: 'gh-kpis', title: 'KPIs' },
   { path: 'capacitaciones', name: 'gh-capacitaciones', title: 'Capacitaciones' },
   { path: 'portal-boletas', name: 'gh-portal-boletas', title: 'Portal Boletas' },
@@ -82,6 +82,11 @@ const router = createRouter({
           name: 'gh-nomina-detalle',
           component: PeriodoNominaPage,
           props: true,
+        },
+        {
+          path: 'gestion-humana/asistencia',
+          name: 'gh-asistencia',
+          component: AsistenciaPage,
         },
         ...gestionHumanaPages.map((page) => ({
           path: `gestion-humana/${page.path}`,
