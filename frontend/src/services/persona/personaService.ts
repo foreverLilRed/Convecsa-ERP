@@ -33,6 +33,9 @@ export function listarPersonas(query: PersonaListQuery = {}): Promise<PagedRespo
   if (query.q?.trim()) {
     params.set('q', query.q.trim())
   }
+  if (query.conContratoActivo) {
+    params.set('conContratoActivo', 'true')
+  }
 
   const search = params.toString()
   const path = search

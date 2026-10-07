@@ -2,6 +2,7 @@ package com.convecsa.erp.contrato.repository;
 
 import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -13,4 +14,7 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
 
     @EntityGraph(attributePaths = {"persona", "plantillaContrato"})
     Page<Contrato> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"persona", "jornada", "metodoPago", "causaObjetiva"})
+    Optional<Contrato> findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(Long personaId, EstadoContrato estado);
 }

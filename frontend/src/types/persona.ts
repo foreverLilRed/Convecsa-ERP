@@ -190,6 +190,7 @@ export type PersonaListQuery = {
   size?: number
   sort?: string
   q?: string
+  conContratoActivo?: boolean
 }
 
 export type PersonaDTO = {

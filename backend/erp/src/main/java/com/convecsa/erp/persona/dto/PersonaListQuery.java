@@ -14,7 +14,8 @@ public record PersonaListQuery(
         GradoInstruccion gradoInstruccion,
         String departamento,
         String provincia,
-        String distrito) {
+        String distrito,
+        Boolean conContratoActivo) {
 
     public int pageOrDefault() {
         return page == null ? 0 : page;

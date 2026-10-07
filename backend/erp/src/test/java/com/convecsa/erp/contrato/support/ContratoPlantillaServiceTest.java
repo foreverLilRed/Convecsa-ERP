@@ -94,15 +94,46 @@ class ContratoPlantillaServiceTest {
         assertTrue(esquema.isEmpty());
     }
 
-    private static Contrato contratoBase() {
+    @Test
+    void renderOnboardingUsaPersonaYDejaMetaDesconocidoVacio() {
+        Persona persona = personaBase();
+        persona.setDistrito("San Borja");
+        persona.setCorreo("pedro@convecsa.pe");
+        persona.setFechaNacimiento(java.time.LocalDate.of(1990, 5, 12));
+        persona.setGradoInstruccion(com.convecsa.erp.persona.domain.GradoInstruccion.UNIVERSITARIO);
+
+        String html = new ContratoPlantillaService().render(
+                "{{trabajador_nombres}} {{trabajador_dni}} {{meta.apellido_paterno}} {{meta.correo}} {{meta.cuspp}}",
+                persona,
+                null);
+
+        assertTrue(html.contains("PEDRO"));
+        assertTrue(html.contains("73567960"));
+        assertTrue(html.contains("QUISPE"));
+        assertTrue(html.contains("pedro@convecsa.pe"));
+        assertFalse(html.contains("{{"));
+        assertTrue(html.endsWith(" "));
+    }
+
+    @Test
+    void partirApellidosSeparaPaternoYMaterno() {
+        String[] partes = ContratoPlantillaService.partirApellidos("QUISPE HUAMAN");
+        assertEquals("QUISPE", partes[0]);
+        assertEquals("HUAMAN", partes[1]);
+    }
+
+    private static Persona personaBase() {
         Persona persona = new Persona();
         persona.setNombres("PEDRO");
         persona.setApellidos("QUISPE HUAMAN");
         persona.setNumeroDocumento("73567960");
         persona.setDireccion("Av. Los Alamos 123");
+        return persona;
+    }
 
+    private static Contrato contratoBase() {
         Contrato contrato = new Contrato();
-        contrato.setPersona(persona);
+        contrato.setPersona(personaBase());
         contrato.setFechaInicio(LocalDate.of(2026, 1, 15));
         contrato.setFechaFin(LocalDate.of(2026, 7, 15));
         contrato.setSueldo(new BigDecimal("6500.00"));
