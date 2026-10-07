@@ -56,13 +56,13 @@ export type AsistenciaRegistroUpdate = {
 }
 
 export const DIAS_SEMANA = [
-  { value: 1, label: 'Lunes' },
-  { value: 2, label: 'Martes' },
-  { value: 3, label: 'Miércoles' },
-  { value: 4, label: 'Jueves' },
-  { value: 5, label: 'Viernes' },
-  { value: 6, label: 'Sábado' },
-  { value: 7, label: 'Domingo' },
+  { value: 1, label: 'Lunes', corto: 'Lu' },
+  { value: 2, label: 'Martes', corto: 'Ma' },
+  { value: 3, label: 'Miércoles', corto: 'Mi' },
+  { value: 4, label: 'Jueves', corto: 'Ju' },
+  { value: 5, label: 'Viernes', corto: 'Vi' },
+  { value: 6, label: 'Sábado', corto: 'Sá' },
+  { value: 7, label: 'Domingo', corto: 'Do' },
 ] as const
 
 export const ESTADOS_ASISTENCIA: { value: EstadoAsistencia; label: string }[] = [
@@ -74,4 +74,25 @@ export const ESTADOS_ASISTENCIA: { value: EstadoAsistencia; label: string }[] = 
 
 export function diaMes(fecha: string): string {
   return fecha.slice(8, 10)
+}
+
+export function isoDiaSemana(fecha: string): number {
+  const js = new Date(`${fecha}T12:00:00`).getDay()
+  return js === 0 ? 7 : js
+}
+
+export function diaCorto(fecha: string): string {
+  return DIAS_SEMANA[isoDiaSemana(fecha) - 1]?.corto ?? ''
+}
+
+export function fechaLarga(fecha: string): string {
+  const parsed = new Date(`${fecha}T12:00:00`)
+  if (Number.isNaN(parsed.getTime())) {
+    return fecha
+  }
+  return parsed.toLocaleDateString('es-PE', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
 }
