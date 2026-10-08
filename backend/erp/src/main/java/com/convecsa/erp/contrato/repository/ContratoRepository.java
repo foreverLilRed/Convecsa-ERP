@@ -20,6 +20,9 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
     @EntityGraph(attributePaths = {"persona", "plantillaContrato", "afp"})
     Page<Contrato> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"persona", "plantillaContrato", "afp"})
+    Page<Contrato> findByEstadoOrderByCreatedAtDesc(EstadoContrato estado, Pageable pageable);
+
     @EntityGraph(attributePaths = {"persona", "jornada", "metodoPago", "causaObjetiva"})
     Optional<Contrato> findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(Long personaId, EstadoContrato estado);
 

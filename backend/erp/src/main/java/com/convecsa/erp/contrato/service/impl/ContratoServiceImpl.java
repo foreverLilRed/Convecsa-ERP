@@ -9,6 +9,7 @@ import com.convecsa.erp.contrato.catalogo.Jornada;
 import com.convecsa.erp.contrato.catalogo.MetodoPago;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
 import com.convecsa.erp.contrato.domain.EstadoContrato;
+import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.dto.ContratoDTO;
 import com.convecsa.erp.contrato.dto.ContratoRequest;
@@ -84,12 +85,14 @@ public class ContratoServiceImpl implements InterfazContratoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResponse<ContratoDTO> listar(int page, int size) {
+    public PagedResponse<ContratoDTO> listar(int page, int size, EstadoContrato estado) {
         int safePage = Math.max(page, 0);
         int safeSize = size < 1 ? 20 : Math.min(size, 100);
-        return PagedResponse.from(
-                contratoRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(safePage, safeSize))
-                        .map(ContratoServiceImpl::toDto));
+        var pageable = PageRequest.of(safePage, safeSize);
+        var resultado = estado == null
+                ? contratoRepository.findAllByOrderByCreatedAtDesc(pageable)
+                : contratoRepository.findByEstadoOrderByCreatedAtDesc(estado, pageable);
+        return PagedResponse.from(resultado.map(ContratoServiceImpl::toDto));
     }
 
     @Override
@@ -157,6 +160,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
         PlantillaContrato plantilla = new PlantillaContrato();
         plantilla.setCodigo(codigo);
         plantilla.setNombre(request.getNombre().trim());
+        plantilla.setUso(request.getUso() == null ? UsoPlantilla.CONTRATO : request.getUso());
         plantilla.setPlantilla(request.getPlantilla());
         plantilla.setMetadata(ContratoPlantillaService.esquemaDesdeHtml(request.getPlantilla()));
         plantilla.setActivo(true);
@@ -262,7 +266,12 @@ public class ContratoServiceImpl implements InterfazContratoService {
                         campo.getCatalogo(),
                         campo.isRequerido()))
                 .toList();
-        return new PlantillaContratoDTO(plantilla.getId(), plantilla.getCodigo(), plantilla.getNombre(), campos);
+        return new PlantillaContratoDTO(
+                plantilla.getId(),
+                plantilla.getCodigo(),
+                plantilla.getNombre(),
+                plantilla.getUso(),
+                campos);
     }
 
     private static ContratoDTO toDto(Contrato contrato) {
@@ -278,6 +287,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .estado(contrato.getEstado())
                 .fechaInicio(contrato.getFechaInicio())
                 .fechaFin(contrato.getFechaFin())
+                .cargo(contrato.getCargo())
+                .proyecto(contrato.getProyecto())
+                .ciudadFirma(contrato.getCiudadFirma())
                 .plantillaCodigo(plantilla == null ? null : plantilla.getCodigo())
                 .plantillaNombre(plantilla == null ? null : plantilla.getNombre())
                 .createdAt(contrato.getCreatedAt())

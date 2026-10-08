@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
+import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.persona.entity.Persona;
@@ -84,6 +85,33 @@ class ContratoPlantillaServiceTest {
         assertEquals("Ciudad firma", esquema.get(1).getLabel());
         assertEquals("text", esquema.get(1).getTipo());
         assertTrue(esquema.get(1).isRequerido());
+    }
+
+    @Test
+    void renderAdendaSustituyeProrrogaYMotivo() {
+        Contrato contrato = contratoBase();
+        contrato.setCargo("RESIDENTE DE OBRA");
+        contrato.setProyecto("Clínica");
+        Adenda adenda = new Adenda();
+        adenda.setContrato(contrato);
+        adenda.setFechaFinAnterior(LocalDate.of(2026, 7, 15));
+        adenda.setFechaFinNueva(LocalDate.of(2026, 10, 15));
+        adenda.setSueldo(new BigDecimal("6500.00"));
+        adenda.setMotivo("ampliación del plazo de ejecución de la obra principal");
+        adenda.setCiudadEmision("Lima");
+        adenda.setFechaEmision(LocalDate.of(2026, 7, 1));
+        PlantillaContrato plantilla = new PlantillaContrato();
+        plantilla.setPlantilla("De {{fecha_fin_anterior}} a {{fecha_fin_nueva}} ({{duracion_adenda}}). {{motivo}} {{cargo}}");
+        adenda.setPlantillaContrato(plantilla);
+
+        String html = new ContratoPlantillaService().render(adenda);
+
+        assertTrue(html.contains("15 de julio de 2026"));
+        assertTrue(html.contains("15 de octubre de 2026"));
+        assertTrue(html.contains("3 meses"));
+        assertTrue(html.contains("ampliación del plazo"));
+        assertTrue(html.contains("RESIDENTE DE OBRA"));
+        assertFalse(html.contains("{{motivo}}"));
     }
 
     @Test

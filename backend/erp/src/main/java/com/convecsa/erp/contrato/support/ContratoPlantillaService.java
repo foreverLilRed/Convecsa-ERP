@@ -1,6 +1,7 @@
 package com.convecsa.erp.contrato.support;
 
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
+import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
@@ -46,6 +47,10 @@ public class ContratoPlantillaService {
             "sueldo",
             "sueldo_letras",
             "fecha_firma",
+            "fecha_fin_anterior",
+            "fecha_fin_nueva",
+            "duracion_adenda",
+            "motivo",
             "empleador_razon",
             "empleador_ruc",
             "empleador_domicilio",
@@ -54,6 +59,34 @@ public class ContratoPlantillaService {
 
     public String render(Contrato contrato) {
         return apply(htmlDe(contrato), contrato);
+    }
+
+    public String render(Adenda adenda) {
+        Contrato contrato = adenda.getContrato();
+        PlantillaContrato plantilla = adenda.getPlantillaContrato();
+        String html = plantilla != null && plantilla.getPlantilla() != null && !plantilla.getPlantilla().isBlank()
+                ? plantilla.getPlantilla()
+                : htmlDe(contrato);
+        Map<String, String> valores = tokens(contrato);
+        valores.put("fecha_fin_anterior", fecha(adenda.getFechaFinAnterior()));
+        valores.put("fecha_fin_nueva", fecha(adenda.getFechaFinNueva()));
+        valores.put("duracion_adenda", duracion(adenda.getFechaFinAnterior(), adenda.getFechaFinNueva()));
+        valores.put("motivo", text(adenda.getMotivo()));
+        valores.put("sueldo", sueldo(adenda.getSueldo()));
+        valores.put("sueldo_letras", SueldoEnLetras.de(adenda.getSueldo()));
+        if (adenda.getCiudadEmision() != null && !adenda.getCiudadEmision().isBlank()) {
+            valores.put("ciudad_firma", text(adenda.getCiudadEmision()));
+        }
+        valores.put("fecha_firma", fecha(adenda.getFechaEmision()));
+        String resultado = sustituirFijos(html, valores);
+        Map<String, String> metadata = new LinkedHashMap<>();
+        if (contrato.getMetadata() != null) {
+            metadata.putAll(contrato.getMetadata());
+        }
+        if (adenda.getMetadata() != null) {
+            metadata.putAll(adenda.getMetadata());
+        }
+        return replaceMeta(resultado, metadata);
     }
 
     public String render(String plantilla, Persona persona, Contrato contrato) {

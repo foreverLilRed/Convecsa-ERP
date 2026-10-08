@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ChevronLeftIcon, ChevronRightIcon, DownloadIcon, PlusIcon } from '@lucide/vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
+import AdendaRegistroModal from '@/components/gestion-humana/AdendaRegistroModal.vue'
 import ContratoRegistroModal from '@/components/gestion-humana/ContratoRegistroModal.vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,20 +25,35 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { listarContratos, obtenerContratosResume } from '@/services/contrato/contratoService'
-import { contratoDocumentoUrl, type ContratoDTO, type ContratosResume } from '@/types/contrato'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { listarAdendas, listarContratos, obtenerContratosResume } from '@/services/contrato/contratoService'
+import {
+  adendaDocumentoUrl,
+  contratoDocumentoUrl,
+  type AdendaDTO,
+  type ContratoDTO,
+  type ContratosResume,
+} from '@/types/contrato'
 import type { PagedResponse } from '@/types/persona'
 
 const PAGE_SIZE = 20
+const tab = ref('contratos')
 const loading = ref(true)
+const loadingAdendas = ref(true)
 const resume = ref<ContratosResume | null>(null)
 const data = ref<PagedResponse<ContratoDTO> | null>(null)
+const adendas = ref<PagedResponse<AdendaDTO> | null>(null)
 const page = ref(0)
+const adendaPage = ref(0)
 const modalOpen = ref(false)
+const adendaModalOpen = ref(false)
 
 const displayPage = computed(() => page.value + 1)
 const totalPages = computed(() => data.value?.totalPages ?? 0)
 const totalElements = computed(() => data.value?.totalElements ?? 0)
+const adendaDisplayPage = computed(() => adendaPage.value + 1)
+const adendaTotalPages = computed(() => adendas.value?.totalPages ?? 0)
+const adendaTotalElements = computed(() => adendas.value?.totalElements ?? 0)
 
 function formatFecha(value: string | null): string {
   if (!value) {
@@ -70,14 +86,23 @@ function etiquetaPlantilla(contrato: ContratoDTO): string {
 
 function onDisplayPageChange(nextPage: number) {
   page.value = Math.max(0, nextPage - 1)
-  void load()
+  void loadContratos()
+}
+
+function onAdendaPageChange(nextPage: number) {
+  adendaPage.value = Math.max(0, nextPage - 1)
+  void loadAdendas()
 }
 
 function descargar(id: number) {
   window.open(contratoDocumentoUrl(id), '_blank', 'noopener,noreferrer')
 }
 
-async function load() {
+function descargarAdenda(id: number) {
+  window.open(adendaDocumentoUrl(id), '_blank', 'noopener,noreferrer')
+}
+
+async function loadContratos() {
   loading.value = true
   try {
     const [nextResume, nextData] = await Promise.all([
@@ -93,14 +118,46 @@ async function load() {
   }
 }
 
+async function loadAdendas() {
+  loadingAdendas.value = true
+  try {
+    adendas.value = await listarAdendas(adendaPage.value, PAGE_SIZE)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudieron cargar las adendas.')
+  } finally {
+    loadingAdendas.value = false
+  }
+}
+
 function onSaved() {
   modalOpen.value = false
   page.value = 0
-  void load()
+  void loadContratos()
 }
 
+function onAdendaSaved() {
+  adendaModalOpen.value = false
+  adendaPage.value = 0
+  void loadAdendas()
+  void loadContratos()
+}
+
+function onNuevo() {
+  if (tab.value === 'adendas') {
+    adendaModalOpen.value = true
+  } else {
+    modalOpen.value = true
+  }
+}
+
+watch(tab, (value) => {
+  if (value === 'adendas' && !adendas.value) {
+    void loadAdendas()
+  }
+})
+
 onMounted(() => {
-  void load()
+  void loadContratos()
 })
 </script>
 
@@ -111,16 +168,16 @@ onMounted(() => {
         <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
         <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Contratos</h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
-          Personas con al menos un contrato activo y personas sin contrato activo.
+          Contratos de trabajo y adendas de prórroga asociadas a cada registro.
         </p>
       </div>
       <Button
         class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:mt-7 sm:w-auto"
         type="button"
-        @click="modalOpen = true"
+        @click="onNuevo"
       >
         <PlusIcon data-icon="inline-start" />
-        Nuevo contrato
+        {{ tab === 'adendas' ? 'Nueva adenda' : 'Nuevo contrato' }}
       </Button>
     </div>
 
@@ -155,114 +212,247 @@ onMounted(() => {
       </template>
     </div>
 
-    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
-      <h3 class="text-base font-semibold text-palette-navy">Contratos generados</h3>
-      <p class="mt-1 text-sm text-slate-500">
-        El documento se arma al descargar con los datos del formulario y las palabras clave de la plantilla.
-      </p>
-
-      <div
-        v-if="loading && !data"
-        class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60"
-        aria-busy="true"
-        aria-live="polite"
-      >
-        <span class="sr-only">Cargando listado de contratos</span>
-        <div class="space-y-3 p-4">
-          <Skeleton class="h-9 w-full" />
-          <Skeleton v-for="row in 5" :key="row" class="h-11 w-full" />
-        </div>
-      </div>
-
-      <div v-else class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60">
-        <Table>
-          <TableCaption class="sr-only">Listado paginado de contratos.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead class="px-3">Persona</TableHead>
-              <TableHead class="px-3">Documento</TableHead>
-              <TableHead class="px-3">Plantilla</TableHead>
-              <TableHead class="px-3">Fechas</TableHead>
-              <TableHead class="px-3">Estado</TableHead>
-              <TableHead class="px-3">
-                <span class="sr-only">Descargar</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableEmpty v-if="!data?.content.length" :colspan="6">
-              <span class="text-slate-500">No hay contratos generados.</span>
-            </TableEmpty>
-            <TableRow v-for="contrato in data?.content ?? []" :key="contrato.id">
-              <TableCell class="px-3 py-3 font-medium">
-                {{ contrato.personaApellidos }}, {{ contrato.personaNombres }}
-              </TableCell>
-              <TableCell class="px-3 py-3">{{ contrato.numeroDocumento }}</TableCell>
-              <TableCell class="max-w-56 truncate px-3 py-3" :title="etiquetaPlantilla(contrato)">
-                {{ etiquetaPlantilla(contrato) }}
-              </TableCell>
-              <TableCell class="px-3 py-3 whitespace-nowrap text-slate-500">
-                {{ formatFecha(contrato.fechaInicio) }} – {{ formatFecha(contrato.fechaFin) }}
-              </TableCell>
-              <TableCell class="px-3 py-3">{{ estadoLabel(contrato.estado) }}</TableCell>
-              <TableCell class="px-3 py-3">
-                <div class="flex justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="h-8 px-3"
-                    type="button"
-                    @click="descargar(contrato.id)"
-                  >
-                    <DownloadIcon data-icon="inline-start" />
-                    Descargar
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-
-      <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p class="text-sm text-slate-500" aria-live="polite">
-          Página {{ displayPage }} de {{ Math.max(totalPages, 1) }} · {{ totalElements }} registros
-        </p>
-        <Pagination
-          v-if="totalPages > 1"
-          v-slot="{ page: current }"
-          class="mx-0 w-auto justify-start sm:justify-end"
-          :page="displayPage"
-          :items-per-page="PAGE_SIZE"
-          :total="totalElements"
-          :disabled="loading"
-          aria-label="Paginación de contratos"
-          @update:page="onDisplayPageChange"
+    <Tabs v-model="tab" class="mt-6">
+      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+        <TabsTrigger
+          value="contratos"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
-          <PaginationContent v-slot="{ items }">
-            <PaginationPrevious>
-              <ChevronLeftIcon data-icon="inline-start" class="cn-rtl-flip" />
-              <span>Anterior</span>
-            </PaginationPrevious>
-            <template v-for="(item, index) in items" :key="index">
-              <PaginationItem
-                v-if="item.type === 'page'"
-                :value="item.value"
-                :is-active="item.value === current"
-              >
-                {{ item.value }}
-              </PaginationItem>
-              <PaginationEllipsis v-else-if="item.type === 'ellipsis'" :index="index" />
-            </template>
-            <PaginationNext>
-              <span>Siguiente</span>
-              <ChevronRightIcon data-icon="inline-end" class="cn-rtl-flip" />
-            </PaginationNext>
-          </PaginationContent>
-        </Pagination>
-      </div>
-    </div>
+          Contratos
+        </TabsTrigger>
+        <TabsTrigger
+          value="adendas"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Adendas
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="contratos">
+        <div class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
+          <h3 class="text-base font-semibold text-palette-navy">Contratos generados</h3>
+          <p class="mt-1 text-sm text-slate-500">
+            El documento se arma al descargar con los datos del formulario y las palabras clave de la plantilla.
+          </p>
+
+          <div
+            v-if="loading && !data"
+            class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60"
+            aria-busy="true"
+            aria-live="polite"
+          >
+            <span class="sr-only">Cargando listado de contratos</span>
+            <div class="space-y-3 p-4">
+              <Skeleton class="h-9 w-full" />
+              <Skeleton v-for="row in 5" :key="row" class="h-11 w-full" />
+            </div>
+          </div>
+
+          <div v-else class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60">
+            <Table>
+              <TableCaption class="sr-only">Listado paginado de contratos.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead class="px-3">Persona</TableHead>
+                  <TableHead class="px-3">Documento</TableHead>
+                  <TableHead class="px-3">Plantilla</TableHead>
+                  <TableHead class="px-3">Fechas</TableHead>
+                  <TableHead class="px-3">Estado</TableHead>
+                  <TableHead class="px-3">
+                    <span class="sr-only">Descargar</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableEmpty v-if="!data?.content.length" :colspan="6">
+                  <span class="text-slate-500">No hay contratos generados.</span>
+                </TableEmpty>
+                <TableRow v-for="contrato in data?.content ?? []" :key="contrato.id">
+                  <TableCell class="px-3 py-3 font-medium">
+                    {{ contrato.personaApellidos }}, {{ contrato.personaNombres }}
+                  </TableCell>
+                  <TableCell class="px-3 py-3">{{ contrato.numeroDocumento }}</TableCell>
+                  <TableCell class="max-w-56 truncate px-3 py-3" :title="etiquetaPlantilla(contrato)">
+                    {{ etiquetaPlantilla(contrato) }}
+                  </TableCell>
+                  <TableCell class="px-3 py-3 whitespace-nowrap text-slate-500">
+                    {{ formatFecha(contrato.fechaInicio) }} – {{ formatFecha(contrato.fechaFin) }}
+                  </TableCell>
+                  <TableCell class="px-3 py-3">{{ estadoLabel(contrato.estado) }}</TableCell>
+                  <TableCell class="px-3 py-3">
+                    <div class="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        class="h-8 px-3"
+                        type="button"
+                        @click="descargar(contrato.id)"
+                      >
+                        <DownloadIcon data-icon="inline-start" />
+                        Descargar
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-500" aria-live="polite">
+              Página {{ displayPage }} de {{ Math.max(totalPages, 1) }} · {{ totalElements }} registros
+            </p>
+            <Pagination
+              v-if="totalPages > 1"
+              v-slot="{ page: current }"
+              class="mx-0 w-auto justify-start sm:justify-end"
+              :page="displayPage"
+              :items-per-page="PAGE_SIZE"
+              :total="totalElements"
+              :disabled="loading"
+              aria-label="Paginación de contratos"
+              @update:page="onDisplayPageChange"
+            >
+              <PaginationContent v-slot="{ items }">
+                <PaginationPrevious>
+                  <ChevronLeftIcon data-icon="inline-start" class="cn-rtl-flip" />
+                  <span>Anterior</span>
+                </PaginationPrevious>
+                <template v-for="(item, index) in items" :key="index">
+                  <PaginationItem
+                    v-if="item.type === 'page'"
+                    :value="item.value"
+                    :is-active="item.value === current"
+                  >
+                    {{ item.value }}
+                  </PaginationItem>
+                  <PaginationEllipsis v-else-if="item.type === 'ellipsis'" :index="index" />
+                </template>
+                <PaginationNext>
+                  <span>Siguiente</span>
+                  <ChevronRightIcon data-icon="inline-end" class="cn-rtl-flip" />
+                </PaginationNext>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="adendas">
+        <div class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
+          <h3 class="text-base font-semibold text-palette-navy">Adendas de prórroga</h3>
+          <p class="mt-1 text-sm text-slate-500">
+            Cada adenda se asocia a un contrato activo y actualiza su fecha de término.
+          </p>
+
+          <div
+            v-if="loadingAdendas && !adendas"
+            class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60"
+            aria-busy="true"
+          >
+            <span class="sr-only">Cargando listado de adendas</span>
+            <div class="space-y-3 p-4">
+              <Skeleton class="h-9 w-full" />
+              <Skeleton v-for="row in 5" :key="row" class="h-11 w-full" />
+            </div>
+          </div>
+
+          <div v-else class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60">
+            <Table>
+              <TableCaption class="sr-only">Listado paginado de adendas.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead class="px-3">Persona</TableHead>
+                  <TableHead class="px-3">N.º</TableHead>
+                  <TableHead class="px-3">Contrato</TableHead>
+                  <TableHead class="px-3">Prórroga</TableHead>
+                  <TableHead class="px-3">Motivo</TableHead>
+                  <TableHead class="px-3">
+                    <span class="sr-only">Descargar</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableEmpty v-if="!adendas?.content.length" :colspan="6">
+                  <span class="text-slate-500">No hay adendas. Cree la primera desde un contrato activo.</span>
+                </TableEmpty>
+                <TableRow v-for="item in adendas?.content ?? []" :key="item.id">
+                  <TableCell class="px-3 py-3 font-medium">
+                    {{ item.personaApellidos }}, {{ item.personaNombres }}
+                    <span class="mt-0.5 block text-xs font-normal text-slate-600">{{ item.numeroDocumento }}</span>
+                  </TableCell>
+                  <TableCell class="px-3 py-3">{{ item.numero }}</TableCell>
+                  <TableCell class="px-3 py-3 whitespace-nowrap text-slate-600">
+                    {{ formatFecha(item.contratoFechaInicio) }} – {{ formatFecha(item.fechaFinAnterior) }}
+                  </TableCell>
+                  <TableCell class="px-3 py-3 whitespace-nowrap text-slate-600">
+                    {{ formatFecha(item.fechaFinAnterior) }} → {{ formatFecha(item.fechaFinNueva) }}
+                  </TableCell>
+                  <TableCell class="max-w-56 truncate px-3 py-3 text-slate-600" :title="item.motivo">
+                    {{ item.motivo }}
+                  </TableCell>
+                  <TableCell class="px-3 py-3">
+                    <div class="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        class="h-8 px-3"
+                        type="button"
+                        :aria-label="`Descargar adenda ${item.numero} de ${item.personaApellidos}`"
+                        @click="descargarAdenda(item.id)"
+                      >
+                        <DownloadIcon data-icon="inline-start" />
+                        Descargar
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-slate-500" aria-live="polite">
+              Página {{ adendaDisplayPage }} de {{ Math.max(adendaTotalPages, 1) }} · {{ adendaTotalElements }} registros
+            </p>
+            <Pagination
+              v-if="adendaTotalPages > 1"
+              v-slot="{ page: current }"
+              class="mx-0 w-auto justify-start sm:justify-end"
+              :page="adendaDisplayPage"
+              :items-per-page="PAGE_SIZE"
+              :total="adendaTotalElements"
+              :disabled="loadingAdendas"
+              aria-label="Paginación de adendas"
+              @update:page="onAdendaPageChange"
+            >
+              <PaginationContent v-slot="{ items }">
+                <PaginationPrevious>
+                  <ChevronLeftIcon data-icon="inline-start" class="cn-rtl-flip" />
+                  <span>Anterior</span>
+                </PaginationPrevious>
+                <template v-for="(item, index) in items" :key="index">
+                  <PaginationItem
+                    v-if="item.type === 'page'"
+                    :value="item.value"
+                    :is-active="item.value === current"
+                  >
+                    {{ item.value }}
+                  </PaginationItem>
+                  <PaginationEllipsis v-else-if="item.type === 'ellipsis'" :index="index" />
+                </template>
+                <PaginationNext>
+                  <span>Siguiente</span>
+                  <ChevronRightIcon data-icon="inline-end" class="cn-rtl-flip" />
+                </PaginationNext>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        </div>
+      </TabsContent>
+    </Tabs>
 
     <ContratoRegistroModal :open="modalOpen" @close="modalOpen = false" @saved="onSaved" />
+    <AdendaRegistroModal :open="adendaModalOpen" @close="adendaModalOpen = false" @saved="onAdendaSaved" />
   </section>
 </template>

@@ -1,8 +1,11 @@
 package com.convecsa.erp.contrato.entity;
 
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
+import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,6 +34,10 @@ public class PlantillaContrato {
 
     @Column(nullable = false, length = 160)
     private String nombre;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UsoPlantilla uso = UsoPlantilla.CONTRATO;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String plantilla;

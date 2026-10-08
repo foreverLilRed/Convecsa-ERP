@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { crearPlantillaContrato } from '@/services/contrato/contratoService'
+import type { UsoPlantilla } from '@/types/contrato'
 
 const HTML_INICIAL = `<!DOCTYPE html>
 <html lang="es">
@@ -44,6 +45,7 @@ const emit = defineEmits<{
 type Formulario = {
   codigo: string
   nombre: string
+  uso: UsoPlantilla
   plantilla: string
 }
 
@@ -51,6 +53,7 @@ function emptyForm(): Formulario {
   return {
     codigo: '',
     nombre: '',
+    uso: 'CONTRATO',
     plantilla: HTML_INICIAL,
   }
 }
@@ -123,6 +126,7 @@ async function onSubmit() {
       codigo: form.codigo.trim(),
       nombre: form.nombre.trim(),
       plantilla: form.plantilla,
+      uso: form.uso,
     })
     toast.success('Plantilla creada.')
     emit('saved')
@@ -187,7 +191,7 @@ onUnmounted(() => {
 
             <form class="flex min-h-0 flex-1 flex-col px-5 py-5" @submit.prevent="onSubmit">
               <fieldset class="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1" :disabled="submitting">
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid gap-4 sm:grid-cols-3">
                   <div>
                     <label class="text-sm font-medium text-slate-700" for="plantilla-codigo">Código</label>
                     <input
@@ -209,6 +213,13 @@ onUnmounted(() => {
                       placeholder="Servicio específico"
                       :class="inputClass"
                     />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="plantilla-uso">Uso</label>
+                    <select id="plantilla-uso" v-model="form.uso" :class="inputClass">
+                      <option value="CONTRATO">Contrato</option>
+                      <option value="ADENDA">Adenda</option>
+                    </select>
                   </div>
                 </div>
 

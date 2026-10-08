@@ -53,7 +53,7 @@ onMounted(() => {
           Plantillas de Contrato
         </h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
-          Cree plantillas HTML. Al guardar, estarán disponibles en Nuevo contrato.
+          Cree plantillas HTML de contrato o adenda. Al guardar, estarán disponibles en el formulario correspondiente.
         </p>
       </div>
       <Button
@@ -86,15 +86,17 @@ onMounted(() => {
             <TableRow>
               <TableHead class="px-3">Código</TableHead>
               <TableHead class="px-3">Nombre</TableHead>
+              <TableHead class="px-3">Uso</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableEmpty v-if="!plantillas.length" :colspan="2">
+            <TableEmpty v-if="!plantillas.length" :colspan="3">
               <span class="text-slate-500">No hay plantillas registradas.</span>
             </TableEmpty>
             <TableRow v-for="plantilla in plantillas" :key="plantilla.id">
               <TableCell class="px-3 py-3 font-medium">{{ plantilla.codigo }}</TableCell>
               <TableCell class="px-3 py-3">{{ plantilla.nombre }}</TableCell>
+              <TableCell class="px-3 py-3">{{ plantilla.uso === 'ADENDA' ? 'Adenda' : 'Contrato' }}</TableCell>
             </TableRow>
           </TableBody>
         </Table>

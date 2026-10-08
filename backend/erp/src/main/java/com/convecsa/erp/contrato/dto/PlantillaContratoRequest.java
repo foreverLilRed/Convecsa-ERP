@@ -1,5 +1,6 @@
 package com.convecsa.erp.contrato.dto;
 
+import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -21,4 +22,6 @@ public class PlantillaContratoRequest {
 
     @NotBlank
     private String plantilla;
+
+    private UsoPlantilla uso;
 }

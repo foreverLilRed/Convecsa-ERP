@@ -64,12 +64,16 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 const inputClass =
   'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
 
+const plantillasContrato = computed(() =>
+  (catalogos.value?.plantillas ?? []).filter((item) => (item.uso ?? 'CONTRATO') === 'CONTRATO'),
+)
+
 const plantillaSeleccionada = computed<PlantillaContrato | null>(() => {
   const id = Number(form.plantillaContratoId)
-  if (!Number.isFinite(id) || !catalogos.value) {
+  if (!Number.isFinite(id)) {
     return null
   }
-  return catalogos.value.plantillas.find((item) => item.id === id) ?? null
+  return plantillasContrato.value.find((item) => item.id === id) ?? null
 })
 
 const camposExtra = computed(() => plantillaSeleccionada.value?.metadata ?? [])
@@ -373,7 +377,7 @@ onUnmounted(() => {
                   <select id="contrato-plantilla" v-model="form.plantillaContratoId" :class="inputClass">
                     <option value="">Seleccione</option>
                     <option
-                      v-for="item in catalogos?.plantillas ?? []"
+                      v-for="item in plantillasContrato"
                       :key="item.id"
                       :value="String(item.id)"
                     >
