@@ -18,12 +18,6 @@ import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
-  { path: 'capacitaciones', name: 'gh-capacitaciones', title: 'Capacitaciones' },
-  { path: 'portal-boletas', name: 'gh-portal-boletas', title: 'Portal Boletas' },
-  { path: 'cumplimiento-sunafil', name: 'gh-cumplimiento-sunafil', title: 'Cumplimiento SUNAFIL' },
-  { path: 'formacion', name: 'gh-formacion', title: 'Formación' },
-  { path: 'expedientes-adendas', name: 'gh-expedientes-adendas', title: 'Expedientes y Adendas' },
-  { path: 'documentacion-sunafil', name: 'gh-documentacion-sunafil', title: 'Documentación SUNAFIL' },
   { path: 'vacaciones', name: 'gh-vacaciones', title: 'Vacaciones' },
   { path: 'constancias-certificados', name: 'gh-constancias-certificados', title: 'Constancias y Certificados' },
   { path: 'firmas-digitales', name: 'gh-firmas-digitales', title: 'Firmas Digitales' },
