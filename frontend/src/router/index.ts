@@ -13,6 +13,7 @@ import PeriodoNominaPage from '@/pages/gestion-humana/PeriodoNominaPage.vue'
 import PlaceholderPage from '@/pages/gestion-humana/PlaceholderPage.vue'
 import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
 import PlantillasContratoPage from '@/pages/gestion-humana/PlantillasContratoPage.vue'
+import ManualesMofPage from '@/pages/gestion-humana/ManualesMofPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
@@ -23,7 +24,6 @@ const gestionHumanaPages = [
   { path: 'formacion', name: 'gh-formacion', title: 'Formación' },
   { path: 'expedientes-adendas', name: 'gh-expedientes-adendas', title: 'Expedientes y Adendas' },
   { path: 'documentacion-sunafil', name: 'gh-documentacion-sunafil', title: 'Documentación SUNAFIL' },
-  { path: 'manuales-mof', name: 'gh-manuales-mof', title: 'Manuales MOF' },
   { path: 'vacaciones', name: 'gh-vacaciones', title: 'Vacaciones' },
   { path: 'constancias-certificados', name: 'gh-constancias-certificados', title: 'Constancias y Certificados' },
   { path: 'firmas-digitales', name: 'gh-firmas-digitales', title: 'Firmas Digitales' },
@@ -98,6 +98,11 @@ const router = createRouter({
           path: 'gestion-humana/kpis/:personaId(\\d+)',
           name: 'gh-kpis-detalle',
           component: KpisDesempenoDetallePage,
+        },
+        {
+          path: 'gestion-humana/manuales-mof',
+          name: 'gh-manuales-mof',
+          component: ManualesMofPage,
         },
         ...gestionHumanaPages.map((page) => ({
           path: `gestion-humana/${page.path}`,

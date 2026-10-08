@@ -1,0 +1,879 @@
+[
+  {
+    "codigo": "CVSA-MOF-P005",
+    "cargo": "RESIDENTE DE OBRA",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Representar a CONVECSA S.A.C. ante el cliente y contratista principal, garantizando la ejecución integral del proyecto conforme a los contratos, especificaciones técnicas, plazos, costos, calidad y estándares de seguridad establecidos, asegurando la rentabilidad del proyecto y la satisfacción del cliente.",
+    "superior": "Gerente de Proyectos y Operaciones",
+    "subordinados": "Asistente de Residencia, Supervisores de Producción, Supervisor de Calidad, Supervisor SSOMA",
+    "educacion": [
+      "Ingeniería Civil, Arquitectura o carrera afín (completa).",
+      "Colegiatura y habilitación profesional vigente.",
+      "Especialización en Gestión de Proyectos (PMP o similar).",
+      "Normativa de construcción, contrataciones con el Estado y normas ISO."
+    ],
+    "experiencia": [
+      "Mínimo 5 años en dirección o residencia de obras.",
+      "Experiencia en proyectos de pintura, acabados o especialidades.",
+      "Gestión de contratos con el Estado o grandes empresas privadas."
+    ],
+    "competencias": [
+      "Liderazgo estratégico y toma de decisiones bajo presión.",
+      "Negociación y manejo de conflictos.",
+      "Visión comercial y orientación a resultados.",
+      "Comunicación asertiva y relaciones interpersonales.",
+      "Integridad, ética profesional y responsabilidad.",
+      "Planificación estratégica y gestión del cambio."
+    ],
+    "funciones": [
+      "Representar legal y técnicamente a CONVECSA S.A.C. ante el cliente, contratista principal y entidades fiscalizadoras.",
+      "Ejercer la dirección técnica y administrativa total del proyecto, coordinando todos los recursos asignados.",
+      "Asegurar el cumplimiento contractual de alcances, plazos, costos, calidad y seguridad.",
+      "Aprobar y controlar el presupuesto del proyecto, autorizando gastos dentro de los límites establecidos.",
+      "Liderar la implementación del Sistema Integrado de Gestión (SIG) en el proyecto.",
+      "Establecer y mantener relaciones institucionales con el cliente, contratistas y entidades relacionadas.",
+      "Dirigir y supervisar al equipo de supervisores y personal administrativo de obra.",
+      "Aprobar planes de trabajo, cronogramas, solicitudes de materiales y requerimientos de personal.",
+      "Revisar, aprobar y suscribir actas de entrega, valorizaciones, adicionales de obra y documentación contractual.",
+      "Presidir reuniones de coordinación con el cliente y contratista, gestionando la resolución de conflictos.",
+      "Garantizar la documentación técnica y legal del proyecto, incluyendo entrega de dossiers finales.",
+      "Reportar periódicamente a la Gerencia sobre avance físico, financiero, desviaciones y riesgos.",
+      "Tomar decisiones operativas y técnicas de emergencia para salvaguardar al personal y calidad.",
+      "Coordinar con Asesoría Jurídica en temas contractuales, reclamos y disputas.",
+      "Evaluar el desempeño del personal bajo su cargo y proponer acciones de mejora."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P006",
+    "cargo": "ASISTENTE DE RESIDENCIA",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Apoyar al Residente de Obra en la gestión administrativa, técnica y documentaria del proyecto, asegurando el flujo de información, control de documentos y seguimiento de actividades críticas para el cumplimiento de objetivos del proyecto.",
+    "superior": "Residente de Obra",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Ingeniería Civil, Arquitectura o afín (mínimo 8vo ciclo o egresado).",
+      "MS Project, Primavera y ofimática avanzada.",
+      "Normativa de construcción y contrataciones."
+    ],
+    "experiencia": [
+      "Mínimo 2 años en asistencia de residencia o supervisión de obras.",
+      "Experiencia en proyectos de construcción o especialidades."
+    ],
+    "competencias": [
+      "Organización y gestión documentaria.",
+      "Proactividad y orientación al detalle.",
+      "Comunicación efectiva y trabajo en equipo.",
+      "Capacidad de análisis y síntesis.",
+      "Integridad y responsabilidad.",
+      "Manejo de múltiples tareas bajo presión."
+    ],
+    "funciones": [
+      "Asistir al Residente en la elaboración de informes técnicos, actas, cronogramas y reportes de avance.",
+      "Controlar y archivar la documentación técnica del proyecto (planos, especificaciones, órdenes de cambio).",
+      "Elaborar y actualizar registros de control de obras: metrados, valorizaciones y estado de pagos.",
+      "Coordinar la logística de reuniones con el cliente, incluyendo minutas y seguimiento de compromisos.",
+      "Supervisar el cumplimiento de cronogramas y alertar al Residente sobre desviaciones o riesgos.",
+      "Apoyar en la elaboración de adicionales de obra, ampliaciones de plazo y reclamos.",
+      "Mantener actualizado el sistema de gestión documentaria del proyecto.",
+      "Coordinar con el Administrador de Obra temas de personal, asistencia y logística.",
+      "Realizar inspecciones periódicas para verificar cumplimiento de especificaciones técnicas.",
+      "Apoyar en la preparación de documentación de entrega de obras y dossier final.",
+      "Sustituir temporalmente al Residente de Obra en sus ausencias programadas si se designa.",
+      "Atender requerimientos del cliente y contratista, derivando al Residente cuando corresponda."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P007",
+    "cargo": "SUPERVISOR DE PRODUCCIÓN",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Dirigir y controlar la ejecución de los trabajos de producción en campo, garantizando el cumplimiento de programas de obra, estándares de calidad, seguridad y productividad, optimizando el uso de recursos humanos, materiales y equipos.",
+    "superior": "Residente de Obra / Supervisor de Obra",
+    "subordinados": "Asistente de Producción, Cuadrillas de Técnicos y Auxiliares de campo",
+    "educacion": [
+      "Estudios técnicos o universitarios en Construcción Civil o afines.",
+      "Técnicas de pintura industrial, sellos cortafuego, terrazo y trabajos en altura.",
+      "Capacitaciones en gestión de producción o lean construction."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en supervisión de producción en obras o especialidades.",
+      "Experiencia en pintura, recubrimientos o acabados (deseable)."
+    ],
+    "competencias": [
+      "Liderazgo de equipos de trabajo.",
+      "Orientación a resultados y metas de producción.",
+      "Toma de decisiones rápida y efectiva.",
+      "Comunicación directa y clara.",
+      "Resolución de problemas operativos.",
+      "Compromiso con la seguridad y calidad."
+    ],
+    "funciones": [
+      "Ejecutar y supervisar directamente los trabajos de producción conforme a planos y cronogramas aprobados.",
+      "Liderar y coordinar las cuadrillas de técnicos especialistas y auxiliares de campo.",
+      "Programar diariamente las actividades de producción, asignando personal, materiales y equipos.",
+      "Controlar la productividad de las cuadrillas, registrando avances y reportando desviaciones.",
+      "Verificar la disponibilidad y correcto uso de materiales, herramientas y equipos.",
+      "Asegurar el cumplimiento de procedimientos de calidad, coordinando con el Supervisor de Calidad.",
+      "Implementar y hacer cumplir las normas de seguridad, coordinando con el Supervisor SSOMA.",
+      "Realizar briefings diarios de seguridad (charlas de 5 minutos) antes del inicio de labores.",
+      "Inspeccionar permanentemente los trabajos, detectando y corrigiendo desviaciones técnicas.",
+      "Coordinar con el Residente la solución de problemas técnicos o logísticos que afecten la producción.",
+      "Controlar la asistencia, puntualidad y disciplina del personal a su cargo.",
+      "Verificar la correcta aplicación de técnicas constructivas según especificaciones de fabricantes.",
+      "Mantener orden y limpieza en áreas de trabajo, asegurando la protección de áreas terminadas.",
+      "Reportar diariamente el avance de obra, incidencias y requerimientos de materiales.",
+      "Cierre de dossier semanal y mensual."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P008",
+    "cargo": "ASISTENTE DE PRODUCCIÓN",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Apoyar al Supervisor de Producción en el control y seguimiento de las actividades de obra, asegurando la disponibilidad de materiales, herramientas y documentación técnica necesaria para el cumplimiento de los programas de producción.",
+    "superior": "Supervisor de Producción",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Estudios técnicos en Construcción Civil, Edificaciones o afín.",
+      "Ofimática y herramientas de gestión de inventarios.",
+      "Conocimiento básico de metrados y especificaciones técnicas."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en asistencia de producción o supervisión de obra."
+    ],
+    "competencias": [
+      "Organización y orden.",
+      "Proactividad y dinamismo.",
+      "Trabajo en equipo.",
+      "Orientación al detalle.",
+      "Responsabilidad y puntualidad.",
+      "Comunicación efectiva."
+    ],
+    "funciones": [
+      "Asistir al Supervisor de Producción en la programación y control diario de actividades.",
+      "Realizar pedidos de materiales, herramientas y equipos, haciendo seguimiento de entrega.",
+      "Controlar el inventario de materiales en obra, registrando ingresos, salidas y stocks.",
+      "Levantar metrados de avance de obra y elaborar reportes diarios de producción.",
+      "Verificar que el personal cuente con los EPPs necesarios antes del inicio de labores.",
+      "Apoyar en la coordinación de movilidad del personal y logística de materiales.",
+      "Mantener actualizados los planos de obra con cambios y versiones vigentes.",
+      "Supervisar la correcta señalización y protección de áreas de trabajo.",
+      "Registrar la asistencia del personal de producción y reportar novedades.",
+      "Colaborar en la preparación de áreas para inspecciones de calidad o seguridad.",
+      "Documentar incidencias de producción y apoyar en la elaboración de informes.",
+      "Coordinar con el Almacén de Obra la recepción y control de materiales.",
+      "Cierre de dossier semanal y mensual."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P008B",
+    "cargo": "SUPERVISOR DE CALIDAD (QA/QC)",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Asegurar que todos los procesos constructivos y materiales aplicados cumplan con las especificaciones técnicas del proyecto, normativas UL/NFPA y estándares de calidad de CONVECSA S.A.C.",
+    "superior": "Residente de Obra",
+    "subordinados": "Asistente de Calidad",
+    "educacion": [
+      "Ingeniería Civil, Química o afines.",
+      "Especialización en Sistemas de Gestión de Calidad ISO 9001.",
+      "Certificación en inspección de recubrimientos o sellos cortafuego (NACE/SSPC o equivalente)."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en control de calidad en obras de infraestructura o edificación."
+    ],
+    "competencias": [
+      "Rigurosidad técnica y criterio normativo.",
+      "Orientación al detalle y precisión.",
+      "Manejo de no conformidades y auditorías.",
+      "Liderazgo en control de calidad."
+    ],
+    "funciones": [
+      "Verificar que todas las instalaciones cumplan con las normativas UL/NFPA.",
+      "Elaborar y mantener actualizado el Dossier de Calidad del proyecto.",
+      "Realizar pruebas de adherencia y liberación de frentes de trabajo.",
+      "Gestionar las no conformidades y acciones correctivas durante la ejecución.",
+      "Supervisar la recepción y ensayos de laboratorio de materiales de recubrimiento y sellado.",
+      "Cierre de dossier semanal y mensual."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P009",
+    "cargo": "ASISTENTE DE CALIDAD",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Apoyar al Supervisor de Calidad en la implementación del Sistema de Gestión de Calidad, realizando inspecciones, registros y control documentario para garantizar que los procesos y productos cumplan con los estándares y especificaciones establecidas.",
+    "superior": "Supervisor de Calidad (QA/QC)",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Ingeniería Civil, Arquitectura, Química o afines (en curso o egresado).",
+      "Norma ISO 9001 y herramientas de control de calidad.",
+      "Ofimática y sistemas de gestión documentaria."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en control de calidad en obras de construcción o industria."
+    ],
+    "competencias": [
+      "Orientación al detalle y rigurosidad.",
+      "Ética profesional e integridad.",
+      "Análisis y resolución de problemas.",
+      "Comunicación técnica efectiva.",
+      "Organización y sistematización.",
+      "Trabajo en equipo."
+    ],
+    "funciones": [
+      "Asistir en la elaboración y actualización de Planes de Calidad y procedimientos del proyecto.",
+      "Realizar inspecciones de calidad en proceso y recepción de materiales.",
+      "Verificar la trazabilidad de materiales y equipos de medición utilizados en obra.",
+      "Controlar documentación de calidad: protocolos, certificados, informes de laboratorio.",
+      "Fotodocumentar el avance de obra y trabajos críticos para respaldo de calidad.",
+      "Apoyar en la elaboración de dossiers de calidad y entregables documentarios al cliente.",
+      "Identificar y reportar no conformidades, apoyando en el seguimiento de acciones correctivas.",
+      "Verificar que los trabajos se ejecuten conforme a planos, especificaciones y normas técnicas.",
+      "Mantener organizados los registros de calidad para disponibilidad en auditorías.",
+      "Coordinar con los Supervisores de Producción la programación de inspecciones puntuales.",
+      "Colaborar en la capacitación del personal en temas de control de calidad.",
+      "Controlar el estado de calibración de equipos de medición y ensayo.",
+      "Cierre de dossier semanal y mensual."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P009B",
+    "cargo": "SUPERVISOR SSOMA",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Implementar, supervisar y hacer cumplir el Plan de Seguridad, Salud Ocupacional y Medio Ambiente conforme a la Ley N° 29783 y normativas sectoriales de construcción.",
+    "superior": "Residente de Obra",
+    "subordinados": "Asistente SSOMA",
+    "educacion": [
+      "Ingeniero Higienista, Industrial, Civil o afines.",
+      "Diplomado o Maestría en Seguridad y Salud Ocupacional.",
+      "Colegiatura y habilitación profesional."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en supervisión SSOMA en obras de alto riesgo o construcción."
+    ],
+    "competencias": [
+      "Liderazgo preventivo y tolerancia cero al riesgo.",
+      "Manejo de emergencias y primeros auxilios.",
+      "Capacidad de instrucción y concientización."
+    ],
+    "funciones": [
+      "Implementar el Plan de Seguridad y Salud en el Trabajo (Ley N° 29783).",
+      "Supervisar trabajos de alto riesgo, incluyendo descenso vertical en altura.",
+      "Dictar charlas de inducción y capacitaciones periódicas al personal.",
+      "Asegurar el uso correcto de los EPP por todo el personal.",
+      "Investigar y reportar incidentes, implementando medidas preventivas.",
+      "Cierre de dossier semanal y mensual."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P010",
+    "cargo": "ASISTENTE SSOMA",
+    "grupo": "STAFF DE OBRA",
+    "proposito": "Apoyar al Supervisor SSOMA en la implementación, mantenimiento y seguimiento del Sistema de Gestión SSOMA, asegurando el cumplimiento de normativa legal y estándares corporativos para prevenir incidentes y proteger la salud de los trabajadores.",
+    "superior": "Supervisor SSOMA",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Estudios técnicos en Seguridad Industrial, Ingeniería Industrial o afines.",
+      "Curso de seguridad y salud en el trabajo (mínimo 80 horas).",
+      "Normativa legal SSOMA (DS 005-2012-TR y modificatorias)."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en funciones de seguridad industrial en construcción o industria."
+    ],
+    "competencias": [
+      "Proactividad en la identificación de riesgos.",
+      "Comunicación asertiva para sensibilización en seguridad.",
+      "Responsabilidad y compromiso con la preservación de la vida.",
+      "Orientación al detalle en inspecciones.",
+      "Trabajo en equipo y liderazgo de influencia.",
+      "Ética profesional."
+    ],
+    "funciones": [
+      "Asistir en la elaboración y actualización del Plan SSOMA del proyecto.",
+      "Realizar inspecciones de seguridad periódicas identificando condiciones y actos inseguros.",
+      "Verificar el correcto uso de EPPs por parte de todo el personal en obra.",
+      "Mantener actualizados los registros SSOMA: inspecciones, capacitaciones, incidentes y estadísticas.",
+      "Colaborar en la investigación de incidentes y accidentes, levantando informes preliminares.",
+      "Apoyar en la organización de capacitaciones y simulacros de emergencia.",
+      "Controlar la vigencia de certificados médicos ocupacionales y capacitaciones del personal.",
+      "Verificar la señalización, demarcación y orden de áreas de trabajo.",
+      "Asistir en la evaluación de riesgos y elaboración de procedimientos de trabajo seguro (PETS).",
+      "Mantener el botiquín de primeros auxilios y coordinar la atención de emergencias menores.",
+      "Controlar la disposición adecuada de residuos y prácticas ambientales en obra.",
+      "Reportar diariamente al Supervisor SSOMA sobre hallazgos, incumplimientos y acciones correctivas.",
+      "Cierre de dossier semanal y mensual."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P011",
+    "cargo": "JEFE DE OFICINA TÉCNICA",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Dirigir y coordinar las actividades técnicas de la Oficina Técnica, asegurando la correcta elaboración de propuestas, presupuestos, diseños técnicos y documentación de proyectos, garantizando la viabilidad técnica y económica de las ofertas.",
+    "superior": "Gerente de Proyectos y Operaciones",
+    "subordinados": "Asistente de Oficina Técnica, Especialistas Técnicos",
+    "educacion": [
+      "Ingeniería Civil, Arquitectura o carrera afín.",
+      "Especialización en gestión de proyectos, costos o diseño constructivo.",
+      "AutoCAD, Revit, software de presupuestos y ofimática."
+    ],
+    "experiencia": [
+      "Mínimo 4 años en oficina técnica, presupuestos o diseño de proyectos.",
+      "Experiencia en proyectos de pintura, acabados o especialidades constructivas."
+    ],
+    "competencias": [
+      "Pensamiento analítico y resolución de problemas técnicos.",
+      "Orientación a resultados y cumplimiento de plazos.",
+      "Liderazgo técnico y capacidad de coordinación.",
+      "Comunicación técnica efectiva.",
+      "Innovación y mejora continua.",
+      "Integridad y responsabilidad."
+    ],
+    "funciones": [
+      "Liderar el proceso de elaboración de propuestas técnicas y económicas para licitaciones.",
+      "Revisar y aprobar los diseños técnicos, especificaciones y soluciones constructivas.",
+      "Coordinar con proveedores y fabricantes la obtención de información técnica y precios.",
+      "Asegurar que las propuestas cumplan con los requerimientos del cliente y normativa aplicable.",
+      "Dirigir el desarrollo de ingeniería de detalle para proyectos adjudicados.",
+      "Mantener actualizada la base de datos de precios unitarios, rendimientos y normas técnicas.",
+      "Supervisar la elaboración de cronogramas de ejecución y planes de trabajo.",
+      "Brindar soporte técnico al Residente de Obra en la interpretación de planos.",
+      "Coordinar con el área comercial la elaboración de ofertas y negociaciones técnicas.",
+      "Implementar mejoras en los procesos de diseño y elaboración de presupuestos.",
+      "Evaluar nuevas tecnologías, materiales y técnicas constructivas para innovación.",
+      "Controlar la calidad de los entregables técnicos de la Oficina Técnica.",
+      "Representar a CONVECSA en reuniones técnicas con clientes y contratistas."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P012",
+    "cargo": "ASISTENTE DE OFICINA TÉCNICA",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Apoyar al Jefe de Oficina Técnica en la elaboración de propuestas, presupuestos, diseños y documentación técnica, garantizando la precisión y oportunidad de los entregables para la generación de nuevos negocios y ejecución de proyectos.",
+    "superior": "Jefe de Oficina Técnica",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Ingeniería Civil, Arquitectura o afines (en curso o egresado).",
+      "AutoCAD, software de presupuestos y ofimática.",
+      "Conocimiento de metrados y especificaciones técnicas."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en oficina técnica o elaboración de presupuestos."
+    ],
+    "competencias": [
+      "Precisión y orientación al detalle.",
+      "Proactividad y aprendizaje continuo.",
+      "Organización y gestión del tiempo.",
+      "Trabajo en equipo.",
+      "Responsabilidad y compromiso.",
+      "Comunicación efectiva."
+    ],
+    "funciones": [
+      "Elaborar presupuestos y análisis de precios unitarios para propuestas comerciales.",
+      "Desarrollar planos, detalles constructivos y especificaciones técnicas bajo supervisión.",
+      "Realizar levantamientos de datos en campo para toma de información de proyectos.",
+      "Mantener actualizadas las bases de datos de insumos, precios y proveedores.",
+      "Apoyar en la elaboración de cronogramas y planes de trabajo de propuestas.",
+      "Coordinar con proveedores la solicitud de cotizaciones y fichas técnicas.",
+      "Verificar que la documentación técnica cumpla con los requerimientos de los clientes.",
+      "Archivar y sistematizar la documentación técnica de proyectos.",
+      "Asistir en la preparación de presentaciones técnicas para clientes.",
+      "Colaborar en la ingeniería de detalle de proyectos adjudicados.",
+      "Realizar cálculos de metrados y consumos de materiales."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P013",
+    "cargo": "ADMINISTRADOR(A) DE OBRA",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Gestionar los recursos administrativos, financieros y logísticos del proyecto, asegurando el correcto flujo de caja, control de gastos, gestión de personal y provisionamiento de recursos necesarios para la ejecución eficiente de la obra.",
+    "superior": "Residente de Obra / Jefatura Administrativa",
+    "subordinados": "Asistente Administrativo/RRHH",
+    "educacion": [
+      "Administración, Contabilidad, Economía o carrera afín.",
+      "Normativa tributaria, laboral y de seguridad social.",
+      "Software contable y ofimática avanzada."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en administración de obras o proyectos de construcción."
+    ],
+    "competencias": [
+      "Gestión financiera y control de recursos.",
+      "Organización y planificación administrativa.",
+      "Ética profesional y confidencialidad.",
+      "Negociación con proveedores.",
+      "Trabajo bajo presión y cumplimiento de plazos.",
+      "Comunicación efectiva."
+    ],
+    "funciones": [
+      "Administrar los recursos financieros del proyecto, controlando ingresos y egresos.",
+      "Elaborar y controlar el flujo de caja del proyecto, reportando desviaciones al Residente.",
+      "Gestionar los pagos a proveedores, contratistas y personal con documentación de respaldo.",
+      "Controlar la documentación contable y financiera: facturas, recibos y vouchers.",
+      "Administrar el personal de obra: contrataciones, altas/bajas, asistencia y planillas.",
+      "Coordinar con RRHH la gestión de beneficios sociales y trámites laborales.",
+      "Gestionar la logística de almacén: recepción, inventarios y distribución de materiales.",
+      "Controlar los activos fijos y equipos asignados al proyecto.",
+      "Elaborar reportes financieros y administrativos periódicos para la Gerencia.",
+      "Asegurar el cumplimiento de obligaciones tributarias y laborales del proyecto.",
+      "Gestionar los servicios generales: movilidad, hospedaje, alimentación y servicios básicos.",
+      "Coordinar con el Cliente y Contratista temas administrativos y de pagos.",
+      "Apoyar en la elaboración de valorizaciones y facturación al cliente."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P014",
+    "cargo": "ESPECIALISTA EN RECURSOS HUMANOS",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Gestionar el capital humano de CONVECSA, asegurando la disponibilidad de personal calificado, el desarrollo de competencias, el clima laboral positivo y el cumplimiento de la normativa laboral.",
+    "superior": "Jefatura Administrativa / Gerencia General",
+    "subordinados": "Asistente Administrativo/RRHH",
+    "educacion": [
+      "Psicología, Administración de RRHH, Derecho Laboral o afines.",
+      "Especialización en gestión del talento o normativa laboral.",
+      "Ley de Productividad y Competitividad Laboral y normativa conexa."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en gestión de RRHH en empresas de construcción o industria."
+    ],
+    "competencias": [
+      "Orientación al servicio y empatía.",
+      "Comunicación interpersonal efectiva.",
+      "Manejo de conflictos y negociación.",
+      "Ética profesional y confidencialidad.",
+      "Orientación a resultados y mejora continua.",
+      "Liderazgo de influencia."
+    ],
+    "funciones": [
+      "Planificar y ejecutar los procesos de reclutamiento, selección e inducción de personal.",
+      "Administrar la nómina, beneficios sociales y obligaciones laborales de la empresa.",
+      "Diseñar e implementar programas de capacitación y desarrollo profesional.",
+      "Gestionar el sistema de evaluación de desempeño y plan de carrera.",
+      "Asegurar el cumplimiento de la normativa laboral y de seguridad social.",
+      "Administrar contratos de trabajo, registros de personal y archivo de legajos.",
+      "Gestionar relaciones laborales, mediando en conflictos y aplicando procedimiento disciplinario.",
+      "Implementar acciones para mejorar el clima organizacional.",
+      "Coordinar con el Supervisor SSOMA la gestión de seguridad y salud del personal.",
+      "Elaborar reportes de gestión de RRHH y estadísticas de personal.",
+      "Administrar el sistema de control de asistencia y tardanzas.",
+      "Gestionar trámites ante entidades públicas (SUNAT, ESSALUD, ONP, AFP, etc.).",
+      "Implementar políticas de bienestar social y responsabilidad social empresarial."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P015",
+    "cargo": "ASISTENTE ADMINISTRATIVO / RRHH",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Brindar soporte administrativo en las áreas de gestión de personal, tesorería, logística y documentación, asegurando el correcto funcionamiento de los procesos operativos.",
+    "superior": "Administrador de Obra / Especialista en RRHH",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Administración, Secretariado Ejecutivo, Recursos Humanos o afines.",
+      "Software de planillas, ofimática y sistemas de gestión documentaria."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en asistencia administrativa o áreas de RRHH."
+    ],
+    "competencias": [
+      "Organización y orden.",
+      "Discreción y confidencialidad.",
+      "Atención al detalle.",
+      "Proactividad y servicio al cliente interno.",
+      "Trabajo en equipo.",
+      "Responsabilidad y puntualidad."
+    ],
+    "funciones": [
+      "Registrar y actualizar la información del personal en el sistema de planillas y asistencia.",
+      "Apoyar en la elaboración de boletas de pago, liquidaciones y trámites de beneficios sociales.",
+      "Atender la central telefónica, correos electrónicos y público interno y externo.",
+      "Manejar la documentación administrativa: recepción, distribución, archivo y seguimiento.",
+      "Apoyar en la logística de compras menores, servicios y suministros de oficina.",
+      "Controlar el archivo de contratos, actas, informes y documentación legal del proyecto.",
+      "Asistir en la organización de reuniones, capacitaciones y eventos corporativos.",
+      "Registrar movimientos de caja chica y rendiciones de gastos menores.",
+      "Apoyar en el proceso de reclutamiento: convocatoria, recepción de CVs y citación.",
+      "Mantener actualizados los registros de personal y entregar reportes periódicos.",
+      "Coordinar la movilidad y hospedaje del personal cuando sea requerido."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P016",
+    "cargo": "CONTADOR(A)",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Dirigir y controlar la gestión contable, financiera y tributaria de CONVECSA, asegurando la registración oportuna y precisa de las operaciones y el cumplimiento de obligaciones fiscales.",
+    "superior": "Gerencia General / Jefatura Administrativa",
+    "subordinados": "Asistente Contable",
+    "educacion": [
+      "Contabilidad, Ciencias Económicas o afines.",
+      "Colegiatura vigente en el Colegio de Contadores Públicos.",
+      "NIIF, normativa tributaria y laboral peruana.",
+      "Especialización en finanzas, tributación o auditoría (deseable)."
+    ],
+    "experiencia": [
+      "Mínimo 4 años en contabilidad general, preferiblemente en construcción."
+    ],
+    "competencias": [
+      "Análisis financiero y contable.",
+      "Ética profesional e integridad.",
+      "Orientación al detalle y precisión.",
+      "Cumplimiento de normas y plazos.",
+      "Comunicación técnica efectiva.",
+      "Liderazgo de equipos."
+    ],
+    "funciones": [
+      "Dirigir el área contable, estableciendo procedimientos y controles internos.",
+      "Supervisar la registración contable de operaciones y conciliaciones bancarias.",
+      "Elaborar estados financieros mensuales, trimestrales y anuales conforme a NIIF.",
+      "Asegurar el cumplimiento de obligaciones tributarias: declaraciones, pagos y retenciones.",
+      "Coordinar con el Administrador de Obra el control financiero de proyectos.",
+      "Preparar y presentar la declaración anual de impuestos y auditorías.",
+      "Analizar la situación financiera de la empresa y proponer mejoras.",
+      "Controlar cuentas por cobrar y por pagar, asegurando la salud del flujo de caja.",
+      "Elaborar reportes financieros para la Gerencia y Directorio.",
+      "Mantener actualizada la información en el sistema contable.",
+      "Asesorar en aspectos tributarios y contables a las demás áreas.",
+      "Coordinar con Asesoría Jurídica en temas fiscales y contractuales."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P017",
+    "cargo": "ASISTENTE CONTABLE",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Apoyar en la registración contable, conciliaciones y procesamiento de documentos financieros, asegurando la actualización oportuna de los registros y el respaldo documentario de las operaciones.",
+    "superior": "Contador(a)",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Contabilidad o afines (en curso o egresado).",
+      "Normativa tributaria básica y plan contable general empresarial.",
+      "Software contable y ofimática."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en áreas contables o administrativas."
+    ],
+    "competencias": [
+      "Orden y sistematización.",
+      "Ética y confidencialidad.",
+      "Orientación al detalle.",
+      "Responsabilidad y cumplimiento de plazos.",
+      "Trabajo en equipo.",
+      "Proactividad."
+    ],
+    "funciones": [
+      "Registrar operaciones contables en el sistema: compras, ventas, gastos, caja y bancos.",
+      "Realizar conciliaciones bancarias y verificación de estados de cuenta.",
+      "Clasificar y codificar documentos contables según el plan de cuentas.",
+      "Apoyar en la elaboración de declaraciones tributarias mensuales.",
+      "Controlar la documentación de respaldo: facturas, recibos y comprobantes de pago.",
+      "Registrar cuentas por cobrar y por pagar, realizando seguimiento de vencimientos.",
+      "Archivar y sistematizar la documentación contable física y digital.",
+      "Apoyar en la elaboración de reportes financieros básicos.",
+      "Atender requerimientos de SUNAT y otras entidades reguladoras.",
+      "Colaborar en la preparación de información para auditorías."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P018",
+    "cargo": "ADMINISTRADOR(A) - CONTABLE",
+    "grupo": "ADMINISTRACIÓN",
+    "proposito": "Ejercer funciones combinadas de administración de obra y contabilidad de proyecto, integrando la gestión operativa, financiera y documentaria del proyecto.",
+    "superior": "Gerente de Proyectos / Jefatura Administrativa",
+    "subordinados": "Asistente Administrativo (según proyecto)",
+    "educacion": [
+      "Administración, Contabilidad o carrera afín.",
+      "Contabilidad de costos, presupuestos y normativa tributaria.",
+      "Software contable, de gestión de proyectos y ofimática."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en administración de obras y contabilidad.",
+      "Experiencia en proyectos de construcción."
+    ],
+    "competencias": [
+      "Versatilidad y multitasking.",
+      "Pensamiento analítico financiero.",
+      "Organización y gestión del tiempo.",
+      "Toma de decisiones operativas.",
+      "Ética profesional.",
+      "Orientación a resultados."
+    ],
+    "funciones": [
+      "Gestionar recursos operativos, logísticos y de personal del proyecto.",
+      "Controlar asistencia, planillas y beneficios del personal de obra.",
+      "Administrar almacén, inventarios y activos fijos del proyecto.",
+      "Gestionar servicios generales: movilidad, hospedaje y alimentación.",
+      "Registrar operaciones contables del proyecto en sistema.",
+      "Controlar flujo de caja, cuentas por cobrar y por pagar.",
+      "Elaborar reportes financieros del proyecto y valorizaciones.",
+      "Asegurar cumplimiento de obligaciones tributarias del proyecto.",
+      "Elaborar y controlar el presupuesto de gastos generales.",
+      "Integrar información administrativa y financiera para reportes gerenciales.",
+      "Coordinar con Contabilidad Central la consolidación de información.",
+      "Gestionar documentación contractual, de adquisiciones y pagos."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P019",
+    "cargo": "PRACTICANTE PRE-PROFESIONAL / PROFESIONAL",
+    "grupo": "HÍBRIDOS",
+    "proposito": "Desarrollar competencias profesionales mediante la aplicación práctica de conocimientos académicos en proyectos reales de la empresa, apoyando las actividades del área asignada bajo supervisión.",
+    "superior": "Según área de asignación",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Estudiante universitario avanzado (7mo ciclo) o egresado.",
+      "Ingeniería Civil, Arquitectura, Administración, Contabilidad, Seguridad o afines.",
+      "Conocimientos teóricos de la especialidad según área de prácticas."
+    ],
+    "experiencia": [
+      "No requiere experiencia previa (pre-profesional).",
+      "Máximo 1 año de experiencia (profesional en formación)."
+    ],
+    "competencias": [
+      "Proactividad y deseo de aprendizaje.",
+      "Responsabilidad y compromiso.",
+      "Adaptabilidad al entorno de construcción.",
+      "Trabajo en equipo.",
+      "Comunicación efectiva.",
+      "Orientación al detalle."
+    ],
+    "funciones": [
+      "Ejecutar actividades técnicas, administrativas o de gestión según el área de asignación.",
+      "Elaborar informes, análisis y documentación bajo supervisión del profesional a cargo.",
+      "Participar en levantamientos de información, inspecciones o actividades de campo.",
+      "Apoyar en la sistematización de información y bases de datos.",
+      "Asistir en la elaboración de presentaciones, propuestas o reportes.",
+      "Cumplir con el plan de prácticas establecido por la universidad y la empresa.",
+      "Aplicar los conocimientos teóricos en situaciones prácticas del sector construcción.",
+      "Mantener actitud de aprendizaje, proactividad y compromiso con las tareas asignadas.",
+      "Respetar las normas de seguridad, calidad y medio ambiente de la empresa.",
+      "Presentar informes de avance y evaluaciones según los requisitos institucionales."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P020",
+    "cargo": "TÉCNICO INSTALADOR DE SELLOS CORTAFUEGO",
+    "grupo": "TECNICOS",
+    "proposito": "Ejecutar la instalación de sistemas de sellos cortafuego (pastillas, masillas, barreras, selladores intumescentes) conforme a especificaciones técnicas, normas NFPA y estándares de calidad y seguridad.",
+    "superior": "Supervisor de Producción",
+    "subordinados": "Auxiliares de campo (según asignación)",
+    "educacion": [
+      "Construcción Civil, Electricidad, Mecánica o afines.",
+      "Certificación en instalación de sellos cortafuego (3M, Hilti, Promat, etc.).",
+      "Normas NFPA, UL y estándares de protección pasiva contra incendios."
+    ],
+    "experiencia": [
+      "Mínimo 2 años en instalación de sellos cortafuego o sistemas de protección contra incendios."
+    ],
+    "competencias": [
+      "Precisión y orientación al detalle.",
+      "Cumplimiento de estándares de calidad.",
+      "Conciencia de seguridad industrial.",
+      "Trabajo en equipo.",
+      "Responsabilidad y puntualidad.",
+      "Adaptabilidad a diferentes entornos de obra."
+    ],
+    "funciones": [
+      "Instalar sellos cortafuego en penetraciones de tuberías, cables, ductos y aberturas.",
+      "Preparar superficies: limpieza, aplicación de imprimantes y acondicionamiento de sustratos.",
+      "Aplicar masillas intumescentes, selladores elastoméricos y sistemas de barrera contra fuego.",
+      "Instalar pastillas, colchones y dispositivos de sellado según diseño aprobado.",
+      "Verificar la correcta aplicación según fichas técnicas de fabricantes y normas NFPA.",
+      "Realizar pruebas de estanqueidad y verificación de espesores de aplicación.",
+      "Mantener limpieza y orden en el área de trabajo, protegiendo instalaciones aledañas.",
+      "Utilizar correctamente los EPPs específicos: guantes químicos, gafas, respiradores.",
+      "Operar herramientas manuales y eléctricas de manera segura.",
+      "Reportar al Supervisor de Producción sobre avances, problemas técnicos o faltantes.",
+      "Colaborar en la preparación de áreas para inspecciones de calidad y seguridad.",
+      "Mantener actualizados los conocimientos en nuevos productos y técnicas de instalación."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P021",
+    "cargo": "TÉCNICO INSTALADOR DE PINTURA",
+    "grupo": "TECNICOS",
+    "proposito": "Ejecutar trabajos de pintura industrial, decorativa y protectora conforme a especificaciones técnicas, estándares de calidad y normas de seguridad, garantizando acabados profesionales.",
+    "superior": "Supervisor de Producción",
+    "subordinados": "Auxiliar de Instalador de Pintura",
+    "educacion": [
+      "Pintura Decorativa, Construcción Civil o afines.",
+      "Certificaciones de fabricantes de pinturas (Comex, Sherwin Williams, PPG, etc.).",
+      "Técnicas de aplicación, preparación de superficies y tipos de pinturas."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en pintura industrial o decorativa en obras de construcción."
+    ],
+    "competencias": [
+      "Pulcritud y acabado de calidad.",
+      "Conocimiento de técnicas y materiales.",
+      "Cumplimiento de estándares de seguridad.",
+      "Trabajo en equipo.",
+      "Responsabilidad y puntualidad.",
+      "Orientación al detalle."
+    ],
+    "funciones": [
+      "Preparar superficies mediante lijado, limpieza, desengrasado y eliminación de irregularidades.",
+      "Aplicar imprimantes, fondos, pinturas de acabado y recubrimientos protectores.",
+      "Ejecutar técnicas de aplicación: brocha, rodillo, pistola airless, air-assisted según especificaciones.",
+      "Mezclar y preparar pinturas, respetando proporciones y tiempos de inducción.",
+      "Aplicar pinturas en interiores, exteriores, en altura y superficies especiales.",
+      "Respetar especificaciones de espesores de película seca y número de manos.",
+      "Proteger áreas no pintables con cintas, plásticos y elementos de protección.",
+      "Utilizar EPPs adecuados: mascarillas con filtros orgánicos, guantes, overoles.",
+      "Realizar trabajos en altura utilizando andamios, plataformas o arnés según normativa.",
+      "Mantener herramientas y equipos de aplicación en óptimas condiciones.",
+      "Reportar al Supervisor sobre avances, defectos de sustrato o problemas de aplicación.",
+      "Cumplir con tiempos de secado, curado y protección de trabajos terminados."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P022",
+    "cargo": "TÉCNICO DE DESCENSO VERTICAL (TRABAJOS EN ALTURA)",
+    "grupo": "TECNICOS",
+    "proposito": "Ejecutar trabajos de pintura, sellado, limpieza y mantenimiento en fachadas, estructuras elevadas y sitios de difícil acceso utilizando técnicas de descenso vertical con cuerdas.",
+    "superior": "Supervisor de Producción",
+    "subordinados": "Auxiliar de Descenso Vertical",
+    "educacion": [
+      "Construcción, Electricidad o afines.",
+      "Certificación en trabajos en altura y rescate vertical (IRATA, SPRAT o similar).",
+      "Curso de primeros auxilios y rescate básico.",
+      "Normativa de seguridad para trabajos en altura."
+    ],
+    "experiencia": [
+      "Mínimo 2 años en descenso vertical o trabajos en altura con cuerdas.",
+      "Experiencia en pintura o sellado en fachadas (deseable)."
+    ],
+    "competencias": [
+      "Conciencia de seguridad extrema.",
+      "Físicamente apto y sin vértigo.",
+      "Precisión en trabajos técnicos en altura.",
+      "Trabajo en equipo y comunicación efectiva.",
+      "Responsabilidad y disciplina.",
+      "Capacidad de respuesta en emergencias."
+    ],
+    "funciones": [
+      "Realizar trabajos de pintura, sellado y mantenimiento en altura mediante técnicas de descenso vertical.",
+      "Inspeccionar y preparar los equipos de protección contra caídas (arnés, cuerdas, descensores, anclajes).",
+      "Montar sistemas de anclaje y líneas de vida temporales conforme a procedimientos.",
+      "Verificar la integridad de equipos antes de cada uso y reportar desgastes o daños.",
+      "Ejecutar maniobras de ascenso, descenso y posicionamiento con técnicas seguras.",
+      "Aplicar pinturas, selladores y recubrimientos en fachadas y estructuras elevadas.",
+      "Rescatar compañeros en emergencias utilizando técnicas de rescate vertical.",
+      "Coordinar con el Supervisor SSOMA la implementación de permisos de trabajo en altura.",
+      "Mantener comunicación constante con el equipo de superficie durante operaciones.",
+      "Documentar condiciones de los puntos de anclaje y estructuras intervenidas.",
+      "Participar en simulacros de rescate y capacitaciones de actualización.",
+      "Cumplir estrictamente con procedimientos de trabajo seguro en altura."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P023",
+    "cargo": "TÉCNICO INSTALADOR DE TERRAZO",
+    "grupo": "TECNICOS",
+    "proposito": "Ejecutar la instalación de pisos y revestimientos de terrazo, granito y materiales pétreos similares, garantizando la calidad del acabado, nivelación, pulido y brillado conforme a especificaciones técnicas.",
+    "superior": "Supervisor de Producción",
+    "subordinados": "Auxiliar de Instalador de Terrazo",
+    "educacion": [
+      "Construcción Civil, Instalaciones de Pisos o afines.",
+      "Técnicas de colocación, pulido y mantenimiento de terrazo.",
+      "Manejo de maquinaria pulidora y herramientas de corte."
+    ],
+    "experiencia": [
+      "Mínimo 3 años en instalación de terrazo, granito o pisos pétreos."
+    ],
+    "competencias": [
+      "Pulcritud y acabado de alta calidad.",
+      "Precisión en niveles y alineaciones.",
+      "Manejo cuidadoso de maquinaria.",
+      "Trabajo en equipo.",
+      "Responsabilidad y puntualidad.",
+      "Orientación al detalle."
+    ],
+    "funciones": [
+      "Preparar superficies de recepción: nivelación, limpieza y acondicionamiento.",
+      "Instalar divisiones o juntas de control en terrazo.",
+      "Colocar y nivelar la mezcla de terrazo según espesores especificados.",
+      "Compactar, nivelar y alisar la superficie de terrazo recién colocado.",
+      "Realizar el desencofrado y curado del terrazo.",
+      "Ejecutar procesos de pulido, brillado y cristalizado de superficies.",
+      "Aplicar selladores y productos de protección para acabado final.",
+      "Realizar reparaciones de fisuras, agujeros y defectos en pisos existentes.",
+      "Operar máquinas pulidoras, fresadoras y herramientas específicas de manera segura.",
+      "Verificar niveles, escuadras y alineaciones durante la instalación.",
+      "Proteger trabajos terminados hasta su entrega final.",
+      "Mantener limpieza del área de trabajo y eliminación de residuos.",
+      "Reportar al Supervisor sobre avances y requerimientos de materiales."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P024",
+    "cargo": "AUXILIAR DE DESCENSO VERTICAL",
+    "grupo": "AUXILIARES",
+    "proposito": "Brindar apoyo técnico y logístico en tierra y en puntos de anclaje para los trabajos de descenso vertical, velando por la seguridad y la correcta disposición de insumos.",
+    "superior": "Técnico de Descenso Vertical / Supervisor de Producción",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Secundaria completa o técnico en Construcción.",
+      "Capacitaciones en Trabajos en Altura y PETAR."
+    ],
+    "experiencia": [
+      "Mínimo 1 año en asistencia de trabajos en altura o construcción."
+    ],
+    "competencias": [
+      "Atención a instrucciones de seguridad.",
+      "Trabajo colaborativo y vigía activo.",
+      "Responsabilidad en el manejo de equipos de protección."
+    ],
+    "funciones": [
+      "Apoyar al técnico de descenso vertical en el traslado y preparación de equipos.",
+      "Verificar el estado de arneses, sogas y equipos de protección antes del uso.",
+      "Mantener despejada y señalizada el área de trabajo en altura.",
+      "Registrar el uso y estado del equipo de protección personal.",
+      "Participar en las charlas de seguridad y cumplir las instrucciones del Supervisor SSOMA."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P025",
+    "cargo": "AUXILIAR DE INSTALADOR DE PINTURA",
+    "grupo": "AUXILIARES",
+    "proposito": "Asistir al técnico especialista en las labores de preparación de superficies, masillado, mezcla de materiales y mantenimiento de equipos de pintura.",
+    "superior": "Técnico Instalador de Pintura / Supervisor de Producción",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Secundaria completa.",
+      "Capacitaciones en manejo seguro de insumos químicos y EPP."
+    ],
+    "experiencia": [
+      "Mínimo 6 meses en auxiliares de pintura o acabados."
+    ],
+    "competencias": [
+      "Dinamismo, orden y pulcritud.",
+      "Trabajo en equipo."
+    ],
+    "funciones": [
+      "Preparar materiales, herramientas y equipos de pintura para el técnico.",
+      "Realizar el masillado y lijado de superficies en áreas asignadas.",
+      "Aplicar pintura en zonas de fácil acceso bajo supervisión directa.",
+      "Mantener el orden y limpieza del área de trabajo al término de cada jornada.",
+      "Reportar el consumo de materiales al Supervisor de Producción."
+    ]
+  },
+  {
+    "codigo": "CVSA-MOF-P026",
+    "cargo": "AUXILIAR DE INSTALADOR DE TERRAZO",
+    "grupo": "AUXILIARES",
+    "proposito": "Apoyar en la mezcla, vertido, limpieza y desescombro en los procesos de vaciado y pulido de terrazo.",
+    "superior": "Técnico Instalador de Terrazo / Supervisor de Producción",
+    "subordinados": "Ninguno",
+    "educacion": [
+      "Secundaria completa.",
+      "Capacitación en uso de EPP e higiene industrial."
+    ],
+    "experiencia": [
+      "Mínimo 6 meses en auxiliares de albañilería o pisos."
+    ],
+    "competencias": [
+      "Esfuerzo físico constante y disciplina.",
+      "Trabajo en equipo."
+    ],
+    "funciones": [
+      "Apoyar en la preparación de la mezcla de terrazo según dosificación del técnico.",
+      "Realizar la limpieza y acondicionamiento de la base antes del vaciado.",
+      "Transportar materiales y herramientas dentro del área de trabajo.",
+      "Apoyar en el proceso de pulido mecánico bajo supervisión directa.",
+      "Mantener el orden del área y clasificar los residuos de obra."
+    ]
+  }
+]
