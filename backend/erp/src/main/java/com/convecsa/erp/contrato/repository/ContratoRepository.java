@@ -3,6 +3,7 @@ package com.convecsa.erp.contrato.repository;
 import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,9 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
 
     @EntityGraph(attributePaths = {"persona", "jornada", "metodoPago", "causaObjetiva"})
     Optional<Contrato> findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(Long personaId, EstadoContrato estado);
+
+    List<Contrato> findByPersonaIdInAndEstadoOrderByCreatedAtDesc(
+            Collection<Long> personaIds, EstadoContrato estado);
 
     @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "afp", "jornada"})
     @Query("""

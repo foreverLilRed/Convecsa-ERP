@@ -42,7 +42,7 @@ export const navItems: NavItem[] = [
       { name: 'gh-onboarding', label: 'Onboarding', path: '/gestion-humana/onboarding' },
       { name: 'gh-nominas', label: 'Nóminas', path: '/gestion-humana/nominas' },
       { name: 'gh-asistencia', label: 'Asistencia', path: '/gestion-humana/asistencia' },
-      { name: 'gh-kpis', label: 'KPIs', path: '/gestion-humana/kpis' },
+      { name: 'gh-kpis', label: 'KPIs y desempeño', path: '/gestion-humana/kpis' },
       { name: 'gh-capacitaciones', label: 'Capacitaciones', path: '/gestion-humana/capacitaciones' },
       { name: 'gh-portal-boletas', label: 'Portal Boletas', path: '/gestion-humana/portal-boletas' },
       { name: 'gh-cumplimiento-sunafil', label: 'Cumplimiento SUNAFIL', path: '/gestion-humana/cumplimiento-sunafil' },
@@ -80,6 +80,10 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'Nóminas'
   }
 
+  if (name === 'gh-kpis-detalle') {
+    return 'KPIs y desempeño'
+  }
+
   for (const item of navItems) {
     if (item.kind === 'link' && item.name === name) {
       return item.label
@@ -99,6 +103,10 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
 export function getGroupIdForRouteName(name: string | symbol | null | undefined): string | null {
   if (!name || typeof name !== 'string') {
     return null
+  }
+
+  if (name === 'gh-nomina-detalle' || name === 'gh-kpis-detalle') {
+    return 'gestion-humana'
   }
 
   const group = navItems.find(

@@ -5,6 +5,8 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import AsistenciaPage from '@/pages/gestion-humana/AsistenciaPage.vue'
 import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
+import KpisDesempenoDetallePage from '@/pages/gestion-humana/KpisDesempenoDetallePage.vue'
+import KpisDesempenoPage from '@/pages/gestion-humana/KpisDesempenoPage.vue'
 import NominasPage from '@/pages/gestion-humana/NominasPage.vue'
 import OnboardingPage from '@/pages/gestion-humana/OnboardingPage.vue'
 import PeriodoNominaPage from '@/pages/gestion-humana/PeriodoNominaPage.vue'
@@ -15,7 +17,6 @@ import LoginPage from '@/pages/LoginPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
-  { path: 'kpis', name: 'gh-kpis', title: 'KPIs' },
   { path: 'capacitaciones', name: 'gh-capacitaciones', title: 'Capacitaciones' },
   { path: 'portal-boletas', name: 'gh-portal-boletas', title: 'Portal Boletas' },
   { path: 'cumplimiento-sunafil', name: 'gh-cumplimiento-sunafil', title: 'Cumplimiento SUNAFIL' },
@@ -87,6 +88,16 @@ const router = createRouter({
           path: 'gestion-humana/asistencia',
           name: 'gh-asistencia',
           component: AsistenciaPage,
+        },
+        {
+          path: 'gestion-humana/kpis',
+          name: 'gh-kpis',
+          component: KpisDesempenoPage,
+        },
+        {
+          path: 'gestion-humana/kpis/:personaId(\\d+)',
+          name: 'gh-kpis-detalle',
+          component: KpisDesempenoDetallePage,
         },
         ...gestionHumanaPages.map((page) => ({
           path: `gestion-humana/${page.path}`,
