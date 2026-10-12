@@ -108,4 +108,12 @@ public class ApiExceptionHandler {
         body.put("message", exception.getMessage());
         return ResponseEntity.status(HttpStatus.GONE).body(body);
     }
+
+    @ExceptionHandler(CredencialesInvalidasException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(CredencialesInvalidasException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.UNAUTHORIZED.value());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
 }

@@ -34,6 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { openAuthenticatedDocument } from '@/services/http'
 import { crearGeneracionOnboarding, listarGeneracionesOnboarding, listarPlantillasOnboarding } from '@/services/onboarding/onboardingService'
 import { listarPersonas } from '@/services/persona/personaService'
 import {
@@ -248,7 +249,7 @@ function abrirDocumento(codigos: string[]) {
     toast.error('Seleccione al menos un documento.')
     return
   }
-  window.open(onboardingDocumentoUrl(persona.id, codigos), '_blank', 'noopener,noreferrer')
+  void openAuthenticatedDocument(onboardingDocumentoUrl(persona.id, codigos))
 }
 
 function formatFechaHora(value: string): string {
@@ -276,13 +277,11 @@ function onHistorialPageChange(nextPage: number) {
 }
 
 function abrirGeneracion(id: number, modo: 'descarga' | 'imprimir') {
-  window.open(
+  void openAuthenticatedDocument(
     onboardingGeneracionDocumentoUrl(id, {
       descarga: modo === 'descarga',
       imprimir: modo === 'imprimir',
     }),
-    '_blank',
-    'noopener,noreferrer',
   )
 }
 

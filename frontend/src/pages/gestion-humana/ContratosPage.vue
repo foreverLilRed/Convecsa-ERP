@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { listarAdendas, listarContratos, obtenerContratosResume } from '@/services/contrato/contratoService'
+import { openAuthenticatedDocument } from '@/services/http'
 import {
   adendaDocumentoUrl,
   contratoDocumentoUrl,
@@ -94,12 +95,12 @@ function onAdendaPageChange(nextPage: number) {
   void loadAdendas()
 }
 
-function descargar(id: number) {
-  window.open(contratoDocumentoUrl(id), '_blank', 'noopener,noreferrer')
+async function descargar(id: number) {
+  await openAuthenticatedDocument(contratoDocumentoUrl(id))
 }
 
-function descargarAdenda(id: number) {
-  window.open(adendaDocumentoUrl(id), '_blank', 'noopener,noreferrer')
+async function descargarAdenda(id: number) {
+  await openAuthenticatedDocument(adendaDocumentoUrl(id))
 }
 
 async function loadContratos() {

@@ -26,7 +26,7 @@ async function onSubmit() {
   }
 
   try {
-    await login(request)
+    await login(request, form.rememberMe)
     await router.push({ name: 'dashboard' })
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'No se pudo iniciar sesión.'
@@ -105,25 +105,25 @@ function onSsoClick() {
         <header class="mb-8">
           <h2 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">Iniciar sesión</h2>
           <p class="mt-2 text-sm text-slate-500 leading-normal">
-            Ingrese su correo corporativo y contraseña para acceder al panel.
+            Ingrese su usuario o correo corporativo y contraseña para acceder al panel.
           </p>
         </header>
 
         <form class="space-y-5" @submit.prevent="onSubmit">
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wide" for="email">
-              Correo electrónico
+              Usuario o correo
             </label>
             <div class="relative rounded-lg shadow-sm">
               <input
                 id="email"
                 v-model="form.email"
                 class="block w-full rounded-lg border border-sky-500/80 px-3.5 py-2.5 text-slate-900 text-sm placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20 transition duration-150"
-                name="email"
-                placeholder="nombre@convecsa.com"
+                name="username"
+                placeholder="usuario o nombre@convecsa.com"
                 required
-                type="email"
-                autocomplete="email"
+                type="text"
+                autocomplete="username"
                 :disabled="loading"
               />
             </div>

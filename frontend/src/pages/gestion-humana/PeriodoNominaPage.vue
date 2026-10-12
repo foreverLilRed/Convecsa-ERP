@@ -42,6 +42,7 @@ import {
   obtenerPeriodo,
   recalcularPeriodo,
 } from '@/services/nomina/nominaService'
+import { openAuthenticatedDocument } from '@/services/http'
 import {
   boletaDocumentoUrl,
   periodoLabel,
@@ -175,7 +176,7 @@ function abrirDocumento(id: number, modo: 'ver' | 'descarga' | 'imprimir') {
     descarga: modo === 'descarga',
     imprimir: modo === 'imprimir',
   })
-  window.open(url, '_blank', 'noopener,noreferrer')
+  void openAuthenticatedDocument(url)
 }
 
 function lockBodyScroll() {

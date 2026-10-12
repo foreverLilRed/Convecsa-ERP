@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
+import { openAuthenticatedDocument } from '@/services/http'
 import { guardarMofPuesto, listarMofPuestos, obtenerMofPuesto } from '@/services/mof/mofService'
 import {
   MOF_GRUPO_LABELS,
@@ -130,14 +131,14 @@ async function guardar() {
 }
 
 function descargarCompleto() {
-  window.open(mofDocumentoCompletoUrl(), '_blank', 'noopener,noreferrer')
+  void openAuthenticatedDocument(mofDocumentoCompletoUrl())
 }
 
 function descargarCargo() {
   if (selectedId.value == null) {
     return
   }
-  window.open(mofDocumentoUrl(selectedId.value), '_blank', 'noopener,noreferrer')
+  void openAuthenticatedDocument(mofDocumentoUrl(selectedId.value))
 }
 
 onMounted(() => {
