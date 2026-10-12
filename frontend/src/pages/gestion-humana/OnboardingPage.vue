@@ -3,7 +3,9 @@ import { CheckIcon, ChevronsUpDownIcon, ChevronLeftIcon, ChevronRightIcon, Downl
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 
+import OffboardingPanel from '@/components/gestion-humana/OffboardingPanel.vue'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Combobox,
   ComboboxAnchor,
@@ -352,34 +354,54 @@ onUnmounted(() => {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Onboarding</h2>
+        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+          Onboarding y Offboarding
+        </h2>
         <p id="onboarding-ayuda" class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
-          Elija la persona con contrato activo y los documentos. Descargar o imprimir guarda el paquete en el historial.
+          Genere el expediente de ingreso o gestione el cese, la liquidación y los certificados de salida.
         </p>
       </div>
-      <div class="flex w-full flex-col gap-2 sm:mt-7 sm:w-auto sm:flex-row">
-        <Button
-          variant="outline"
-          class="h-10 w-full px-4 sm:w-auto"
-          type="button"
-          :disabled="!puedeGenerar"
-          aria-describedby="onboarding-ayuda onboarding-estado"
-          @click="generarPaquete('descarga')"
+    </div>
+
+    <Tabs default-value="onboarding" class="mt-6">
+      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+        <TabsTrigger
+          value="onboarding"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
-          <DownloadIcon data-icon="inline-start" />
-          Descargar
-        </Button>
-        <Button
-          class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
-          type="button"
-          :disabled="!puedeGenerar"
-          aria-describedby="onboarding-ayuda onboarding-estado"
-          @click="generarPaquete('imprimir')"
+          Onboarding
+        </TabsTrigger>
+        <TabsTrigger
+          value="offboarding"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
-          <PrinterIcon data-icon="inline-start" />
-          Imprimir
-        </Button>
-      </div>
+          Offboarding
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="onboarding">
+    <div class="mt-4 flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
+      <Button
+        variant="outline"
+        class="h-10 w-full px-4 sm:w-auto"
+        type="button"
+        :disabled="!puedeGenerar"
+        aria-describedby="onboarding-ayuda onboarding-estado"
+        @click="generarPaquete('descarga')"
+      >
+        <DownloadIcon data-icon="inline-start" />
+        Descargar
+      </Button>
+      <Button
+        class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
+        type="button"
+        :disabled="!puedeGenerar"
+        aria-describedby="onboarding-ayuda onboarding-estado"
+        @click="generarPaquete('imprimir')"
+      >
+        <PrinterIcon data-icon="inline-start" />
+        Imprimir
+      </Button>
     </div>
 
     <p id="onboarding-estado" class="sr-only" aria-live="polite">{{ estadoSeleccion }}</p>
@@ -733,5 +755,11 @@ onUnmounted(() => {
         </Pagination>
       </div>
     </div>
+      </TabsContent>
+
+      <TabsContent value="offboarding" class="mt-4">
+        <OffboardingPanel />
+      </TabsContent>
+    </Tabs>
   </section>
 </template>

@@ -55,7 +55,16 @@ public class ContratoPlantillaService {
             "empleador_ruc",
             "empleador_domicilio",
             "empleador_representante",
-            "empleador_dni_representante");
+            "empleador_dni_representante",
+            "fecha_cese",
+            "tiempo_servicio",
+            "tipo_cese",
+            "motivo_cese",
+            "liq_cts",
+            "liq_grati",
+            "liq_vacaciones",
+            "liq_total",
+            "liq_total_letras");
 
     public String render(Contrato contrato) {
         return apply(htmlDe(contrato), contrato);
@@ -90,7 +99,14 @@ public class ContratoPlantillaService {
     }
 
     public String render(String plantilla, Persona persona, Contrato contrato) {
+        return render(plantilla, persona, contrato, Map.of());
+    }
+
+    public String render(String plantilla, Persona persona, Contrato contrato, Map<String, String> extras) {
         Map<String, String> valores = contrato == null ? tokensPersona(persona) : tokens(contrato);
+        if (extras != null && !extras.isEmpty()) {
+            valores.putAll(extras);
+        }
         String html = sustituirFijos(plantilla, valores);
         Map<String, String> metadata = new LinkedHashMap<>(metaDesdePersona(persona));
         if (contrato != null && contrato.getMetadata() != null) {

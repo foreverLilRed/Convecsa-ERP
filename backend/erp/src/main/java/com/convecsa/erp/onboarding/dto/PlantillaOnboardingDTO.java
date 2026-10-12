@@ -1,5 +1,6 @@
 package com.convecsa.erp.onboarding.dto;
 
+import com.convecsa.erp.onboarding.domain.AmbitoPlantilla;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -13,4 +14,5 @@ public class PlantillaOnboardingDTO {
     private final String titulo;
     private final String descripcion;
     private final String baseLegal;
+    private final AmbitoPlantilla ambito;
 }

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Liquidación - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body { width: 210mm; background: #f3f4f6; }
+    body { font-family: Inter, sans-serif; font-size: 8.5pt; line-height: 1.45; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pg { width: 210mm; min-height: 297mm; height: auto; margin: 10px auto; background: #fff; padding: 16mm 18mm 14mm; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow: visible; box-sizing: border-box; }
+    .hdr { border-bottom: 2px solid #0052CC; padding-bottom: 8px; margin-bottom: 10mm; }
+    .brand { font-size: 14pt; font-weight: 900; color: #0052CC; letter-spacing: -0.02em; }
+    .doc-t { font-size: 13pt; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; color: #0052CC; margin: 8mm 0 6mm; }
+    p { text-align: justify; margin-bottom: 3mm; }
+    .meta { margin: 0 0 6mm; }
+    .meta p { margin-bottom: 1.5mm; }
+    table { width: 100%; border-collapse: collapse; margin: 4mm 0 6mm; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 8px; font-size: 8.5pt; }
+    th { background: #eff6ff; color: #1e3a8a; text-align: left; font-weight: 700; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    .total-row td { font-weight: 800; background: #f8fafc; }
+    .fecha-line { font-style: italic; color: #374151; text-align: right; margin-top: 10mm; }
+    .sigs { margin-top: 16mm; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; page-break-inside: avoid; }
+    .sb { text-align: center; }
+    .sig-container { height: 56px; }
+    .sl { border-top: 1.2px solid #1f2937; margin-bottom: 3px; }
+    .sn { font-weight: 700; font-size: 8pt; text-transform: uppercase; }
+    .sd { font-size: 7pt; color: #4b5563; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm !important; height: auto !important; background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+      .pg { width: 210mm !important; min-height: 297mm; height: auto !important; max-height: none !important; box-shadow: none !important; margin: 0 !important; overflow: visible !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pg">
+    <div class="hdr">
+      <div class="brand">CONVECSA</div>
+      <div style="font-size: 8pt; color: #4b5563; margin-top: 2px;">{{empleador_razon}} · RUC {{empleador_ruc}}</div>
+    </div>
+    <div class="doc-t">Liquidación de Beneficios Sociales</div>
+    <p>Se deja constancia de la liquidación de beneficios sociales correspondiente al cese laboral de <strong>{{trabajador_nombres}} {{trabajador_apellidos}}</strong>, identificado con DNI Nº <strong>{{trabajador_dni}}</strong>, quien laboró para {{empleador_razon}} desde el <strong>{{fecha_inicio}}</strong> hasta el <strong>{{fecha_cese}}</strong> (tiempo de servicio: <strong>{{tiempo_servicio}}</strong>), en el cargo de <strong>{{cargo}}</strong>.</p>
+    <div class="meta">
+      <p><strong>Tipo de cese:</strong> {{tipo_cese}}</p>
+      <p><strong>Motivo:</strong> {{motivo_cese}}</p>
+      <p><strong>Remuneración mensual de referencia:</strong> S/ {{sueldo}}</p>
+    </div>
+    <p>El cálculo se realiza bajo el régimen laboral especial de la Micro y Pequeña Empresa (MYPE), Decreto Legislativo Nº 1086: CTS equivalente a 15 remuneraciones diarias por año, gratificación de media remuneración por semestre y 15 días de vacaciones por año. Los montos truncos se liquidan a la fecha de cese.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Concepto</th>
+          <th class="num">Importe (S/)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CTS trunca</td>
+          <td class="num">{{liq_cts}}</td>
+        </tr>
+        <tr>
+          <td>Gratificación trunca</td>
+          <td class="num">{{liq_grati}}</td>
+        </tr>
+        <tr>
+          <td>Vacaciones truncas</td>
+          <td class="num">{{liq_vacaciones}}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total a pagar</td>
+          <td class="num">{{liq_total}}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>El total de la liquidación asciende a <strong>S/ {{liq_total}}</strong> ({{liq_total_letras}}).</p>
+    <p>El trabajador declara haber tomado conocimiento de los conceptos y montos consignados. El pago se efectuará conforme a los plazos y medios previstos por ley.</p>
+    <div class="fecha-line">{{ciudad_firma}}, {{fecha_firma}}</div>
+    <div class="sigs">
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{empleador_razon}}</div>
+        <div class="sd">EL EMPLEADOR · RUC {{empleador_ruc}}</div>
+      </div>
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{trabajador_nombres}} {{trabajador_apellidos}}</div>
+        <div class="sd">EL TRABAJADOR · DNI {{trabajador_dni}}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,3 +1,5 @@
+export type AmbitoPlantilla = 'ONBOARDING' | 'OFFBOARDING' | 'AMBOS'
+
 export type PlantillaOnboarding = {
   id: number
   codigo: string
@@ -5,6 +7,7 @@ export type PlantillaOnboarding = {
   titulo: string
   descripcion: string
   baseLegal: string
+  ambito?: AmbitoPlantilla
 }
 
 export type GeneracionOnboarding = {

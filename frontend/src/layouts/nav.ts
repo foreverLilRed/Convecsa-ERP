@@ -39,7 +39,7 @@ export const navItems: NavItem[] = [
       { name: 'gh-personal', label: 'Personal', path: '/gestion-humana/personal' },
       { name: 'gh-contratos', label: 'Contratos', path: '/gestion-humana/contratos' },
       { name: 'gh-plantillas-contrato', label: 'Plantillas de Contrato', path: '/gestion-humana/plantillas-contrato' },
-      { name: 'gh-onboarding', label: 'Onboarding', path: '/gestion-humana/onboarding' },
+      { name: 'gh-onboarding', label: 'Onboarding y Offboarding', path: '/gestion-humana/onboarding' },
       { name: 'gh-nominas', label: 'Nóminas', path: '/gestion-humana/nominas' },
       { name: 'gh-asistencia', label: 'Asistencia', path: '/gestion-humana/asistencia' },
       { name: 'gh-kpis', label: 'KPIs y desempeño', path: '/gestion-humana/kpis' },

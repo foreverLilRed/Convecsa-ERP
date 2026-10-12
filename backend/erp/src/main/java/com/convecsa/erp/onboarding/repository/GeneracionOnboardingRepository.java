@@ -10,8 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface GeneracionOnboardingRepository extends JpaRepository<GeneracionOnboarding, Long> {
 
     @EntityGraph(attributePaths = {"persona"})
-    Page<GeneracionOnboarding> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    Page<GeneracionOnboarding> findByCeseIsNullOrderByCreatedAtDesc(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"persona", "contrato", "contrato.jornada", "contrato.metodoPago", "contrato.causaObjetiva"})
+    @EntityGraph(attributePaths = {"persona", "contrato", "contrato.jornada", "contrato.metodoPago", "contrato.causaObjetiva", "cese"})
     Optional<GeneracionOnboarding> findById(Long id);
 }

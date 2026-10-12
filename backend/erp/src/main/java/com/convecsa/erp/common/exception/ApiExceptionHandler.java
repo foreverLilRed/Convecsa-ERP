@@ -32,7 +32,8 @@ public class ApiExceptionHandler {
         DocumentoDuplicadoException.class,
         PlantillaCodigoDuplicadoException.class,
         PeriodoNominaDuplicadoException.class,
-        FeriadoDuplicadoException.class
+        FeriadoDuplicadoException.class,
+        ContratoYaCesadoException.class
     })
     public ResponseEntity<Map<String, Object>> handleDuplicate(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -76,6 +77,33 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException exception) {
+        // #region agent log
+        try (java.io.PrintWriter out = new java.io.PrintWriter(new java.io.FileWriter(
+                "D:/Proyectos/Convecsa ERP/debug-f22012.log", true))) {
+            StringBuilder chain = new StringBuilder();
+            Throwable cur = exception;
+            int depth = 0;
+            while (cur != null && depth < 8) {
+                if (depth > 0) {
+                    chain.append(" | ");
+                }
+                chain.append(cur.getClass().getName()).append(": ")
+                        .append(cur.getMessage() == null ? "" : cur.getMessage().replace('"', '\''));
+                cur = cur.getCause();
+                depth++;
+            }
+            out.println(
+                    "{\"sessionId\":\"f22012\",\"runId\":\"post-fix\",\"hypothesisId\":\"H4\",\"location\":\"ApiExceptionHandler.handleIllegalArgument\",\"message\":\"400 IllegalArgumentException\",\"data\":{\"msg\":\""
+                            + (exception.getMessage() == null ? "" : exception.getMessage().replace('"', '\''))
+                            + "\",\"causeChain\":\""
+                            + chain
+                            + "\"},\"timestamp\":"
+                            + System.currentTimeMillis()
+                            + "}");
+        } catch (Exception ignored) {
+            // no-op
+        }
+        // #endregion
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.BAD_REQUEST.value());
         body.put("message", exception.getMessage());
@@ -93,7 +121,8 @@ public class ApiExceptionHandler {
         AdendaNoEncontradaException.class,
         MofPuestoNoEncontradoException.class,
         LinkInvitadoNoEncontradoException.class,
-        PlantillaNoEncontradaException.class
+        PlantillaNoEncontradaException.class,
+        CeseNoEncontradoException.class
     })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();

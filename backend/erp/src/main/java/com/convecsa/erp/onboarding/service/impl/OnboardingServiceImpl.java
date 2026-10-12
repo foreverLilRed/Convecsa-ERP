@@ -7,6 +7,8 @@ import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
+import com.convecsa.erp.offboarding.support.CeseTokens;
+import com.convecsa.erp.onboarding.domain.AmbitoPlantilla;
 import com.convecsa.erp.onboarding.dto.GeneracionOnboardingDTO;
 import com.convecsa.erp.onboarding.dto.GeneracionOnboardingRequest;
 import com.convecsa.erp.onboarding.dto.OnboardingDocumentoHtml;
@@ -49,7 +51,10 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
     @Override
     @Transactional(readOnly = true)
     public List<PlantillaOnboardingDTO> listarPlantillas() {
-        return plantillaOnboardingRepository.findByActivoTrueOrderByCodigoAsc().stream()
+        return plantillaOnboardingRepository
+                .findByActivoTrueAndAmbitoInOrderByCodigoAsc(
+                        List.of(AmbitoPlantilla.ONBOARDING, AmbitoPlantilla.AMBOS))
+                .stream()
                 .map(OnboardingServiceImpl::toPlantillaDto)
                 .toList();
     }
@@ -86,7 +91,7 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
     public PagedResponse<GeneracionOnboardingDTO> listarGeneraciones(int page, int size) {
         return PagedResponse.from(
                 generacionOnboardingRepository
-                        .findAllByOrderByCreatedAtDesc(PageRequest.of(page, size))
+                        .findByCeseIsNullOrderByCreatedAtDesc(PageRequest.of(page, size))
                         .map(OnboardingServiceImpl::toGeneracionDto));
     }
 
@@ -101,7 +106,10 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
         Contrato contrato = generacion.getContrato();
         prepararContrato(contrato, persona);
         List<String> codigos = parseCodigos(generacion.getCodigos());
-        String html = renderPaquete(persona, contrato, codigos);
+        Map<String, String> extras = generacion.getCese() == null
+                ? Map.of()
+                : CeseTokens.de(generacion.getCese());
+        String html = renderPaquete(persona, contrato, codigos, extras);
         if (imprimir) {
             html = OnboardingHtmlPacket.conImpresionAutomatica(html);
         }
@@ -139,13 +147,19 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
     }
 
     private String renderPaquete(Persona persona, Contrato contrato, List<String> codigos) {
+        return renderPaquete(persona, contrato, codigos, Map.of());
+    }
+
+    private String renderPaquete(
+            Persona persona, Contrato contrato, List<String> codigos, Map<String, String> extras) {
         if (codigos.isEmpty()) {
             throw new IllegalArgumentException("Debe indicar al menos un código de plantilla");
         }
         Map<String, PlantillaOnboarding> porCodigo = validarPlantillas(codigos);
         List<String> htmls = new ArrayList<>();
         for (String codigo : codigos) {
-            htmls.add(contratoPlantillaService.render(porCodigo.get(codigo).getPlantilla(), persona, contrato));
+            htmls.add(contratoPlantillaService.render(
+                    porCodigo.get(codigo).getPlantilla(), persona, contrato, extras));
         }
         return OnboardingHtmlPacket.unir(htmls);
     }
@@ -163,7 +177,7 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
         return porCodigo;
     }
 
-    static List<String> parseCodigos(String codigosParam) {
+    public static List<String> parseCodigos(String codigosParam) {
         if (codigosParam == null || codigosParam.isBlank()) {
             return List.of();
         }
@@ -195,7 +209,8 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
                 plantilla.getCategoria(),
                 plantilla.getTitulo(),
                 plantilla.getDescripcion(),
-                plantilla.getBaseLegal());
+                plantilla.getBaseLegal(),
+                plantilla.getAmbito());
     }
 
     private static GeneracionOnboardingDTO toGeneracionDto(GeneracionOnboarding generacion) {

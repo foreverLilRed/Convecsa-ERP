@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Finiquito - {{trabajador_nombres}} {{trabajador_apellidos}}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body { width: 210mm; background: #f3f4f6; }
+    body { font-family: Inter, sans-serif; font-size: 8.5pt; line-height: 1.5; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .pg { width: 210mm; min-height: 297mm; height: auto; margin: 10px auto; background: #fff; padding: 16mm 18mm 14mm; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow: visible; box-sizing: border-box; }
+    .hdr { border-bottom: 2px solid #0052CC; padding-bottom: 8px; margin-bottom: 10mm; }
+    .brand { font-size: 14pt; font-weight: 900; color: #0052CC; letter-spacing: -0.02em; }
+    .doc-t { font-size: 13pt; font-weight: 800; text-align: center; text-transform: uppercase; letter-spacing: 0.06em; color: #0052CC; margin: 8mm 0 6mm; }
+    p { text-align: justify; margin-bottom: 3.5mm; }
+    .fecha-line { font-style: italic; color: #374151; text-align: right; margin-top: 10mm; }
+    .sigs { margin-top: 16mm; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; page-break-inside: avoid; }
+    .sb { text-align: center; }
+    .sig-container { height: 56px; }
+    .sl { border-top: 1.2px solid #1f2937; margin-bottom: 3px; }
+    .sn { font-weight: 700; font-size: 8pt; text-transform: uppercase; }
+    .sd { font-size: 7pt; color: #4b5563; }
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm !important; height: auto !important; background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+      .pg { width: 210mm !important; min-height: 297mm; height: auto !important; max-height: none !important; box-shadow: none !important; margin: 0 !important; overflow: visible !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="pg">
+    <div class="hdr">
+      <div class="brand">CONVECSA</div>
+      <div style="font-size: 8pt; color: #4b5563; margin-top: 2px;">{{empleador_razon}} · RUC {{empleador_ruc}}</div>
+    </div>
+    <div class="doc-t">Finiquito / Conformidad de cese</div>
+    <p>Conste por el presente documento el finiquito y la conformidad de cese que celebran, de una parte, <strong>{{empleador_razon}}</strong>, con RUC Nº {{empleador_ruc}} y domicilio fiscal en {{empleador_domicilio}}, a quien se denominará EL EMPLEADOR; y de la otra, el Sr. <strong>{{trabajador_nombres}} {{trabajador_apellidos}}</strong>, identificado con DNI Nº <strong>{{trabajador_dni}}</strong>, con domicilio en {{trabajador_direccion}}, a quien se denominará EL TRABAJADOR.</p>
+    <p>EL TRABAJADOR laboró para EL EMPLEADOR desde el <strong>{{fecha_inicio}}</strong> hasta el <strong>{{fecha_cese}}</strong>, desempeñando el cargo de <strong>{{cargo}}</strong> en el proyecto <strong>{{proyecto}}</strong>. El vínculo laboral concluye por <strong>{{tipo_cese}}</strong>. Motivo: {{motivo_cese}}. Tiempo de servicio: <strong>{{tiempo_servicio}}</strong>.</p>
+    <p>Las partes dejan constancia de que se ha formulado la liquidación de beneficios sociales por un total de <strong>S/ {{liq_total}}</strong> ({{liq_total_letras}}), que comprende CTS trunca (S/ {{liq_cts}}), gratificación trunca (S/ {{liq_grati}}) y vacaciones truncas (S/ {{liq_vacaciones}}), sin perjuicio de los descuentos de ley que correspondan al momento del pago.</p>
+    <p>EL TRABAJADOR declara haber recibido o que recibirá la liquidación en la forma y plazos de ley, no tener reclamos pendientes por remuneraciones, beneficios sociales ni otros conceptos derivados del vínculo, y haber devuelto fotocheck, EPP, herramientas y demás bienes de la empresa, conforme al certificado de no adeudo.</p>
+    <p>EL EMPLEADOR se obliga a entregar el certificado de trabajo y la documentación de cese que corresponda. Ambas partes se otorgan el más amplio finiquito respecto de la relación laboral extinguida.</p>
+    <div class="fecha-line">{{ciudad_firma}}, {{fecha_firma}}</div>
+    <div class="sigs">
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{empleador_razon}}</div>
+        <div class="sd">EL EMPLEADOR · RUC {{empleador_ruc}}</div>
+      </div>
+      <div class="sb">
+        <div class="sig-container"></div>
+        <div class="sl"></div>
+        <div class="sn">{{trabajador_nombres}} {{trabajador_apellidos}}</div>
+        <div class="sd">EL TRABAJADOR · DNI {{trabajador_dni}}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

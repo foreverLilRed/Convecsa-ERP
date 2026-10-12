@@ -1,6 +1,7 @@
 package com.convecsa.erp.onboarding.entity;
 
 import com.convecsa.erp.contrato.entity.Contrato;
+import com.convecsa.erp.offboarding.entity.Cese;
 import com.convecsa.erp.persona.entity.Persona;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -35,6 +36,10 @@ public class GeneracionOnboarding {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "contrato_id", nullable = false)
     private Contrato contrato;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cese_id")
+    private Cese cese;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String codigos;
