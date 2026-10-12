@@ -231,4 +231,23 @@ body {
     @apply bg-background text-foreground;
     @apply font-sans;
   }
+  input[type='date'],
+  input[type='datetime-local'],
+  input[type='month'],
+  input[type='time'],
+  input[type='week'] {
+    cursor: pointer;
+  }
+  input[type='date']:disabled,
+  input[type='datetime-local']:disabled,
+  input[type='month']:disabled,
+  input[type='time']:disabled,
+  input[type='week']:disabled,
+  input[type='date']:read-only,
+  input[type='datetime-local']:read-only,
+  input[type='month']:read-only,
+  input[type='time']:read-only,
+  input[type='week']:read-only {
+    cursor: default;
+  }
 }
