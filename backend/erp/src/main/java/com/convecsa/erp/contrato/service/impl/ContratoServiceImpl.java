@@ -3,6 +3,8 @@ package com.convecsa.erp.contrato.service.impl;
 import com.convecsa.erp.common.exception.ContratoNoEncontradoException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.exception.PlantillaCodigoDuplicadoException;
+import com.convecsa.erp.common.exception.PlantillaNoEncontradaException;
+import com.convecsa.erp.common.exception.PlantillaPinInvalidoException;
 import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.catalogo.CausaObjetiva;
 import com.convecsa.erp.contrato.catalogo.Jornada;
@@ -17,7 +19,9 @@ import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
 import com.convecsa.erp.contrato.dto.ContratosResumeDTO;
 import com.convecsa.erp.contrato.dto.PlantillaCampoDTO;
 import com.convecsa.erp.contrato.dto.PlantillaContratoDTO;
+import com.convecsa.erp.contrato.dto.PlantillaContratoDetalleDTO;
 import com.convecsa.erp.contrato.dto.PlantillaContratoRequest;
+import com.convecsa.erp.contrato.dto.PlantillaContratoUpdateRequest;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.contrato.repository.CausaObjetivaRepository;
@@ -36,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +57,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
     private final PlantillaContratoRepository plantillaContratoRepository;
     private final AfpRepository afpRepository;
     private final ContratoPlantillaService contratoPlantillaService;
+
+    @Value("${app.plantillas.pin:6283}")
+    private String plantillasPin;
 
     @Override
     @Transactional(readOnly = true)
@@ -167,6 +175,34 @@ public class ContratoServiceImpl implements InterfazContratoService {
         return toPlantillaDto(plantillaContratoRepository.save(plantilla));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PlantillaContratoDetalleDTO obtenerPlantilla(Long id) {
+        return toPlantillaDetalleDto(buscarPlantilla(id));
+    }
+
+    @Override
+    @Transactional
+    public PlantillaContratoDetalleDTO actualizarPlantilla(Long id, PlantillaContratoUpdateRequest request) {
+        if (request.getPin() == null || !request.getPin().trim().equals(plantillasPin)) {
+            throw new PlantillaPinInvalidoException();
+        }
+        PlantillaContrato plantilla = buscarPlantilla(id);
+        plantilla.setNombre(request.getNombre().trim());
+        plantilla.setPlantilla(request.getPlantilla());
+        if (request.getUso() != null) {
+            plantilla.setUso(request.getUso());
+        }
+        plantilla.setMetadata(ContratoPlantillaService.esquemaDesdeHtml(request.getPlantilla()));
+        return toPlantillaDetalleDto(plantillaContratoRepository.save(plantilla));
+    }
+
+    private PlantillaContrato buscarPlantilla(Long id) {
+        return plantillaContratoRepository.findById(id)
+                .filter(PlantillaContrato::isActivo)
+                .orElseThrow(() -> new PlantillaNoEncontradaException("No se encontró la plantilla"));
+    }
+
     private Map<String, String> aplicarExtras(
             Contrato contrato,
             List<PlantillaCampoEsquema> esquema,
@@ -271,6 +307,24 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 plantilla.getCodigo(),
                 plantilla.getNombre(),
                 plantilla.getUso(),
+                campos);
+    }
+
+    private static PlantillaContratoDetalleDTO toPlantillaDetalleDto(PlantillaContrato plantilla) {
+        List<PlantillaCampoDTO> campos = esquemaDe(plantilla).stream()
+                .map(campo -> new PlantillaCampoDTO(
+                        campo.getClave(),
+                        campo.getLabel(),
+                        campo.getTipo(),
+                        campo.getCatalogo(),
+                        campo.isRequerido()))
+                .toList();
+        return new PlantillaContratoDetalleDTO(
+                plantilla.getId(),
+                plantilla.getCodigo(),
+                plantilla.getNombre(),
+                plantilla.getUso(),
+                plantilla.getPlantilla(),
                 campos);
     }
 

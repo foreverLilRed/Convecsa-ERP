@@ -22,3 +22,5 @@ app:
   jwt:
     secret: ${APP_JWT_SECRET:convecsa-erp-dev-jwt-secret-key-32bytes-min}
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
+  plantillas:
+    pin: ${APP_PLANTILLAS_PIN:6283}

@@ -92,7 +92,8 @@ public class ApiExceptionHandler {
         AsistenciaFeriadoNoEncontradoException.class,
         AdendaNoEncontradaException.class,
         MofPuestoNoEncontradoException.class,
-        LinkInvitadoNoEncontradoException.class
+        LinkInvitadoNoEncontradoException.class,
+        PlantillaNoEncontradaException.class
     })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -115,5 +116,13 @@ public class ApiExceptionHandler {
         body.put("status", HttpStatus.UNAUTHORIZED.value());
         body.put("message", exception.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+    }
+
+    @ExceptionHandler(PlantillaPinInvalidoException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(PlantillaPinInvalidoException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.FORBIDDEN.value());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 }

@@ -8,7 +8,9 @@ import type {
   ContratosCatalogos,
   ContratosResume,
   PlantillaContrato,
+  PlantillaContratoDetalle,
   PlantillaContratoRequest,
+  PlantillaContratoUpdateRequest,
 } from '@/types/contrato'
 
 export function obtenerContratosResume(): Promise<ContratosResume> {
@@ -63,6 +65,20 @@ export function listarPlantillasContrato(): Promise<PlantillaContrato[]> {
 export function crearPlantillaContrato(request: PlantillaContratoRequest): Promise<PlantillaContrato> {
   return apiRequest<PlantillaContrato>('/api/gestion-humana/contratos/plantillas', {
     method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function obtenerPlantillaContrato(id: number): Promise<PlantillaContratoDetalle> {
+  return apiRequest<PlantillaContratoDetalle>(`/api/gestion-humana/contratos/plantillas/${id}`)
+}
+
+export function actualizarPlantillaContrato(
+  id: number,
+  request: PlantillaContratoUpdateRequest,
+): Promise<PlantillaContratoDetalle> {
+  return apiRequest<PlantillaContratoDetalle>(`/api/gestion-humana/contratos/plantillas/${id}`, {
+    method: 'PUT',
     body: JSON.stringify(request),
   })
 }

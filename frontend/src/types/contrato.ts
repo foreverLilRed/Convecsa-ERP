@@ -34,6 +34,17 @@ export type PlantillaContratoRequest = {
   uso: UsoPlantilla
 }
 
+export type PlantillaContratoDetalle = PlantillaContrato & {
+  plantilla: string
+}
+
+export type PlantillaContratoUpdateRequest = {
+  nombre: string
+  plantilla: string
+  uso: UsoPlantilla
+  pin: string
+}
+
 export type ContratosCatalogos = {
   jornadas: CatalogoItem[]
   causasObjetivas: CatalogoItem[]

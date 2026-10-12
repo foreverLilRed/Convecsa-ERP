@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { PlusIcon } from '@lucide/vue'
+import { PencilIcon, PlusIcon } from '@lucide/vue'
 import { onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 
+import PlantillaEdicionModal from '@/components/gestion-humana/PlantillaEdicionModal.vue'
 import PlantillaRegistroModal from '@/components/gestion-humana/PlantillaRegistroModal.vue'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -22,6 +23,8 @@ import type { PlantillaContrato } from '@/types/contrato'
 const loading = ref(true)
 const plantillas = ref<PlantillaContrato[]>([])
 const modalOpen = ref(false)
+const edicionOpen = ref(false)
+const edicionId = ref<number | null>(null)
 
 async function load() {
   loading.value = true
@@ -36,6 +39,17 @@ async function load() {
 
 function onSaved() {
   modalOpen.value = false
+  void load()
+}
+
+function onEdit(id: number) {
+  edicionId.value = id
+  edicionOpen.value = true
+}
+
+function onEditSaved() {
+  edicionOpen.value = false
+  edicionId.value = null
   void load()
 }
 
@@ -87,16 +101,29 @@ onMounted(() => {
               <TableHead class="px-3">Código</TableHead>
               <TableHead class="px-3">Nombre</TableHead>
               <TableHead class="px-3">Uso</TableHead>
+              <TableHead class="px-3 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableEmpty v-if="!plantillas.length" :colspan="3">
+            <TableEmpty v-if="!plantillas.length" :colspan="4">
               <span class="text-slate-500">No hay plantillas registradas.</span>
             </TableEmpty>
             <TableRow v-for="plantilla in plantillas" :key="plantilla.id">
               <TableCell class="px-3 py-3 font-medium">{{ plantilla.codigo }}</TableCell>
               <TableCell class="px-3 py-3">{{ plantilla.nombre }}</TableCell>
               <TableCell class="px-3 py-3">{{ plantilla.uso === 'ADENDA' ? 'Adenda' : 'Contrato' }}</TableCell>
+              <TableCell class="px-3 py-3 text-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  :aria-label="`Editar plantilla ${plantilla.codigo}`"
+                  @click="onEdit(plantilla.id)"
+                >
+                  <PencilIcon data-icon="inline-start" />
+                  Editar
+                </Button>
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -104,5 +131,11 @@ onMounted(() => {
     </div>
 
     <PlantillaRegistroModal :open="modalOpen" @close="modalOpen = false" @saved="onSaved" />
+    <PlantillaEdicionModal
+      :open="edicionOpen"
+      :plantilla-id="edicionId"
+      @close="edicionOpen = false"
+      @saved="onEditSaved"
+    />
   </section>
 </template>
