@@ -234,6 +234,47 @@ export type PersonaDTO = {
 
 export const TIPOS_DOCUMENTO: TipoDocumento[] = ['DNI', 'CE', 'PASAPORTE']
 
+export type DocumentoNumeroRegla =
+  | { digitsOnly: true; length: number; label: string; hint: string }
+  | { digitsOnly: false; min: number; max: number; label: string; hint: string }
+
+export const DOCUMENTO_NUMERO_REGLAS: Record<TipoDocumento, DocumentoNumeroRegla> = {
+  DNI: { digitsOnly: true, length: 8, label: 'DNI', hint: '8 dígitos' },
+  CE: { digitsOnly: true, length: 9, label: 'carné de extranjería', hint: '9 dígitos' },
+  PASAPORTE: { digitsOnly: false, min: 8, max: 12, label: 'pasaporte', hint: '8 a 12 caracteres' },
+}
+
+export function maxLengthNumeroDocumento(tipo: TipoDocumento): number {
+  const regla = DOCUMENTO_NUMERO_REGLAS[tipo]
+  return regla.digitsOnly ? regla.length : regla.max
+}
+
+export function sanitizarNumeroDocumento(tipo: TipoDocumento, value: string): string {
+  const regla = DOCUMENTO_NUMERO_REGLAS[tipo]
+  if (regla.digitsOnly) {
+    return value.replace(/\D/g, '').slice(0, regla.length)
+  }
+  return value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, regla.max)
+}
+
+export function mensajeNumeroDocumentoInvalido(tipo: TipoDocumento, value: string): string | null {
+  const numero = value.trim()
+  if (!numero) {
+    return 'Ingrese el número de documento.'
+  }
+  const regla = DOCUMENTO_NUMERO_REGLAS[tipo]
+  if (regla.digitsOnly) {
+    if (!new RegExp(`^\\d{${regla.length}}$`).test(numero)) {
+      return `El ${regla.label} debe tener ${regla.length} dígitos.`
+    }
+    return null
+  }
+  if (!new RegExp(`^[A-Z0-9]{${regla.min},${regla.max}}$`).test(numero.toUpperCase())) {
+    return `El ${regla.label} debe tener entre ${regla.min} y ${regla.max} caracteres (letras o números).`
+  }
+  return null
+}
+
 export const GENEROS: CatalogOption<Genero>[] = [
   { value: 'MASCULINO', label: 'Masculino' },
   { value: 'FEMENINO', label: 'Femenino' },

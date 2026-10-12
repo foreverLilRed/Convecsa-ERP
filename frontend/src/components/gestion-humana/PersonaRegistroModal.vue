@@ -18,13 +18,17 @@ import {
   BANCOS,
   cicloEstadoChecklist,
   createEmptyPersonaForm,
+  DOCUMENTO_NUMERO_REGLAS,
   DOCUMENTOS_CHECKLIST,
   documentosDisponibles,
   estadoChecklistLabel,
   ESTADOS_CHECKLIST_VALIDOS,
   GENEROS,
   GRADOS_INSTRUCCION,
+  maxLengthNumeroDocumento,
+  mensajeNumeroDocumentoInvalido,
   PARENTESCOS_EMERGENCIA,
+  sanitizarNumeroDocumento,
   TIPOS_DOCUMENTO,
   TIPOS_IMAGEN,
   toPersonaForm,
@@ -63,6 +67,8 @@ const seccionActiva = ref<SeccionPersona>('identidad')
 const isEdit = computed(() => Boolean(props.persona?.id))
 const vigenciaEmo = computed(() => vigenciaEmoLabel(form.fechaVigenciaEmo))
 const checklistDisponibles = computed(() => documentosDisponibles(form.documentosChecklist))
+const reglaDocumento = computed(() => DOCUMENTO_NUMERO_REGLAS[form.tipoDocumento])
+const maxDocumento = computed(() => maxLengthNumeroDocumento(form.tipoDocumento))
 
 const provinciasDisponibles = computed(() => {
   return findDepartamento(form.departamento)?.provincias.map((provincia) => provincia.nombre) ?? []
@@ -124,6 +130,13 @@ function onDocumentKeydown(event: KeyboardEvent) {
     emit('close')
   }
 }
+
+watch(
+  () => form.tipoDocumento,
+  () => {
+    form.numeroDocumento = sanitizarNumeroDocumento(form.tipoDocumento, form.numeroDocumento)
+  },
+)
 
 watch(
   () => props.open,
@@ -352,6 +365,34 @@ function applyDigits(target: HTMLInputElement, value: string, max?: number): str
   return digits
 }
 
+function applyNumeroDocumento(target: HTMLInputElement, value: string): string {
+  const sanitizado = sanitizarNumeroDocumento(form.tipoDocumento, value)
+  target.value = sanitizado
+  form.numeroDocumento = sanitizado
+  return sanitizado
+}
+
+function onNumeroDocumentoBeforeInput(event: InputEvent) {
+  if (!event.data) {
+    return
+  }
+  const permitido = reglaDocumento.value.digitsOnly ? /^\d+$/ : /^[A-Za-z0-9]+$/
+  if (!permitido.test(event.data)) {
+    event.preventDefault()
+  }
+}
+
+function onNumeroDocumentoInput(event: Event) {
+  applyNumeroDocumento(event.target as HTMLInputElement, (event.target as HTMLInputElement).value)
+}
+
+function onNumeroDocumentoPaste(event: ClipboardEvent) {
+  event.preventDefault()
+  const target = event.target as HTMLInputElement
+  const pasted = event.clipboardData?.getData('text') ?? ''
+  applyNumeroDocumento(target, `${target.value}${pasted}`)
+}
+
 function onNumeroCuentaInput(index: number, event: Event) {
   const cuenta = form.cuentasBancarias[index]
   if (!cuenta) {
@@ -395,7 +436,8 @@ function onCciPaste(index: number, event: ClipboardEvent) {
 function validate(): { message: string; seccion: SeccionPersona } | null {
   if (!form.apellidos.trim()) return { message: 'Ingrese los apellidos.', seccion: 'identidad' }
   if (!form.nombres.trim()) return { message: 'Ingrese los nombres.', seccion: 'identidad' }
-  if (!form.numeroDocumento.trim()) return { message: 'Ingrese el número de documento.', seccion: 'identidad' }
+  const documentoInvalido = mensajeNumeroDocumentoInvalido(form.tipoDocumento, form.numeroDocumento)
+  if (documentoInvalido) return { message: documentoInvalido, seccion: 'identidad' }
   if (!form.fechaNacimiento) return { message: 'Ingrese la fecha de nacimiento.', seccion: 'identidad' }
   if (form.tipoDocumento === 'DNI' && !form.fechaEmisionDni) {
     return { message: 'Ingrese la fecha de emisión del DNI.', seccion: 'identidad' }
@@ -629,7 +671,21 @@ function onOverlayClick() {
                     </label>
                     <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Número de documento
-                      <input v-model="form.numeroDocumento" :class="inputClass" type="text" />
+                      <input
+                        :value="form.numeroDocumento"
+                        :class="inputClass"
+                        type="text"
+                        :inputmode="reglaDocumento.digitsOnly ? 'numeric' : 'text'"
+                        :maxlength="maxDocumento"
+                        :placeholder="reglaDocumento.hint"
+                        autocomplete="off"
+                        @beforeinput="onNumeroDocumentoBeforeInput"
+                        @input="onNumeroDocumentoInput"
+                        @paste="onNumeroDocumentoPaste"
+                      />
+                      <span class="mt-1 block text-[11px] font-normal normal-case tracking-normal text-slate-400">
+                        {{ reglaDocumento.hint }}
+                      </span>
                     </label>
                     <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Fecha de nacimiento
