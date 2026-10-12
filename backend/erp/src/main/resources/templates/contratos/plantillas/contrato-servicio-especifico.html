@@ -7,9 +7,9 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
     @page { size: A4 portrait; margin: 0; }
-    html, body { width: 210mm; background: #f3f4f6; }
+    html, body { width: 210mm; height: auto; overflow: visible; background: #f3f4f6; }
     body { font-family: 'Inter', sans-serif; font-size: 7.2pt; line-height: 1.25; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .pg { width: 210mm; height: 297mm; max-height: 297mm; margin: 10px auto; background: #fff; padding: 10mm 12mm 8mm; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; position: relative; overflow: hidden; box-sizing: border-box; }
+    .pg { width: 210mm; min-height: 297mm; height: auto; max-height: none; margin: 10px auto; background: #fff; padding: 10mm 12mm 8mm; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-radius: 4px; position: relative; overflow: visible; box-sizing: border-box; }
     .hdr { text-align: center; border-bottom: 1.5px solid #1f2937; padding-bottom: 3px; margin-bottom: 5px; }
     .doc-t { font-size: 10pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; color: #111827; }
     .ct { font-size: 7.2pt; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid #d1d5db; padding-bottom: 1px; margin-bottom: 2px; margin-top: 4px; }
@@ -24,8 +24,8 @@
     .sd { font-size: 6.5pt; color: #4b5563; margin-top: 1px; }
     @media print {
       @page { size: A4 portrait; margin: 0; }
-      html, body { width: 210mm !important; height: 297mm !important; background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
-      .pg { width: 210mm !important; height: 297mm !important; max-height: 297mm !important; padding: 10mm 12mm 8mm !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; overflow: hidden !important; }
+      html, body { width: 210mm !important; height: auto !important; max-height: none !important; background: #fff !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
+      .pg { width: 210mm !important; min-height: 297mm !important; height: auto !important; max-height: none !important; padding: 10mm 12mm 8mm !important; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; overflow: visible !important; }
     }
   </style>
 </head>

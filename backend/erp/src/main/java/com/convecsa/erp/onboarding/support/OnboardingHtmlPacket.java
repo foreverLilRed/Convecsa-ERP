@@ -8,6 +8,20 @@ public final class OnboardingHtmlPacket {
 
     private static final Pattern BODY = Pattern.compile("(?is)<body[^>]*>(.*)</body>");
     private static final Pattern STYLE = Pattern.compile("(?is)<style\\b[^>]*>(.*?)</style>");
+    private static final String ESTILO_PAGINACION = """
+            <style>
+            @media print {
+              html, body { height: auto !important; max-height: none !important; overflow: visible !important; }
+              .pg, .page, .page-wrap, .onboarding-page {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+              }
+              .onboarding-page { page-break-after: always; break-after: page; }
+              .onboarding-page:last-child { page-break-after: auto; break-after: auto; }
+            }
+            </style>
+            """;
 
     private OnboardingHtmlPacket() {
     }
@@ -17,7 +31,7 @@ public final class OnboardingHtmlPacket {
             return "";
         }
         if (documentos.size() == 1) {
-            return documentos.get(0);
+            return conPaginacionAbierta(documentos.get(0));
         }
         StringBuilder estilos = new StringBuilder();
         StringBuilder cuerpos = new StringBuilder();
@@ -28,7 +42,7 @@ public final class OnboardingHtmlPacket {
                     .append(cuerpoDe(html))
                     .append("</div>\n");
         }
-        return """
+        return conPaginacionAbierta("""
                 <!DOCTYPE html>
                 <html lang="es">
                 <head>
@@ -44,7 +58,7 @@ public final class OnboardingHtmlPacket {
                 %s
                 </body>
                 </html>
-                """.formatted(estilos, cuerpos);
+                """.formatted(estilos, cuerpos));
     }
 
     static String cuerpoDe(String html) {
@@ -62,12 +76,24 @@ public final class OnboardingHtmlPacket {
         if (html == null || html.isBlank()) {
             return "";
         }
+        String conPaginas = conPaginacionAbierta(html);
         String script = "<script>window.addEventListener('load',function(){window.print();});</script>";
-        int cierre = html.toLowerCase().lastIndexOf("</body>");
+        int cierre = conPaginas.toLowerCase().lastIndexOf("</body>");
         if (cierre >= 0) {
-            return html.substring(0, cierre) + script + html.substring(cierre);
+            return conPaginas.substring(0, cierre) + script + conPaginas.substring(cierre);
         }
-        return html + script;
+        return conPaginas + script;
+    }
+
+    static String conPaginacionAbierta(String html) {
+        if (html == null || html.isBlank()) {
+            return "";
+        }
+        int cierreHead = html.toLowerCase().lastIndexOf("</head>");
+        if (cierreHead >= 0) {
+            return html.substring(0, cierreHead) + ESTILO_PAGINACION + html.substring(cierreHead);
+        }
+        return ESTILO_PAGINACION + html;
     }
 
     static String estilosDe(String html) {

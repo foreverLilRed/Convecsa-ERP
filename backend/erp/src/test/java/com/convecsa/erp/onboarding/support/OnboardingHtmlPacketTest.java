@@ -11,8 +11,10 @@ class OnboardingHtmlPacketTest {
     @Test
     void unDocumentoDevuelveHtmlCompleto() {
         String html = "<html><body><p>Uno</p></body></html>";
-        assertTrue(OnboardingHtmlPacket.unir(List.of(html)).contains("<p>Uno</p>"));
-        assertFalse(OnboardingHtmlPacket.unir(List.of(html)).contains("onboarding-page"));
+        String unido = OnboardingHtmlPacket.unir(List.of(html));
+        assertTrue(unido.contains("<p>Uno</p>"));
+        assertTrue(unido.contains("overflow: visible !important"));
+        assertFalse(unido.contains("class=\"onboarding-page\""));
     }
 
     @Test
@@ -35,6 +37,7 @@ class OnboardingHtmlPacketTest {
         String html = "<html><body><p>Uno</p></body></html>";
         String conPrint = OnboardingHtmlPacket.conImpresionAutomatica(html);
         assertTrue(conPrint.contains("window.print()"));
+        assertTrue(conPrint.contains("overflow: visible !important"));
         assertTrue(conPrint.contains("</body>"));
         assertTrue(conPrint.indexOf("window.print()") < conPrint.toLowerCase().indexOf("</body>"));
     }
