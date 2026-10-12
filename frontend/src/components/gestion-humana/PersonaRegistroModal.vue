@@ -22,7 +22,9 @@ import {
   documentosDisponibles,
   estadoChecklistLabel,
   ESTADOS_CHECKLIST_VALIDOS,
+  GENEROS,
   GRADOS_INSTRUCCION,
+  PARENTESCOS_EMERGENCIA,
   TIPOS_DOCUMENTO,
   TIPOS_IMAGEN,
   toPersonaForm,
@@ -405,6 +407,13 @@ function validate(): { message: string; seccion: SeccionPersona } | null {
     return { message: 'Ingrese al menos un celular.', seccion: 'identidad' }
   }
   if (!form.correo.trim()) return { message: 'Ingrese el correo electrónico.', seccion: 'identidad' }
+  if (!form.genero) return { message: 'Seleccione el género.', seccion: 'identidad' }
+  if (!form.contactoEmergenciaNombre.trim()) {
+    return { message: 'Ingrese el nombre del contacto de emergencia.', seccion: 'identidad' }
+  }
+  if (!form.contactoEmergenciaTelefono.trim()) {
+    return { message: 'Ingrese el teléfono del contacto de emergencia.', seccion: 'identidad' }
+  }
   if (!form.gradoInstruccion) return { message: 'Seleccione el grado de instrucción.', seccion: 'identidad' }
   if (!form.direccion.trim()) return { message: 'Ingrese la dirección completa.', seccion: 'identidad' }
   if (!form.departamento.trim()) return { message: 'Ingrese el departamento.', seccion: 'identidad' }
@@ -643,6 +652,53 @@ function onOverlayClick() {
                         </option>
                       </select>
                     </label>
+                    <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      Género
+                      <select v-model="form.genero" :class="inputClass">
+                        <option value="" disabled>Seleccione</option>
+                        <option v-for="item in GENEROS" :key="item.value" :value="item.value">
+                          {{ item.label }}
+                        </option>
+                      </select>
+                    </label>
+                    <div class="sm:col-span-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                      <p class="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                        Contacto de emergencia
+                      </p>
+                      <div class="grid gap-3 sm:grid-cols-3">
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                          Nombre y apellidos
+                          <input
+                            v-model="form.contactoEmergenciaNombre"
+                            :class="inputClass"
+                            type="text"
+                            placeholder="Ej. María Gómez"
+                          />
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                          Teléfono
+                          <input
+                            v-model="form.contactoEmergenciaTelefono"
+                            :class="inputClass"
+                            type="tel"
+                            placeholder="Ej. 991 234 567"
+                          />
+                        </label>
+                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                          Parentesco
+                          <input
+                            v-model="form.contactoEmergenciaParentesco"
+                            :class="inputClass"
+                            type="text"
+                            list="parentesco-emergencia"
+                            placeholder="Ej. Madre"
+                          />
+                          <datalist id="parentesco-emergencia">
+                            <option v-for="item in PARENTESCOS_EMERGENCIA" :key="item" :value="item" />
+                          </datalist>
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </fieldset>
 

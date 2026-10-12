@@ -1,6 +1,7 @@
 package com.convecsa.erp.persona.entity;
 
 import com.convecsa.erp.persona.domain.AptitudMedica;
+import com.convecsa.erp.persona.domain.Genero;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
 import jakarta.persistence.CascadeType;
@@ -58,6 +59,19 @@ public class Persona {
 
     @Column(nullable = false, length = 180)
     private String correo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Genero genero = Genero.NO_ESPECIFICA;
+
+    @Column(name = "contacto_emergencia_nombre", length = 160)
+    private String contactoEmergenciaNombre;
+
+    @Column(name = "contacto_emergencia_telefono", length = 30)
+    private String contactoEmergenciaTelefono;
+
+    @Column(name = "contacto_emergencia_parentesco", length = 80)
+    private String contactoEmergenciaParentesco;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "grado_instruccion", nullable = false, length = 40)

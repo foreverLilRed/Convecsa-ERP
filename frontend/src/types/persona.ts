@@ -2,6 +2,8 @@ export type TipoDocumento = 'DNI' | 'CE' | 'PASAPORTE'
 
 export type GradoInstruccion = 'PRIMARIA' | 'SECUNDARIA' | 'TECNICO' | 'UNIVERSITARIO' | 'POSGRADO'
 
+export type Genero = 'MASCULINO' | 'FEMENINO' | 'NO_ESPECIFICA'
+
 export type Banco = 'BCP' | 'BBVA' | 'INTERBANK' | 'SCOTIABANK' | 'OTROS'
 
 export type AptitudMedica = 'APTO' | 'OBSERVADO' | 'PENDIENTE' | 'VENCIDO'
@@ -61,6 +63,10 @@ export type PersonaForm = {
   fechaCaducidadDni: string
   celulares: string[]
   correo: string
+  genero: Genero | ''
+  contactoEmergenciaNombre: string
+  contactoEmergenciaTelefono: string
+  contactoEmergenciaParentesco: string
   gradoInstruccion: GradoInstruccion | ''
   direccion: string
   departamento: string
@@ -105,6 +111,10 @@ export type PersonaRequest = {
   fechaCaducidadDni: string | null
   celulares: string[]
   correo: string
+  genero: Genero
+  contactoEmergenciaNombre: string
+  contactoEmergenciaTelefono: string
+  contactoEmergenciaParentesco: string | null
   gradoInstruccion: GradoInstruccion
   direccion: string
   departamento: string
@@ -202,6 +212,10 @@ export type PersonaDTO = {
   fechaCaducidadDni: string | null
   celulares: CelularDTO[]
   correo: string
+  genero: Genero
+  contactoEmergenciaNombre: string | null
+  contactoEmergenciaTelefono: string | null
+  contactoEmergenciaParentesco: string | null
   gradoInstruccion: GradoInstruccion
   direccion: string
   departamento: string
@@ -219,6 +233,21 @@ export type PersonaDTO = {
 }
 
 export const TIPOS_DOCUMENTO: TipoDocumento[] = ['DNI', 'CE', 'PASAPORTE']
+
+export const GENEROS: CatalogOption<Genero>[] = [
+  { value: 'MASCULINO', label: 'Masculino' },
+  { value: 'FEMENINO', label: 'Femenino' },
+  { value: 'NO_ESPECIFICA', label: 'No especifica' },
+]
+
+export const PARENTESCOS_EMERGENCIA = [
+  'Madre',
+  'Padre',
+  'Cónyuge / Esposo(a)',
+  'Hijo(a)',
+  'Hermano(a)',
+  'Familiar',
+] as const
 
 export const GRADOS_INSTRUCCION: CatalogOption<GradoInstruccion>[] = [
   { value: 'PRIMARIA', label: 'Primaria' },
@@ -328,6 +357,10 @@ export function createEmptyPersonaForm(): PersonaForm {
     fechaCaducidadDni: '',
     celulares: [''],
     correo: '',
+    genero: '',
+    contactoEmergenciaNombre: '',
+    contactoEmergenciaTelefono: '',
+    contactoEmergenciaParentesco: '',
     gradoInstruccion: '',
     direccion: '',
     departamento: '',
@@ -355,6 +388,10 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     fechaCaducidadDni: dto.fechaCaducidadDni ?? '',
     celulares: dto.celulares.length > 0 ? dto.celulares.map((celular) => celular.numero) : [''],
     correo: dto.correo,
+    genero: dto.genero ?? '',
+    contactoEmergenciaNombre: dto.contactoEmergenciaNombre ?? '',
+    contactoEmergenciaTelefono: dto.contactoEmergenciaTelefono ?? '',
+    contactoEmergenciaParentesco: dto.contactoEmergenciaParentesco ?? '',
     gradoInstruccion: dto.gradoInstruccion,
     direccion: dto.direccion,
     departamento: dto.departamento,
@@ -392,6 +429,10 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
     fechaCaducidadDni: emptyToNull(form.fechaCaducidadDni),
     celulares: form.celulares.map((celular) => celular.trim()).filter(Boolean),
     correo: form.correo.trim(),
+    genero: form.genero as Genero,
+    contactoEmergenciaNombre: form.contactoEmergenciaNombre.trim(),
+    contactoEmergenciaTelefono: form.contactoEmergenciaTelefono.trim(),
+    contactoEmergenciaParentesco: emptyToNull(form.contactoEmergenciaParentesco),
     gradoInstruccion: form.gradoInstruccion as GradoInstruccion,
     direccion: form.direccion.trim(),
     departamento: form.departamento.trim(),

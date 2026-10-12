@@ -1,6 +1,7 @@
 package com.convecsa.erp.persona.dto;
 
 import com.convecsa.erp.persona.domain.AptitudMedica;
+import com.convecsa.erp.persona.domain.Genero;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
 import com.convecsa.erp.persona.domain.TipoDocumentoChecklist;
@@ -52,6 +53,20 @@ public class PersonaRequest {
     @Email
     @Size(max = 180)
     private String correo;
+
+    @NotNull
+    private Genero genero;
+
+    @NotBlank
+    @Size(max = 160)
+    private String contactoEmergenciaNombre;
+
+    @NotBlank
+    @Size(max = 30)
+    private String contactoEmergenciaTelefono;
+
+    @Size(max = 80)
+    private String contactoEmergenciaParentesco;
 
     @NotNull
     private GradoInstruccion gradoInstruccion;

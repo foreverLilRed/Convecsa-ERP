@@ -41,6 +41,10 @@ public class PersonaMapper {
         persona.setFechaEmisionDni(request.getFechaEmisionDni());
         persona.setFechaCaducidadDni(request.getFechaCaducidadDni());
         persona.setCorreo(request.getCorreo().trim());
+        persona.setGenero(request.getGenero());
+        persona.setContactoEmergenciaNombre(request.getContactoEmergenciaNombre().trim());
+        persona.setContactoEmergenciaTelefono(request.getContactoEmergenciaTelefono().trim());
+        persona.setContactoEmergenciaParentesco(blankToNull(request.getContactoEmergenciaParentesco()));
         persona.setGradoInstruccion(request.getGradoInstruccion());
         persona.setDireccion(request.getDireccion().trim());
         persona.setDepartamento(request.getDepartamento().trim());
@@ -52,9 +56,6 @@ public class PersonaMapper {
         persona.setAptitudMedica(request.getAptitudMedica());
         persona.setRestriccionesMedicas(blankToNull(request.getRestriccionesMedicas()));
 
-        int cuentasAntes = persona.getCuentasBancarias().size();
-        long principalesAntes = persona.getCuentasBancarias().stream().filter(PersonaCuentaBancaria::isPrincipal).count();
-
         persona.getCelulares().clear();
         request.getCelulares().stream()
                 .map(String::trim)
@@ -65,37 +66,7 @@ public class PersonaMapper {
                     persona.addCelular(celular);
                 });
 
-        persona.getCuentasBancarias().clear();
-        if (request.getCuentasBancarias() != null) {
-            for (CuentaBancariaRequest cuentaRequest : request.getCuentasBancarias()) {
-                PersonaCuentaBancaria cuenta = new PersonaCuentaBancaria();
-                cuenta.setBanco(cuentaRequest.getBanco());
-                cuenta.setNumeroCuenta(cuentaRequest.getNumeroCuenta().trim());
-                cuenta.setCci(cuentaRequest.getCci().trim());
-                cuenta.setPrincipal(cuentaRequest.isPrincipal());
-                persona.addCuentaBancaria(cuenta);
-            }
-        }
-        int cuentasDespues = persona.getCuentasBancarias().size();
-        long principalesDespues = persona.getCuentasBancarias().stream().filter(PersonaCuentaBancaria::isPrincipal).count();
-        // #region agent log
-        try {
-            String line = String.format(
-                    "{\"sessionId\":\"f22012\",\"hypothesisId\":\"A\",\"location\":\"PersonaMapper.updateEntity\",\"message\":\"cuentas around replace\",\"data\":{\"cuentasAntes\":%d,\"principalesAntes\":%d,\"cuentasDespues\":%d,\"principalesDespues\":%d,\"incomingCuentas\":%d},\"timestamp\":%d}%n",
-                    cuentasAntes,
-                    principalesAntes,
-                    cuentasDespues,
-                    principalesDespues,
-                    request.getCuentasBancarias() == null ? 0 : request.getCuentasBancarias().size(),
-                    System.currentTimeMillis());
-            java.nio.file.Files.writeString(
-                    java.nio.file.Path.of("D:/Proyectos/Convecsa ERP/debug-f22012.log"),
-                    line,
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {
-        }
-        // #endregion
+        syncCuentasBancarias(persona, request.getCuentasBancarias());
 
         persona.getExperienciasLaborales().clear();
         if (request.getExperienciasLaborales() != null) {
@@ -110,6 +81,31 @@ public class PersonaMapper {
         }
 
         applyChecklist(persona, request.getDocumentosChecklist());
+    }
+
+    private void syncCuentasBancarias(Persona persona, List<CuentaBancariaRequest> requests) {
+        List<CuentaBancariaRequest> incoming = requests == null ? List.of() : requests;
+        List<PersonaCuentaBancaria> actuales = persona.getCuentasBancarias();
+        int keep = Math.min(actuales.size(), incoming.size());
+
+        for (int i = 0; i < keep; i++) {
+            applyCuenta(actuales.get(i), incoming.get(i));
+        }
+        if (actuales.size() > incoming.size()) {
+            actuales.subList(incoming.size(), actuales.size()).clear();
+        }
+        for (int i = keep; i < incoming.size(); i++) {
+            PersonaCuentaBancaria cuenta = new PersonaCuentaBancaria();
+            applyCuenta(cuenta, incoming.get(i));
+            persona.addCuentaBancaria(cuenta);
+        }
+    }
+
+    private static void applyCuenta(PersonaCuentaBancaria cuenta, CuentaBancariaRequest request) {
+        cuenta.setBanco(request.getBanco());
+        cuenta.setNumeroCuenta(request.getNumeroCuenta().trim());
+        cuenta.setCci(request.getCci().trim());
+        cuenta.setPrincipal(request.isPrincipal());
     }
 
     private void applyChecklist(Persona persona, List<DocumentoChecklistRequest> requestItems) {
@@ -155,6 +151,10 @@ public class PersonaMapper {
                 .fechaCaducidadDni(persona.getFechaCaducidadDni())
                 .celulares(toCelularDtos(persona))
                 .correo(persona.getCorreo())
+                .genero(persona.getGenero())
+                .contactoEmergenciaNombre(persona.getContactoEmergenciaNombre())
+                .contactoEmergenciaTelefono(persona.getContactoEmergenciaTelefono())
+                .contactoEmergenciaParentesco(persona.getContactoEmergenciaParentesco())
                 .gradoInstruccion(persona.getGradoInstruccion())
                 .direccion(persona.getDireccion())
                 .departamento(persona.getDepartamento())

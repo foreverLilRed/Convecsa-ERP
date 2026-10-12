@@ -13,6 +13,8 @@ import com.convecsa.erp.persona.mapper.PersonaMapper;
 import com.convecsa.erp.persona.repository.PersonaRepository;
 import com.convecsa.erp.persona.repository.PersonaSpecifications;
 import com.convecsa.erp.persona.service.InterfazPersonaService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +28,9 @@ public class PersonaServiceImpl implements InterfazPersonaService {
 
     private final PersonaRepository personaRepository;
     private final PersonaMapper personaMapper;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -57,50 +62,11 @@ public class PersonaServiceImpl implements InterfazPersonaService {
                     "Ya existe una persona con ese tipo y número de documento");
         }
 
+        persona.getCuentasBancarias().forEach(cuenta -> cuenta.setPrincipal(false));
+        entityManager.flush();
         personaMapper.updateEntity(persona, request);
-        // #region agent log
-        try {
-            String line = String.format(
-                    "{\"sessionId\":\"f22012\",\"hypothesisId\":\"B\",\"location\":\"PersonaServiceImpl.actualizar\",\"message\":\"before save salud fields\",\"data\":{\"id\":%d,\"fechaVigenciaEmo\":%s,\"aptitudMedica\":%s},\"timestamp\":%d}%n",
-                    id,
-                    request.getFechaVigenciaEmo() == null ? "null" : "\"" + request.getFechaVigenciaEmo() + "\"",
-                    request.getAptitudMedica() == null ? "null" : "\"" + request.getAptitudMedica() + "\"",
-                    System.currentTimeMillis());
-            java.nio.file.Files.writeString(
-                    java.nio.file.Path.of("D:/Proyectos/Convecsa ERP/debug-f22012.log"),
-                    line,
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND);
-        } catch (Exception ignored) {
-        }
-        // #endregion
-        try {
-            Persona saved = personaRepository.save(persona);
-            return personaMapper.toDto(saved);
-        } catch (RuntimeException ex) {
-            // #region agent log
-            try {
-                String cause = ex.getClass().getSimpleName();
-                Throwable root = ex;
-                while (root.getCause() != null) {
-                    root = root.getCause();
-                }
-                String line = String.format(
-                        "{\"sessionId\":\"f22012\",\"hypothesisId\":\"A\",\"location\":\"PersonaServiceImpl.actualizar\",\"message\":\"save failed\",\"data\":{\"exception\":\"%s\",\"root\":\"%s\",\"rootMessage\":%s},\"timestamp\":%d}%n",
-                        cause,
-                        root.getClass().getSimpleName(),
-                        root.getMessage() == null ? "null" : "\"" + root.getMessage().replace("\"", "'").replace("\n", " ") + "\"",
-                        System.currentTimeMillis());
-                java.nio.file.Files.writeString(
-                        java.nio.file.Path.of("D:/Proyectos/Convecsa ERP/debug-f22012.log"),
-                        line,
-                        java.nio.file.StandardOpenOption.CREATE,
-                        java.nio.file.StandardOpenOption.APPEND);
-            } catch (Exception ignored) {
-            }
-            // #endregion
-            throw ex;
-        }
+        Persona saved = personaRepository.save(persona);
+        return personaMapper.toDto(saved);
     }
 
     @Override
