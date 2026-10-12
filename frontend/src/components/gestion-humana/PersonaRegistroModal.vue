@@ -12,7 +12,7 @@ import {
   findDepartamento,
   findProvincia,
 } from '@/data/ubigeo-peru'
-import { crearPersona, actualizarPersona } from '@/services/persona/personaService'
+import { actualizarPersona, actualizarPersonaInvitado, crearPersona } from '@/services/persona/personaService'
 import {
   APTITUDES_MEDICAS,
   BANCOS,
@@ -52,6 +52,7 @@ const SECCIONES: { value: SeccionPersona; label: string }[] = [
 const props = defineProps<{
   open: boolean
   persona?: PersonaDTO | null
+  guestToken?: string
 }>()
 
 const emit = defineEmits<{
@@ -64,7 +65,14 @@ const error = ref('')
 const submitting = ref(false)
 const fotoInput = ref<HTMLInputElement | null>(null)
 const seccionActiva = ref<SeccionPersona>('identidad')
-const isEdit = computed(() => Boolean(props.persona?.id))
+const isGuest = computed(() => Boolean(props.guestToken))
+const isEdit = computed(() => Boolean(props.persona?.id) || isGuest.value)
+const tituloModal = computed(() => {
+  if (isGuest.value) {
+    return 'Completar ficha'
+  }
+  return isEdit.value ? 'Editar persona' : 'Registrar persona'
+})
 const vigenciaEmo = computed(() => vigenciaEmoLabel(form.fechaVigenciaEmo))
 const checklistDisponibles = computed(() => documentosDisponibles(form.documentosChecklist))
 const reglaDocumento = computed(() => DOCUMENTO_NUMERO_REGLAS[form.tipoDocumento])
@@ -91,7 +99,7 @@ function onProvinciaInput() {
 }
 
 const inputClass =
-  'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
+  'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:bg-slate-100 disabled:text-slate-500'
 
 function revokeFotoUrl() {
   if (form.fotoUrl?.startsWith('blob:')) {
@@ -126,7 +134,7 @@ function unlockBodyScroll() {
 }
 
 function onDocumentKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape' && props.open && !submitting.value) {
+  if (event.key === 'Escape' && props.open && !submitting.value && !isGuest.value) {
     emit('close')
   }
 }
@@ -153,6 +161,7 @@ watch(
       document.removeEventListener('keydown', onDocumentKeydown)
     }
   },
+  { immediate: true },
 )
 
 onUnmounted(() => {
@@ -529,12 +538,18 @@ async function onSubmit() {
   submitting.value = true
   try {
     const request = toPersonaRequest(form)
-    const save = isEdit.value && props.persona
-      ? actualizarPersona(props.persona.id, request)
-      : crearPersona(request)
+    const save = props.guestToken
+      ? actualizarPersonaInvitado(props.guestToken, request)
+      : props.persona?.id != null
+        ? actualizarPersona(props.persona.id, request)
+        : crearPersona(request)
     await toast.promise(save, {
       loading: isEdit.value ? 'Guardando cambios…' : 'Guardando persona…',
-      success: isEdit.value ? 'Persona actualizada' : 'Persona registrada',
+      success: isGuest.value
+        ? 'Ficha actualizada'
+        : isEdit.value
+          ? 'Persona actualizada'
+          : 'Persona registrada',
       error: (err: unknown) =>
         err instanceof Error
           ? err.message
@@ -555,7 +570,7 @@ async function onSubmit() {
 }
 
 function onOverlayClick() {
-  if (submitting.value) {
+  if (submitting.value || isGuest.value) {
     return
   }
   emit('close')
@@ -584,10 +599,11 @@ function onOverlayClick() {
               Gestión Humana / Personal
             </p>
             <h2 id="persona-modal-title" class="mt-1 text-lg font-bold text-palette-navy">
-              {{ isEdit ? 'Editar persona' : 'Registrar persona' }}
+              {{ tituloModal }}
             </h2>
           </div>
           <Button
+            v-if="!isGuest"
             variant="ghost"
             size="icon"
             class="shrink-0"
@@ -657,15 +673,27 @@ function onOverlayClick() {
                     </div>
                     <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Apellidos
-                      <input v-model="form.apellidos" :class="inputClass" type="text" autocomplete="family-name" />
+                      <input
+                        v-model="form.apellidos"
+                        :class="inputClass"
+                        type="text"
+                        autocomplete="family-name"
+                        :disabled="isGuest"
+                      />
                     </label>
                     <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Nombres
-                      <input v-model="form.nombres" :class="inputClass" type="text" autocomplete="given-name" />
+                      <input
+                        v-model="form.nombres"
+                        :class="inputClass"
+                        type="text"
+                        autocomplete="given-name"
+                        :disabled="isGuest"
+                      />
                     </label>
                     <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Tipo de documento
-                      <select v-model="form.tipoDocumento" :class="inputClass">
+                      <select v-model="form.tipoDocumento" :class="inputClass" :disabled="isGuest">
                         <option v-for="tipo in TIPOS_DOCUMENTO" :key="tipo" :value="tipo">{{ tipo }}</option>
                       </select>
                     </label>
@@ -679,6 +707,7 @@ function onOverlayClick() {
                         :maxlength="maxDocumento"
                         :placeholder="reglaDocumento.hint"
                         autocomplete="off"
+                        :disabled="isGuest"
                         @beforeinput="onNumeroDocumentoBeforeInput"
                         @input="onNumeroDocumentoInput"
                         @paste="onNumeroDocumentoPaste"
@@ -1142,6 +1171,7 @@ function onOverlayClick() {
               variant="outline"
               class="h-10 px-4"
               type="button"
+              v-if="!isGuest"
               :disabled="submitting"
               @click="emit('close')"
             >

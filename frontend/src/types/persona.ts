@@ -202,26 +202,26 @@ export type PersonaListQuery = {
 }
 
 export type PersonaDTO = {
-  id: number
+  id: number | null
   apellidos: string
   nombres: string
   tipoDocumento: TipoDocumento
   numeroDocumento: string
-  fechaNacimiento: string
+  fechaNacimiento: string | null
   fechaEmisionDni: string | null
   fechaCaducidadDni: string | null
   celulares: CelularDTO[]
-  correo: string
-  genero: Genero
+  correo: string | null
+  genero: Genero | null
   contactoEmergenciaNombre: string | null
   contactoEmergenciaTelefono: string | null
   contactoEmergenciaParentesco: string | null
-  gradoInstruccion: GradoInstruccion
-  direccion: string
-  departamento: string
-  provincia: string
-  distrito: string
-  residencia: string
+  gradoInstruccion: GradoInstruccion | null
+  direccion: string | null
+  departamento: string | null
+  provincia: string | null
+  distrito: string | null
+  residencia: string | null
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaDTO[]
   experienciasLaborales: ExperienciaLaboralDTO[]
@@ -229,7 +229,7 @@ export type PersonaDTO = {
   aptitudMedica: AptitudMedica | null
   restriccionesMedicas: string | null
   documentosChecklist: DocumentoChecklistDTO[]
-  createdAt: string
+  createdAt: string | null
 }
 
 export const TIPOS_DOCUMENTO: TipoDocumento[] = ['DNI', 'CE', 'PASAPORTE']
@@ -424,28 +424,28 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     nombres: dto.nombres,
     tipoDocumento: dto.tipoDocumento,
     numeroDocumento: dto.numeroDocumento,
-    fechaNacimiento: dto.fechaNacimiento,
+    fechaNacimiento: dto.fechaNacimiento ?? '',
     fechaEmisionDni: dto.fechaEmisionDni ?? '',
     fechaCaducidadDni: dto.fechaCaducidadDni ?? '',
-    celulares: dto.celulares.length > 0 ? dto.celulares.map((celular) => celular.numero) : [''],
-    correo: dto.correo,
+    celulares: dto.celulares?.length ? dto.celulares.map((celular) => celular.numero) : [''],
+    correo: dto.correo ?? '',
     genero: dto.genero ?? '',
     contactoEmergenciaNombre: dto.contactoEmergenciaNombre ?? '',
     contactoEmergenciaTelefono: dto.contactoEmergenciaTelefono ?? '',
     contactoEmergenciaParentesco: dto.contactoEmergenciaParentesco ?? '',
-    gradoInstruccion: dto.gradoInstruccion,
-    direccion: dto.direccion,
-    departamento: dto.departamento,
-    provincia: dto.provincia,
-    distrito: dto.distrito,
-    residencia: dto.residencia,
-    cuentasBancarias: dto.cuentasBancarias.map((cuenta) => ({
+    gradoInstruccion: dto.gradoInstruccion ?? '',
+    direccion: dto.direccion ?? '',
+    departamento: dto.departamento ?? '',
+    provincia: dto.provincia ?? '',
+    distrito: dto.distrito ?? '',
+    residencia: dto.residencia ?? '',
+    cuentasBancarias: (dto.cuentasBancarias ?? []).map((cuenta) => ({
       banco: cuenta.banco,
       numeroCuenta: cuenta.numeroCuenta,
       cci: cuenta.cci,
       principal: cuenta.principal,
     })),
-    experienciasLaborales: dto.experienciasLaborales.map((experiencia) => ({
+    experienciasLaborales: (dto.experienciasLaborales ?? []).map((experiencia) => ({
       organizacion: experiencia.organizacion,
       cargo: experiencia.cargo,
       fechaInicioLaboral: experiencia.fechaInicioLaboral,
@@ -455,7 +455,7 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     fechaVigenciaEmo: dto.fechaVigenciaEmo ?? '',
     aptitudMedica: dto.aptitudMedica ?? '',
     restriccionesMedicas: dto.restriccionesMedicas ?? '',
-    documentosChecklist: toChecklistForm(dto.documentosChecklist),
+    documentosChecklist: toChecklistForm(dto.documentosChecklist ?? []),
   }
 }
 

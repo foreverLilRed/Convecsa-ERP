@@ -91,12 +91,21 @@ public class ApiExceptionHandler {
         AsistenciaRegistroNoEncontradoException.class,
         AsistenciaFeriadoNoEncontradoException.class,
         AdendaNoEncontradaException.class,
-        MofPuestoNoEncontradoException.class
+        MofPuestoNoEncontradoException.class,
+        LinkInvitadoNoEncontradoException.class
     })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", HttpStatus.NOT_FOUND.value());
         body.put("message", exception.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(LinkInvitadoExpiradoException.class)
+    public ResponseEntity<Map<String, Object>> handleGone(LinkInvitadoExpiradoException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.GONE.value());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.GONE).body(body);
     }
 }

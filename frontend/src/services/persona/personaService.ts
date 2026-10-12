@@ -1,6 +1,26 @@
 import { apiRequest } from '@/services/http'
 import type { PagedResponse, PersonaDTO, PersonaListQuery, PersonaRequest, PersonaResumenDTO } from '@/types/persona'
 
+export type PersonaLinkInvitadoDTO = {
+  id: number
+  tipo: 'EDICION' | 'ALTA'
+  personaId: number | null
+  apellidos: string | null
+  nombres: string | null
+  tipoDocumento: string | null
+  numeroDocumento: string | null
+  token: string
+  creadoEn: string
+  expiraEn: string
+}
+
+export type PersonaLinkAltaRequest = {
+  apellidos: string
+  nombres: string
+  tipoDocumento: string
+  numeroDocumento: string
+}
+
 export function crearPersona(request: PersonaRequest): Promise<PersonaDTO> {
   return apiRequest<PersonaDTO>('/api/gestion-humana/personas', {
     method: 'POST',
@@ -42,4 +62,28 @@ export function listarPersonas(query: PersonaListQuery = {}): Promise<PagedRespo
     ? `/api/gestion-humana/personas?${search}`
     : '/api/gestion-humana/personas'
   return apiRequest<PagedResponse<PersonaResumenDTO>>(path)
+}
+
+export function crearLinkInvitado(personaId: number): Promise<PersonaLinkInvitadoDTO> {
+  return apiRequest<PersonaLinkInvitadoDTO>(`/api/gestion-humana/personas/${personaId}/links-invitado`, {
+    method: 'POST',
+  })
+}
+
+export function crearLinkAlta(request: PersonaLinkAltaRequest): Promise<PersonaLinkInvitadoDTO> {
+  return apiRequest<PersonaLinkInvitadoDTO>('/api/gestion-humana/personas/links-invitado/alta', {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function obtenerPersonaInvitado(token: string): Promise<PersonaDTO> {
+  return apiRequest<PersonaDTO>(`/api/invitado/personas/${encodeURIComponent(token)}`)
+}
+
+export function actualizarPersonaInvitado(token: string, request: PersonaRequest): Promise<PersonaDTO> {
+  return apiRequest<PersonaDTO>(`/api/invitado/personas/${encodeURIComponent(token)}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
 }

@@ -37,7 +37,7 @@ import {
   SECCIONES_INDICADOR,
   type IndicadorSeccion,
 } from '@/services/persona/indicadoresPersona'
-import { listarPersonas } from '@/services/persona/personaService'
+import { crearLinkInvitado, listarPersonas } from '@/services/persona/personaService'
 import { type PagedResponse, type PersonaResumenDTO } from '@/types/persona'
 
 const PAGE_SIZE = 20
@@ -58,6 +58,7 @@ const page = ref(0)
 const sortField = ref<SortField>('apellidos')
 const sortDir = ref<'asc' | 'desc'>('asc')
 const loading = ref(true)
+const creatingLinkId = ref<number | null>(null)
 const data = ref<PagedResponse<PersonaResumenDTO> | null>(null)
 
 const sort = computed(() => `${sortField.value},${sortDir.value}`)
@@ -99,6 +100,27 @@ function toggleSort(field: SortField) {
 
 function onDisplayPageChange(nextPage: number) {
   page.value = Math.max(0, nextPage - 1)
+}
+
+async function onLinkTemporal(persona: PersonaResumenDTO) {
+  if (creatingLinkId.value !== null) {
+    return
+  }
+  creatingLinkId.value = persona.id
+  try {
+    const link = await crearLinkInvitado(persona.id)
+    const url = `${window.location.origin}/invitar/persona/${link.token}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link temporal copiado. Válido 3 días.')
+    } catch {
+      toast.success(`Link temporal (válido 3 días): ${url}`)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo crear el link temporal.')
+  } finally {
+    creatingLinkId.value = null
+  }
 }
 
 async function load() {
@@ -298,6 +320,16 @@ function indicadorLabel(seccion: string, indicador: IndicadorSeccion): string {
                   @click="emit('edit', persona.id)"
                 >
                   Editar
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="h-8 px-3"
+                  type="button"
+                  :disabled="creatingLinkId === persona.id"
+                  @click="onLinkTemporal(persona)"
+                >
+                  {{ creatingLinkId === persona.id ? 'Creando…' : 'Link temporal' }}
                 </Button>
               </div>
             </TableCell>

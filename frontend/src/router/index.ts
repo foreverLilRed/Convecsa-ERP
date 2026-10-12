@@ -15,6 +15,7 @@ import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
 import PlantillasContratoPage from '@/pages/gestion-humana/PlantillasContratoPage.vue'
 import ManualesMofPage from '@/pages/gestion-humana/ManualesMofPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
+import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 
 const gestionHumanaPages = [
@@ -31,6 +32,11 @@ const router = createRouter({
       name: 'login',
       component: LoginPage,
       meta: { guestOnly: true },
+    },
+    {
+      path: '/invitar/persona/:token',
+      name: 'persona-invitado',
+      component: PersonaInvitadoPage,
     },
     {
       path: '/',

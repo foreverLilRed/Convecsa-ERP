@@ -3,6 +3,7 @@ import { PlusIcon } from '@lucide/vue'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
 
+import PersonaLinkAltaModal from '@/components/gestion-humana/PersonaLinkAltaModal.vue'
 import PersonaListado from '@/components/gestion-humana/PersonaListado.vue'
 import PersonaRegistroModal from '@/components/gestion-humana/PersonaRegistroModal.vue'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,7 @@ import { obtenerPersona } from '@/services/persona/personaService'
 import type { PersonaDTO } from '@/types/persona'
 
 const modalOpen = ref(false)
+const altaOpen = ref(false)
 const listadoKey = ref(0)
 const personaEditar = ref<PersonaDTO | null>(null)
 
@@ -50,14 +52,24 @@ function onPersonaSaved() {
     <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <PersonaListado :reload-key="listadoKey" @edit="onEdit">
         <template #actions>
-          <Button
-            class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
-            type="button"
-            @click="openCreate"
-          >
-            <PlusIcon data-icon="inline-start" />
-            Registrar persona
-          </Button>
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              variant="outline"
+              class="h-10 w-full px-4 sm:w-auto"
+              type="button"
+              @click="altaOpen = true"
+            >
+              Link de alta
+            </Button>
+            <Button
+              class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
+              type="button"
+              @click="openCreate"
+            >
+              <PlusIcon data-icon="inline-start" />
+              Registrar persona
+            </Button>
+          </div>
         </template>
       </PersonaListado>
     </div>
@@ -68,5 +80,6 @@ function onPersonaSaved() {
       @close="onModalClose"
       @saved="onPersonaSaved"
     />
+    <PersonaLinkAltaModal :open="altaOpen" @close="altaOpen = false" />
   </section>
 </template>
