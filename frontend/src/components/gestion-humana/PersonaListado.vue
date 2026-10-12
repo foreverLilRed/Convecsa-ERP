@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import {
   ArrowDownIcon,
@@ -40,8 +41,9 @@ import {
 import { crearLinkInvitado, listarPersonas } from '@/services/persona/personaService'
 import { type PagedResponse, type PersonaResumenDTO } from '@/types/persona'
 
-const PAGE_SIZE = 20
+const PAGE_SIZE = 10
 const SORTABLE = ['apellidos', 'nombres', 'numeroDocumento', 'createdAt'] as const
+const DEFAULT_SORT = 'apellidos,asc'
 type SortField = (typeof SORTABLE)[number]
 
 const props = defineProps<{
@@ -52,11 +54,30 @@ const emit = defineEmits<{
   edit: [id: number]
 }>()
 
-const searchInput = ref('')
-const q = ref('')
-const page = ref(0)
-const sortField = ref<SortField>('apellidos')
-const sortDir = ref<'asc' | 'desc'>('asc')
+const route = useRoute()
+const router = useRouter()
+
+function parseSort(value: unknown): { field: SortField; dir: 'asc' | 'desc' } {
+  const raw = typeof value === 'string' ? value : DEFAULT_SORT
+  const [fieldRaw, dirRaw] = raw.split(',')
+  const field = SORTABLE.includes(fieldRaw as SortField) ? (fieldRaw as SortField) : 'apellidos'
+  return { field, dir: dirRaw === 'desc' ? 'desc' : 'asc' }
+}
+
+function parsePage(value: unknown): number {
+  const parsed = Number(value)
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return 0
+  }
+  return parsed - 1
+}
+
+const initialSort = parseSort(route.query.sort)
+const searchInput = ref(typeof route.query.q === 'string' ? route.query.q : '')
+const q = ref(searchInput.value.trim())
+const page = ref(parsePage(route.query.page))
+const sortField = ref<SortField>(initialSort.field)
+const sortDir = ref<'asc' | 'desc'>(initialSort.dir)
 const loading = ref(true)
 const creatingLinkId = ref<number | null>(null)
 const data = ref<PagedResponse<PersonaResumenDTO> | null>(null)
@@ -65,6 +86,35 @@ const sort = computed(() => `${sortField.value},${sortDir.value}`)
 const displayPage = computed(() => page.value + 1)
 const totalPages = computed(() => data.value?.totalPages ?? 0)
 const totalElements = computed(() => data.value?.totalElements ?? 0)
+
+function listQuery(): Record<string, string> {
+  const next: Record<string, string> = {}
+  if (page.value > 0) {
+    next.page = String(page.value + 1)
+  }
+  if (q.value) {
+    next.q = q.value
+  }
+  if (sort.value !== DEFAULT_SORT) {
+    next.sort = sort.value
+  }
+  return next
+}
+
+function queryUnchanged(next: Record<string, string>): boolean {
+  const current = route.query
+  return (current.page ?? undefined) === next.page
+    && (current.q ?? undefined) === next.q
+    && (current.sort ?? undefined) === next.sort
+}
+
+function syncQuery() {
+  const next = listQuery()
+  if (queryUnchanged(next)) {
+    return
+  }
+  void router.replace({ path: route.path, query: next })
+}
 
 function ariaSort(field: SortField): 'ascending' | 'descending' | 'none' {
   if (sortField.value !== field) {
@@ -132,6 +182,10 @@ async function load() {
       sort: sort.value,
       q: q.value,
     })
+    const pages = data.value.totalPages
+    if (pages > 0 && page.value >= pages) {
+      page.value = pages - 1
+    }
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar el listado.')
   } finally {
@@ -149,8 +203,31 @@ watchDebounced(
 )
 
 watch([page, q, sort, () => props.reloadKey], () => {
+  syncQuery()
   void load()
 }, { immediate: true })
+
+watch(
+  () => route.query,
+  () => {
+    const nextPage = parsePage(route.query.page)
+    const nextQ = typeof route.query.q === 'string' ? route.query.q : ''
+    const nextSort = parseSort(route.query.sort)
+    if (
+      nextPage === page.value
+      && nextQ === q.value
+      && nextSort.field === sortField.value
+      && nextSort.dir === sortDir.value
+    ) {
+      return
+    }
+    page.value = nextPage
+    q.value = nextQ
+    searchInput.value = nextQ
+    sortField.value = nextSort.field
+    sortDir.value = nextSort.dir
+  },
+)
 
 function indicadorClass(indicador: IndicadorSeccion): string {
   if (indicador === 'COMPLETO') {
@@ -343,7 +420,6 @@ function indicadorLabel(seccion: string, indicador: IndicadorSeccion): string {
         Página {{ displayPage }} de {{ Math.max(totalPages, 1) }} · {{ totalElements }} registros
       </p>
       <Pagination
-        v-if="totalPages > 1"
         v-slot="{ page: current }"
         class="mx-0 w-auto justify-start sm:justify-end"
         :page="displayPage"
