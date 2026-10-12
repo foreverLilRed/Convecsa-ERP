@@ -41,7 +41,6 @@ public class PersonaMapper {
         persona.setFechaEmisionDni(request.getFechaEmisionDni());
         persona.setFechaCaducidadDni(request.getFechaCaducidadDni());
         persona.setCorreo(request.getCorreo().trim());
-        persona.setCorreoSecundario(blankToNull(request.getCorreoSecundario()));
         persona.setGradoInstruccion(request.getGradoInstruccion());
         persona.setDireccion(request.getDireccion().trim());
         persona.setDepartamento(request.getDepartamento().trim());
@@ -156,7 +155,6 @@ public class PersonaMapper {
                 .fechaCaducidadDni(persona.getFechaCaducidadDni())
                 .celulares(toCelularDtos(persona))
                 .correo(persona.getCorreo())
-                .correoSecundario(persona.getCorreoSecundario())
                 .gradoInstruccion(persona.getGradoInstruccion())
                 .direccion(persona.getDireccion())
                 .departamento(persona.getDepartamento())

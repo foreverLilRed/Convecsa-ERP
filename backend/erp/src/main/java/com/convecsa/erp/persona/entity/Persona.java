@@ -59,9 +59,6 @@ public class Persona {
     @Column(nullable = false, length = 180)
     private String correo;
 
-    @Column(name = "correo_secundario", length = 180)
-    private String correoSecundario;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "grado_instruccion", nullable = false, length = 40)
     private GradoInstruccion gradoInstruccion;

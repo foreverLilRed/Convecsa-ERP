@@ -685,16 +685,10 @@ function onOverlayClick() {
                         </Button>
                       </div>
 
-                      <div class="grid gap-4 sm:grid-cols-2">
-                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
-                          Correo electrónico
-                          <input v-model="form.correo" :class="inputClass" type="email" autocomplete="email" />
-                        </label>
-                        <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
-                          Correo secundario
-                          <input v-model="form.correoSecundario" :class="inputClass" type="email" />
-                        </label>
-                      </div>
+                      <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                        Correo electrónico
+                        <input v-model="form.correo" :class="inputClass" type="email" autocomplete="email" />
+                      </label>
                     </div>
                   </fieldset>
 

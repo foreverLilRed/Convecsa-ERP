@@ -53,10 +53,6 @@ public class PersonaRequest {
     @Size(max = 180)
     private String correo;
 
-    @Email
-    @Size(max = 180)
-    private String correoSecundario;
-
     @NotNull
     private GradoInstruccion gradoInstruccion;
 

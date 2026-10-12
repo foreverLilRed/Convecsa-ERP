@@ -61,7 +61,6 @@ export type PersonaForm = {
   fechaCaducidadDni: string
   celulares: string[]
   correo: string
-  correoSecundario: string
   gradoInstruccion: GradoInstruccion | ''
   direccion: string
   departamento: string
@@ -106,7 +105,6 @@ export type PersonaRequest = {
   fechaCaducidadDni: string | null
   celulares: string[]
   correo: string
-  correoSecundario: string | null
   gradoInstruccion: GradoInstruccion
   direccion: string
   departamento: string
@@ -204,7 +202,6 @@ export type PersonaDTO = {
   fechaCaducidadDni: string | null
   celulares: CelularDTO[]
   correo: string
-  correoSecundario: string | null
   gradoInstruccion: GradoInstruccion
   direccion: string
   departamento: string
@@ -331,7 +328,6 @@ export function createEmptyPersonaForm(): PersonaForm {
     fechaCaducidadDni: '',
     celulares: [''],
     correo: '',
-    correoSecundario: '',
     gradoInstruccion: '',
     direccion: '',
     departamento: '',
@@ -359,7 +355,6 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     fechaCaducidadDni: dto.fechaCaducidadDni ?? '',
     celulares: dto.celulares.length > 0 ? dto.celulares.map((celular) => celular.numero) : [''],
     correo: dto.correo,
-    correoSecundario: dto.correoSecundario ?? '',
     gradoInstruccion: dto.gradoInstruccion,
     direccion: dto.direccion,
     departamento: dto.departamento,
@@ -397,7 +392,6 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
     fechaCaducidadDni: emptyToNull(form.fechaCaducidadDni),
     celulares: form.celulares.map((celular) => celular.trim()).filter(Boolean),
     correo: form.correo.trim(),
-    correoSecundario: emptyToNull(form.correoSecundario),
     gradoInstruccion: form.gradoInstruccion as GradoInstruccion,
     direccion: form.direccion.trim(),
     departamento: form.departamento.trim(),
