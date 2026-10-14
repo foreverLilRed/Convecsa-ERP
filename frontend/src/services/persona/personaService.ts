@@ -1,4 +1,4 @@
-import { apiRequest } from '@/services/http'
+import { apiRequest, downloadAuthenticatedFile } from '@/services/http'
 import type { PagedResponse, PersonaDTO, PersonaListQuery, PersonaRequest, PersonaResumenDTO } from '@/types/persona'
 
 export type PersonaLinkInvitadoDTO = {
@@ -62,6 +62,21 @@ export function listarPersonas(query: PersonaListQuery = {}): Promise<PagedRespo
     ? `/api/gestion-humana/personas?${search}`
     : '/api/gestion-humana/personas'
   return apiRequest<PagedResponse<PersonaResumenDTO>>(path)
+}
+
+export function exportarPersonas(query: PersonaListQuery = {}): Promise<void> {
+  const params = new URLSearchParams()
+  if (query.sort) {
+    params.set('sort', query.sort)
+  }
+  if (query.q?.trim()) {
+    params.set('q', query.q.trim())
+  }
+  const search = params.toString()
+  return downloadAuthenticatedFile(
+    `/api/gestion-humana/personas/exportar${search ? `?${search}` : ''}`,
+    'afpnet-personas.xlsx',
+  )
 }
 
 export function crearLinkInvitado(personaId: number): Promise<PersonaLinkInvitadoDTO> {

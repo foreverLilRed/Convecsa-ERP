@@ -5,6 +5,7 @@ import com.convecsa.erp.persona.dto.PersonaDTO;
 import com.convecsa.erp.persona.dto.PersonaListQuery;
 import com.convecsa.erp.persona.dto.PersonaRequest;
 import com.convecsa.erp.persona.dto.PersonaResumenDTO;
+import java.util.List;
 
 public interface InterfazPersonaService {
 
@@ -15,4 +16,6 @@ public interface InterfazPersonaService {
     PersonaDTO actualizar(Long id, PersonaRequest request);
 
     PagedResponse<PersonaResumenDTO> listar(PersonaListQuery query);
+
+    byte[] exportar(PersonaListQuery query);
 }

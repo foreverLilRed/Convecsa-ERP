@@ -1,0 +1,3 @@
+ALTER TABLE persona
+    ALTER COLUMN pension DROP NOT NULL,
+    ALTER COLUMN cuspp DROP NOT NULL;

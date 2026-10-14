@@ -24,6 +24,8 @@ public class PersonaDTO {
     private final LocalDate fechaCaducidadDni;
     private final List<CelularDTO> celulares;
     private final String correo;
+    private final String pension;
+    private final String cuspp;
     private final Genero genero;
     private final String contactoEmergenciaNombre;
     private final String contactoEmergenciaTelefono;

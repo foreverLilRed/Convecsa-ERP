@@ -63,6 +63,8 @@ export type PersonaForm = {
   fechaCaducidadDni: string
   celulares: string[]
   correo: string
+  pension: string
+  cuspp: string
   genero: Genero | ''
   contactoEmergenciaNombre: string
   contactoEmergenciaTelefono: string
@@ -111,6 +113,8 @@ export type PersonaRequest = {
   fechaCaducidadDni: string | null
   celulares: string[]
   correo: string
+  pension: string | null
+  cuspp: string | null
   genero: Genero
   contactoEmergenciaNombre: string
   contactoEmergenciaTelefono: string
@@ -212,6 +216,8 @@ export type PersonaDTO = {
   fechaCaducidadDni: string | null
   celulares: CelularDTO[]
   correo: string | null
+  pension: string | null
+  cuspp: string | null
   genero: Genero | null
   contactoEmergenciaNombre: string | null
   contactoEmergenciaTelefono: string | null
@@ -398,6 +404,8 @@ export function createEmptyPersonaForm(): PersonaForm {
     fechaCaducidadDni: '',
     celulares: [''],
     correo: '',
+    pension: '',
+    cuspp: '',
     genero: '',
     contactoEmergenciaNombre: '',
     contactoEmergenciaTelefono: '',
@@ -429,6 +437,8 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     fechaCaducidadDni: dto.fechaCaducidadDni ?? '',
     celulares: dto.celulares?.length ? dto.celulares.map((celular) => celular.numero) : [''],
     correo: dto.correo ?? '',
+    pension: dto.pension ?? '',
+    cuspp: dto.cuspp ?? '',
     genero: dto.genero ?? '',
     contactoEmergenciaNombre: dto.contactoEmergenciaNombre ?? '',
     contactoEmergenciaTelefono: dto.contactoEmergenciaTelefono ?? '',
@@ -470,6 +480,8 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
     fechaCaducidadDni: emptyToNull(form.fechaCaducidadDni),
     celulares: form.celulares.map((celular) => celular.trim()).filter(Boolean),
     correo: form.correo.trim(),
+    pension: emptyToNull(form.pension),
+    cuspp: emptyToNull(form.cuspp),
     genero: form.genero as Genero,
     contactoEmergenciaNombre: form.contactoEmergenciaNombre.trim(),
     contactoEmergenciaTelefono: form.contactoEmergenciaTelefono.trim(),

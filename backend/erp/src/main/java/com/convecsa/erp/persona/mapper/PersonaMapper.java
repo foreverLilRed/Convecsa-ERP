@@ -41,6 +41,8 @@ public class PersonaMapper {
         persona.setFechaEmisionDni(request.getFechaEmisionDni());
         persona.setFechaCaducidadDni(request.getFechaCaducidadDni());
         persona.setCorreo(request.getCorreo().trim());
+        persona.setPension(blankToNull(request.getPension()));
+        persona.setCuspp(blankToNull(request.getCuspp()));
         persona.setGenero(request.getGenero());
         persona.setContactoEmergenciaNombre(request.getContactoEmergenciaNombre().trim());
         persona.setContactoEmergenciaTelefono(request.getContactoEmergenciaTelefono().trim());
@@ -151,6 +153,8 @@ public class PersonaMapper {
                 .fechaCaducidadDni(persona.getFechaCaducidadDni())
                 .celulares(toCelularDtos(persona))
                 .correo(persona.getCorreo())
+                .pension(persona.getPension())
+                .cuspp(persona.getCuspp())
                 .genero(persona.getGenero())
                 .contactoEmergenciaNombre(persona.getContactoEmergenciaNombre())
                 .contactoEmergenciaTelefono(persona.getContactoEmergenciaTelefono())

@@ -1,0 +1,3 @@
+ALTER TABLE persona
+    ADD COLUMN pension VARCHAR(120),
+    ADD COLUMN cuspp VARCHAR(30);

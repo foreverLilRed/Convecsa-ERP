@@ -928,6 +928,32 @@ function onOverlayClick() {
 
             <TabsContent value="banco">
               <fieldset>
+                <legend class="text-sm font-semibold text-palette-navy">Sistema de pensiones</legend>
+                <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Pensión
+                    <input
+                      v-model="form.pension"
+                      :class="inputClass"
+                      type="text"
+                      maxlength="120"
+                      placeholder="AFP Integra, ONP, etc."
+                    />
+                  </label>
+                  <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    CUSPP
+                    <input
+                      v-model="form.cuspp"
+                      :class="inputClass"
+                      type="text"
+                      maxlength="30"
+                      placeholder="Código Único del SPP"
+                    />
+                  </label>
+                </div>
+              </fieldset>
+
+              <fieldset class="mt-7">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <legend class="text-sm font-semibold text-palette-navy">Cuentas bancarias</legend>

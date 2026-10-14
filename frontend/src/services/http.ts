@@ -111,3 +111,33 @@ export async function openAuthenticatedDocument(url: string): Promise<void> {
   const objectUrl = URL.createObjectURL(blob)
   window.open(objectUrl, '_blank', 'noopener,noreferrer')
 }
+
+export async function downloadAuthenticatedFile(path: string, filename: string): Promise<void> {
+  const session = getSession()
+  const headers: Record<string, string> = {}
+  if (session?.token) {
+    headers.Authorization = `Bearer ${session.token}`
+  }
+
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { headers })
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor.', 0)
+  }
+
+  if (response.status === 401) {
+    handleUnauthorized(path)
+  }
+  if (!response.ok) {
+    throw new ApiError(`Error ${response.status}`, response.status)
+  }
+
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(objectUrl)
+}

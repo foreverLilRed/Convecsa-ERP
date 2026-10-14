@@ -9,6 +9,10 @@ import com.convecsa.erp.persona.service.InterfazPersonaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -37,6 +41,15 @@ public class PersonaController {
     @GetMapping
     public PagedResponse<PersonaResumenDTO> listar(@Valid @ModelAttribute PersonaListQuery query) {
         return personaService.listar(query);
+    }
+
+    @GetMapping("/exportar")
+    public ResponseEntity<byte[]> exportar(@Valid @ModelAttribute PersonaListQuery query) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDisposition(ContentDisposition.attachment().filename("personas.xlsx").build());
+        return new ResponseEntity<>(personaService.exportar(query), headers, HttpStatus.OK);
     }
 
     @GetMapping("/{id}")

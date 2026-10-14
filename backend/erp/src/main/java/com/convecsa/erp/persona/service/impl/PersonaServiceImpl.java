@@ -13,6 +13,7 @@ import com.convecsa.erp.persona.mapper.PersonaMapper;
 import com.convecsa.erp.persona.repository.PersonaRepository;
 import com.convecsa.erp.persona.repository.PersonaSpecifications;
 import com.convecsa.erp.persona.service.InterfazPersonaService;
+import com.convecsa.erp.persona.support.PersonaExcelExporter;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +30,7 @@ public class PersonaServiceImpl implements InterfazPersonaService {
 
     private final PersonaRepository personaRepository;
     private final PersonaMapper personaMapper;
+    private final PersonaExcelExporter personaExcelExporter;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -78,6 +81,14 @@ public class PersonaServiceImpl implements InterfazPersonaService {
                 .findAll(PersonaSpecifications.from(query), pageable)
                 .map(personaMapper::toResumen);
         return PagedResponse.from(page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportar(PersonaListQuery query) {
+        List<Persona> personas = personaRepository.findAll(
+                PersonaSpecifications.from(query), PersonaSort.parse(query.sort()));
+        return personaExcelExporter.export(personas);
     }
 
     private Persona findOrThrow(Long id) {

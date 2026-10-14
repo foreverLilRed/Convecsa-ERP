@@ -8,6 +8,7 @@ import {
   ArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  DownloadIcon,
   SearchIcon,
 } from '@lucide/vue'
 import { toast } from 'vue-sonner'
@@ -38,7 +39,7 @@ import {
   SECCIONES_INDICADOR,
   type IndicadorSeccion,
 } from '@/services/persona/indicadoresPersona'
-import { crearLinkInvitado, listarPersonas } from '@/services/persona/personaService'
+import { crearLinkInvitado, exportarPersonas, listarPersonas } from '@/services/persona/personaService'
 import { type PagedResponse, type PersonaResumenDTO } from '@/types/persona'
 
 const PAGE_SIZE = 10
@@ -80,6 +81,7 @@ const sortField = ref<SortField>(initialSort.field)
 const sortDir = ref<'asc' | 'desc'>(initialSort.dir)
 const loading = ref(true)
 const creatingLinkId = ref<number | null>(null)
+const exporting = ref(false)
 const data = ref<PagedResponse<PersonaResumenDTO> | null>(null)
 
 const sort = computed(() => `${sortField.value},${sortDir.value}`)
@@ -170,6 +172,21 @@ async function onLinkTemporal(persona: PersonaResumenDTO) {
     toast.error(err instanceof Error ? err.message : 'No se pudo crear el link temporal.')
   } finally {
     creatingLinkId.value = null
+  }
+}
+
+async function onExportar() {
+  if (exporting.value) {
+    return
+  }
+  exporting.value = true
+  try {
+    await exportarPersonas({ q: q.value, sort: sort.value })
+    toast.success('Se descargó la plantilla AFPnet.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo exportar el padrón.')
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -272,7 +289,19 @@ function indicadorLabel(seccion: string, indicador: IndicadorSeccion): string {
           </InputGroup>
         </div>
         <div class="shrink-0">
-          <slot name="actions" />
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <Button
+              variant="outline"
+              class="h-10 w-full px-4 sm:w-auto"
+              type="button"
+              :disabled="exporting"
+              @click="onExportar"
+            >
+              <DownloadIcon data-icon="inline-start" />
+              {{ exporting ? 'Exportando…' : 'Exportar AFPnet' }}
+            </Button>
+            <slot name="actions" />
+          </div>
         </div>
       </div>
     </div>

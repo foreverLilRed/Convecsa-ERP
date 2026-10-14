@@ -54,6 +54,12 @@ public class PersonaRequest {
     @Size(max = 180)
     private String correo;
 
+    @Size(max = 120)
+    private String pension;
+
+    @Size(max = 30)
+    private String cuspp;
+
     @NotNull
     private Genero genero;
 

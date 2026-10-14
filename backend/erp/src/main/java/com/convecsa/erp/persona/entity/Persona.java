@@ -60,6 +60,12 @@ public class Persona {
     @Column(nullable = false, length = 180)
     private String correo;
 
+    @Column(nullable = true, length = 120)
+    private String pension;
+
+    @Column(nullable = true, length = 30)
+    private String cuspp;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Genero genero = Genero.NO_ESPECIFICA;
