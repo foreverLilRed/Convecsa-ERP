@@ -73,6 +73,11 @@ public class ContratoController {
         return contratoService.crear(request);
     }
 
+    @GetMapping("/personas/{personaId}/ultimo")
+    public ContratoDTO obtenerUltimoContrato(@PathVariable Long personaId) {
+        return contratoService.obtenerUltimoContrato(personaId);
+    }
+
     @GetMapping(value = "/{id}/documento", produces = MediaType.TEXT_HTML_VALUE)
     public String documento(@PathVariable Long id) {
         return contratoService.documento(id);

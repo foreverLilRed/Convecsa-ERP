@@ -26,6 +26,10 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
     @EntityGraph(attributePaths = {"persona", "jornada", "metodoPago", "causaObjetiva"})
     Optional<Contrato> findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(Long personaId, EstadoContrato estado);
 
+    default Optional<Contrato> findUltimoContratoActivoPorPersonaId(Long personaId) {
+        return findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(personaId, EstadoContrato.ACTIVO);
+    }
+
     List<Contrato> findByPersonaIdInAndEstadoOrderByCreatedAtDesc(
             Collection<Long> personaIds, EstadoContrato estado);
 

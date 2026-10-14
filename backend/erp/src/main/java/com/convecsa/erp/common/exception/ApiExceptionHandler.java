@@ -1,5 +1,6 @@
 package com.convecsa.erp.common.exception;
 
+import com.convecsa.erp.exceptions.BusinessException;
 import jakarta.validation.ConstraintViolationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,6 +13,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Map<String, Object>> handleBusinessException(BusinessException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", exception.getCodigoError());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.status(exception.getCodigoError()).body(body);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException exception) {

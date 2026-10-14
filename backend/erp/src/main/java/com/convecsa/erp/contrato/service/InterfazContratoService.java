@@ -31,4 +31,6 @@ public interface InterfazContratoService {
     PlantillaContratoDetalleDTO obtenerPlantilla(Long id);
 
     PlantillaContratoDetalleDTO actualizarPlantilla(Long id, PlantillaContratoUpdateRequest request);
+
+    ContratoDTO obtenerUltimoContrato(Long personaId);
 }

@@ -1,6 +1,5 @@
 package com.convecsa.erp.contrato.service.impl;
 
-import com.convecsa.erp.common.exception.ContratoNoEncontradoException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.exception.PlantillaCodigoDuplicadoException;
 import com.convecsa.erp.common.exception.PlantillaNoEncontradaException;
@@ -24,6 +23,7 @@ import com.convecsa.erp.contrato.dto.PlantillaContratoRequest;
 import com.convecsa.erp.contrato.dto.PlantillaContratoUpdateRequest;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
+import com.convecsa.erp.contrato.exception.ContratoNoEncontrado;
 import com.convecsa.erp.contrato.repository.CausaObjetivaRepository;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.JornadaRepository;
@@ -133,7 +133,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
     @Transactional(readOnly = true)
     public String documento(Long id) {
         Contrato contrato = contratoRepository.findById(id)
-                .orElseThrow(() -> new ContratoNoEncontradoException("No se encontró el contrato"));
+                .orElseThrow(() -> new ContratoNoEncontrado("No se encontró el contrato"));
         contrato.getPersona().getNombres();
         if (contrato.getPlantillaContrato() != null) {
             contrato.getPlantillaContrato().getPlantilla();
@@ -195,6 +195,15 @@ public class ContratoServiceImpl implements InterfazContratoService {
         }
         plantilla.setMetadata(ContratoPlantillaService.esquemaDesdeHtml(request.getPlantilla()));
         return toPlantillaDetalleDto(plantillaContratoRepository.save(plantilla));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ContratoDTO obtenerUltimoContrato(Long personaId) {
+        return contratoRepository.findUltimoContratoActivoPorPersonaId(personaId)
+                .map(ContratoServiceImpl::toDto)
+                .orElseThrow(() -> new ContratoNoEncontrado(
+                        "No se encontró un contrato activo para la persona"));
     }
 
     private PlantillaContrato buscarPlantilla(Long id) {

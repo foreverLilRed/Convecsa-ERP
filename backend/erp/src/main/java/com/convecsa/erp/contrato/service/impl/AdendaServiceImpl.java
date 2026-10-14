@@ -1,7 +1,6 @@
 package com.convecsa.erp.contrato.service.impl;
 
 import com.convecsa.erp.common.exception.AdendaNoEncontradaException;
-import com.convecsa.erp.common.exception.ContratoNoEncontradoException;
 import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
 import com.convecsa.erp.contrato.domain.EstadoContrato;
@@ -11,6 +10,7 @@ import com.convecsa.erp.contrato.dto.AdendaRequest;
 import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
+import com.convecsa.erp.contrato.exception.ContratoNoEncontrado;
 import com.convecsa.erp.contrato.repository.AdendaRepository;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
@@ -49,7 +49,7 @@ public class AdendaServiceImpl implements InterfazAdendaService {
     @Transactional
     public AdendaDTO crear(AdendaRequest request) {
         Contrato contrato = contratoRepository.findById(request.getContratoId())
-                .orElseThrow(() -> new ContratoNoEncontradoException("No se encontró el contrato"));
+                .orElseThrow(() -> new ContratoNoEncontrado("No se encontró el contrato"));
         if (contrato.getEstado() != EstadoContrato.ACTIVO) {
             throw new IllegalArgumentException("Solo se puede prorrogar un contrato activo.");
         }

@@ -36,6 +36,10 @@ export function listarContratos(
   return apiRequest<PagedResponse<ContratoDTO>>(`/api/gestion-humana/contratos?${params}`)
 }
 
+export function obtenerUltimoContrato(personaId: number): Promise<ContratoDTO> {
+  return apiRequest<ContratoDTO>(`/api/gestion-humana/contratos/personas/${personaId}/ultimo`)
+}
+
 export function listarAdendas(page = 0, size = 20): Promise<PagedResponse<AdendaDTO>> {
   const params = new URLSearchParams({
     page: String(page),
