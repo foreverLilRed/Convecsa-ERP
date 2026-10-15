@@ -1,6 +1,7 @@
 package com.convecsa.erp.asistencia.entity;
 
 import com.convecsa.erp.asistencia.domain.EstadoAsistencia;
+import com.convecsa.erp.asistencia.domain.CodigoTareo;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.persona.entity.Persona;
 import jakarta.persistence.Column;
@@ -54,6 +55,19 @@ public class AsistenciaRegistro {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private EstadoAsistencia estado;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CodigoTareo codigo = CodigoTareo.A;
+
+    @Column(name = "minutos_extras_25", nullable = false)
+    private int minutosExtras25;
+
+    @Column(name = "minutos_extras_35", nullable = false)
+    private int minutosExtras35;
+
+    @Column(name = "minutos_tardanza", nullable = false)
+    private int minutosTardanza;
 
     @Column(length = 500)
     private String observacion;

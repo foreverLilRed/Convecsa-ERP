@@ -8,5 +8,9 @@ public enum CodigoConcepto {
     PRIMA_SEGURO,
     APORTE_ONP,
     ESSALUD,
+    SCTR_SALUD,
+    SCTR_PENSION,
+    VIDA_LEY,
+    ESSALUD_VIDA,
     EXTRA
 }

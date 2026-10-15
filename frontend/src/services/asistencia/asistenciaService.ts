@@ -1,6 +1,8 @@
 import { apiRequest } from '@/services/http'
 import type {
   AsistenciaConfig,
+  AsistenciaConceptoVariable,
+  AsistenciaConceptoVariableRequest,
   AsistenciaFeriado,
   AsistenciaFeriadoRequest,
   AsistenciaPlanilla,
@@ -55,4 +57,25 @@ export function actualizarPlanilla(items: AsistenciaRegistroUpdate[]): Promise<A
     method: 'PUT',
     body: JSON.stringify({ items }),
   })
+}
+
+export function listarConceptosVariables(anio: number, mes: number): Promise<AsistenciaConceptoVariable[]> {
+  return apiRequest<AsistenciaConceptoVariable[]>(
+    `/api/gestion-humana/asistencia/conceptos-variables?anio=${anio}&mes=${mes}`,
+  )
+}
+
+export function registrarConceptoVariable(
+  anio: number,
+  mes: number,
+  request: AsistenciaConceptoVariableRequest,
+): Promise<AsistenciaConceptoVariable> {
+  return apiRequest<AsistenciaConceptoVariable>(
+    `/api/gestion-humana/asistencia/conceptos-variables?anio=${anio}&mes=${mes}`,
+    { method: 'POST', body: JSON.stringify(request) },
+  )
+}
+
+export function eliminarConceptoVariable(id: number): Promise<void> {
+  return apiRequest<void>(`/api/gestion-humana/asistencia/conceptos-variables/${id}`, { method: 'DELETE' })
 }

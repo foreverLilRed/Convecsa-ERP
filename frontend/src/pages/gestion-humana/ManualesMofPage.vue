@@ -61,7 +61,7 @@ async function loadLista() {
   try {
     puestos.value = await listarMofPuestos()
     if (selectedId.value == null && puestos.value.length) {
-      selectedId.value = puestos.value[0].id
+      selectedId.value = puestos.value[0]!.id
     }
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudieron cargar los puestos MOF.')

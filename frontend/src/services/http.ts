@@ -141,3 +141,55 @@ export async function downloadAuthenticatedFile(path: string, filename: string):
   link.click()
   URL.revokeObjectURL(objectUrl)
 }
+
+async function authenticatedBlob(path: string, init?: RequestInit): Promise<Blob> {
+  const session = getSession()
+  const headers: Record<string, string> = {
+    ...authHeaders(path),
+    ...(init?.headers as Record<string, string> | undefined),
+  }
+  if (init?.body) {
+    headers['Content-Type'] = headers['Content-Type'] ?? 'application/json'
+  }
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers })
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor.', 0)
+  }
+  if (response.status === 401) {
+    handleUnauthorized(path)
+  }
+  if (!response.ok) {
+    let message = `Error ${response.status}`
+    try {
+      const body = (await response.json()) as ApiErrorBody
+      message = body.errors ? firstErrorMessage(body.errors) : (body.message ?? message)
+    } catch {
+      // El servidor puede responder texto o una página de error.
+    }
+    throw new ApiError(message, response.status)
+  }
+  return response.blob()
+}
+
+export async function downloadAuthenticatedRequest(
+  path: string,
+  filename: string,
+  init?: RequestInit,
+): Promise<void> {
+  const blob = await authenticatedBlob(path, init)
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(objectUrl)
+}
+
+export async function openAuthenticatedRequest(path: string, init?: RequestInit): Promise<void> {
+  const blob = await authenticatedBlob(path, init)
+  const objectUrl = URL.createObjectURL(blob)
+  window.open(objectUrl, '_blank', 'noopener,noreferrer')
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+}

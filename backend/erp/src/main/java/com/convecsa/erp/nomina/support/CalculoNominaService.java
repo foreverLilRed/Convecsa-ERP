@@ -7,17 +7,26 @@ import com.convecsa.erp.nomina.domain.CodigoConcepto;
 import com.convecsa.erp.nomina.domain.OrigenConcepto;
 import com.convecsa.erp.nomina.entity.BoletaConcepto;
 import com.convecsa.erp.nomina.entity.BoletaPago;
+import com.convecsa.erp.nomina.entity.AfpTasa;
+import com.convecsa.erp.nomina.entity.NominaConfiguracion;
+import com.convecsa.erp.nomina.domain.TipoComisionAfp;
+import com.convecsa.erp.nomina.repository.AfpTasaRepository;
+import com.convecsa.erp.nomina.repository.NominaConfiguracionRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Comparator;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class CalculoNominaService {
 
     public static final BigDecimal ASIGNACION_FAMILIAR = new BigDecimal("113.00");
-    public static final BigDecimal TASA_ESSALUD = new BigDecimal("0.09");
     public static final int DIAS_MES = 30;
+
+    private final AfpTasaRepository afpTasaRepository;
+    private final NominaConfiguracionRepository configuracionRepository;
 
     public void calcular(BoletaPago boleta) {
         if (boleta == null) {
@@ -58,40 +67,52 @@ public class CalculoNominaService {
 
         BigDecimal base = sueldoProrrateado.add(asignacion).add(extrasHaber);
 
+        AfpTasa tasa = tasaPara(boleta, afp);
         if (afp.isEsOnp()) {
             agregar(
                     boleta,
                     CategoriaConcepto.DESCUENTO,
                     CodigoConcepto.APORTE_ONP,
                     "Aporte ONP",
-                    aplicar(base, afp.getAporteObligatorio()));
+                    aplicar(base, tasa.getAporteObligatorio()));
         } else {
             agregar(
                     boleta,
                     CategoriaConcepto.DESCUENTO,
                     CodigoConcepto.APORTE_OBLIG,
                     "Aporte obligatorio AFP",
-                    aplicar(base, afp.getAporteObligatorio()));
+                    aplicar(base, tasa.getAporteObligatorio()));
             agregar(
                     boleta,
                     CategoriaConcepto.DESCUENTO,
                     CodigoConcepto.COMISION_AFP,
                     "Comisión AFP",
-                    aplicar(base, afp.getComisionFlujo()));
+                    aplicar(base, tasa.getComision()));
             agregar(
                     boleta,
                     CategoriaConcepto.DESCUENTO,
                     CodigoConcepto.PRIMA_SEGURO,
                     "Prima de seguro",
-                    aplicar(base, afp.getPrimaSeguro()));
+                    aplicar(baseAsegurable(base, tasa), tasa.getPrimaSeguro()));
         }
+
+        NominaConfiguracion configuracion = configuracionRepository.findById(NominaConfiguracion.ID_UNICO)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la configuración de aportes de nómina"));
 
         agregar(
                 boleta,
                 CategoriaConcepto.APORTE_EMPLEADOR,
                 CodigoConcepto.ESSALUD,
                 "EsSalud (aporte empleador)",
-                aplicar(base, TASA_ESSALUD));
+                aplicar(base, configuracion.getTasaEssalud()));
+        agregar(boleta, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConcepto.SCTR_SALUD,
+                "SCTR Salud (aporte empleador)", aplicar(base, configuracion.getTasaSctrSalud()));
+        agregar(boleta, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConcepto.SCTR_PENSION,
+                "SCTR Pensión (aporte empleador)", aplicar(base, configuracion.getTasaSctrPension()));
+        agregar(boleta, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConcepto.VIDA_LEY,
+                "Seguro Vida Ley (aporte empleador)", aplicar(base, configuracion.getTasaVidaLey()));
+        agregar(boleta, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConcepto.ESSALUD_VIDA,
+                "EsSalud +Vida (aporte empleador)", aplicar(base, configuracion.getTasaEssaludVida()));
 
         boleta.getConceptos().sort(Comparator
                 .comparing((BoletaConcepto concepto) -> concepto.getCategoria().ordinal())
@@ -128,6 +149,21 @@ public class CalculoNominaService {
         BigDecimal origen = base == null ? BigDecimal.ZERO : base;
         BigDecimal factor = tasa == null ? BigDecimal.ZERO : tasa;
         return origen.multiply(factor).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private AfpTasa tasaPara(BoletaPago boleta, Afp afp) {
+        TipoComisionAfp tipo = afp.isEsOnp()
+                ? TipoComisionAfp.NO_APLICA
+                : boleta.getPersona().getTipoComisionAfp();
+        return afpTasaRepository.findByAfpIdAndTipoComisionAndActivoTrue(afp.getId(), tipo)
+                .orElseThrow(() -> new IllegalArgumentException("No hay tasa activa para la AFP y tipo de comisión del trabajador"));
+    }
+
+    private static BigDecimal baseAsegurable(BigDecimal base, AfpTasa tasa) {
+        if (tasa.getTopeRemuneracionAsegurable() == null) {
+            return base;
+        }
+        return base.min(tasa.getTopeRemuneracionAsegurable());
     }
 
     private static BigDecimal sumar(BoletaPago boleta, CategoriaConcepto categoria) {

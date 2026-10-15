@@ -20,6 +20,14 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_STARTTLS:false}
 
 app:
   jwt:
@@ -27,3 +35,6 @@ app:
     expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
   plantillas:
     pin: ${APP_PLANTILLAS_PIN:6283}
+  nomina:
+    mail-enabled: ${APP_NOMINA_MAIL_ENABLED:false}
+    mail-from: ${APP_NOMINA_MAIL_FROM:no-reply@convecsa.pe}

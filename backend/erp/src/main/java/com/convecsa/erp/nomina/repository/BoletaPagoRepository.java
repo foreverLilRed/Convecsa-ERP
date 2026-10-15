@@ -35,4 +35,22 @@ public interface BoletaPagoRepository extends JpaRepository<BoletaPago, Long> {
     })
     @Query("SELECT b FROM BoletaPago b WHERE b.id = :id")
     Optional<BoletaPago> findWithDetalleById(@Param("id") Long id);
+
+    @EntityGraph(attributePaths = {
+            "periodo",
+            "persona",
+            "contrato",
+            "afp",
+            "conceptos"
+    })
+    @Query("""
+            SELECT DISTINCT b FROM BoletaPago b
+            WHERE b.periodo.id = :periodoId
+              AND (:usarFiltro = false OR b.id IN :ids)
+            ORDER BY b.persona.apellidos, b.persona.nombres
+            """)
+    List<BoletaPago> findParaEmision(
+            @Param("periodoId") Long periodoId,
+            @Param("ids") List<Long> ids,
+            @Param("usarFiltro") boolean usarFiltro);
 }

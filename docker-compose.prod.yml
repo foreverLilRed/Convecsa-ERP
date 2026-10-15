@@ -27,6 +27,14 @@ services:
       DB_USER: ${POSTGRES_USER:-convecsa}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       APP_CORS_ORIGINS: https://convecsa-preview.atereal.com
+      APP_NOMINA_MAIL_ENABLED: ${APP_NOMINA_MAIL_ENABLED:-false}
+      APP_NOMINA_MAIL_FROM: ${APP_NOMINA_MAIL_FROM:-no-reply@convecsa.pe}
+      MAIL_HOST: ${MAIL_HOST:-localhost}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-true}
     depends_on:
       postgres:
         condition: service_healthy

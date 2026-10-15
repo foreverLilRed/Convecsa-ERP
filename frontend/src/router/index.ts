@@ -5,6 +5,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import AsistenciaPage from '@/pages/gestion-humana/AsistenciaPage.vue'
 import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
+import FirmasDigitalesPage from '@/pages/gestion-humana/FirmasDigitalesPage.vue'
 import KpisDesempenoDetallePage from '@/pages/gestion-humana/KpisDesempenoDetallePage.vue'
 import KpisDesempenoPage from '@/pages/gestion-humana/KpisDesempenoPage.vue'
 import NominasPage from '@/pages/gestion-humana/NominasPage.vue'
@@ -21,7 +22,6 @@ import UsuariosPage from '@/pages/UsuariosPage.vue'
 const gestionHumanaPages = [
   { path: 'vacaciones', name: 'gh-vacaciones', title: 'Vacaciones' },
   { path: 'constancias-certificados', name: 'gh-constancias-certificados', title: 'Constancias y Certificados' },
-  { path: 'firmas-digitales', name: 'gh-firmas-digitales', title: 'Firmas Digitales' },
 ] as const
 
 const router = createRouter({
@@ -72,6 +72,11 @@ const router = createRouter({
           path: 'gestion-humana/onboarding',
           name: 'gh-onboarding',
           component: OnboardingPage,
+        },
+        {
+          path: 'gestion-humana/firmas-digitales',
+          name: 'gh-firmas-digitales',
+          component: FirmasDigitalesPage,
         },
         {
           path: 'gestion-humana/nominas',

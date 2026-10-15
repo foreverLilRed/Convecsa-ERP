@@ -4,6 +4,7 @@ import com.convecsa.erp.contrato.support.SueldoEnLetras;
 import com.convecsa.erp.nomina.domain.CategoriaConcepto;
 import com.convecsa.erp.nomina.entity.BoletaConcepto;
 import com.convecsa.erp.nomina.entity.BoletaPago;
+import com.convecsa.erp.nomina.entity.NominaDocumentoConfiguracion;
 import com.convecsa.erp.nomina.entity.PlantillaBoleta;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.entity.PersonaCuentaBancaria;
@@ -23,11 +24,18 @@ public class BoletaPlantillaService {
     private static final Locale ES_PE = Locale.forLanguageTag("es-PE");
 
     public String render(BoletaPago boleta, PlantillaBoleta plantilla) {
+        return render(boleta, plantilla, null);
+    }
+
+    public String render(
+            BoletaPago boleta,
+            PlantillaBoleta plantilla,
+            NominaDocumentoConfiguracion configuracion) {
         if (boleta == null) {
             throw new IllegalArgumentException("La boleta es obligatoria");
         }
         String html = plantilla == null || plantilla.getPlantilla() == null ? "" : plantilla.getPlantilla();
-        Map<String, String> valores = tokens(boleta);
+        Map<String, String> valores = tokens(boleta, configuracion);
         for (Map.Entry<String, String> entry : valores.entrySet()) {
             html = html.replace("{{" + entry.getKey() + "}}", entry.getValue());
         }
@@ -35,6 +43,10 @@ public class BoletaPlantillaService {
     }
 
     Map<String, String> tokens(BoletaPago boleta) {
+        return tokens(boleta, null);
+    }
+
+    Map<String, String> tokens(BoletaPago boleta, NominaDocumentoConfiguracion configuracion) {
         Persona persona = boleta.getPersona();
         PersonaCuentaBancaria cuenta = cuentaPrincipal(persona);
         Map<String, String> valores = new LinkedHashMap<>();
@@ -44,14 +56,22 @@ public class BoletaPlantillaService {
         valores.put("persona_cargo", boleta.getContrato() == null ? "" : text(boleta.getContrato().getCargo()));
         valores.put("persona_cci", cuenta == null ? "" : text(cuenta.getCci()));
         valores.put("persona_banco", cuenta == null || cuenta.getBanco() == null ? "" : cuenta.getBanco().name());
-        valores.put("empleador_razon", "CONVECSA S.A.C.");
-        valores.put("empleador_ruc", "20601414067");
-        valores.put("empleador_domicilio", "Calle Van Gogh 345, Urb. San Borja, Lima");
+        valores.put("empleador_razon", escape(configuracion == null ? "CONVECSA S.A.C." : configuracion.getRazonSocial()));
+        valores.put("empleador_ruc", escape(configuracion == null ? "20601414067" : configuracion.getRuc()));
+        valores.put("empleador_domicilio", escape(configuracion == null
+                ? "Calle Van Gogh 345, Urb. San Borja, Lima"
+                : configuracion.getDomicilio()));
+        valores.put("empleador_representante", escape(configuracion == null
+                ? ""
+                : configuracion.getRepresentante()));
+        valores.put("logo_empresa_html", imagen(configuracion == null ? null : configuracion.getLogoDataUrl(), "company-logo"));
+        valores.put("firma_representante_html", imagen(
+                configuracion == null ? null : configuracion.getFirmaDataUrl(), "signature-image"));
         valores.put("periodo_mes_largo", mesLargo(boleta.getPeriodo() == null ? 0 : boleta.getPeriodo().getMes()));
         valores.put("periodo_anio", boleta.getPeriodo() == null ? "" : String.valueOf(boleta.getPeriodo().getAnio()));
         valores.put("dias_trabajados", String.valueOf(boleta.getDiasTrabajados()));
         valores.put("afp_nombre", boleta.getAfp() == null ? "" : text(boleta.getAfp().getLabel()));
-        valores.put("regimen", "Pequeña Empresa – REMYPE");
+        valores.put("regimen", "Pequeña Empresa - REMYPE");
         valores.put("tabla_haberes", filas(boleta, CategoriaConcepto.HABER));
         valores.put("tabla_descuentos", filas(boleta, CategoriaConcepto.DESCUENTO));
         valores.put("tabla_aportes", filas(boleta, CategoriaConcepto.APORTE_EMPLEADOR));
@@ -75,7 +95,7 @@ public class BoletaPlantillaService {
                     .append("</td></tr>");
         }
         if (filas.isEmpty()) {
-            return "<tr><td>—</td><td class=\"num\">0.00</td></tr>";
+            return "<tr><td>-</td><td class=\"num\">0.00</td></tr>";
         }
         return filas.toString();
     }
@@ -113,6 +133,13 @@ public class BoletaPlantillaService {
 
     private static String text(String value) {
         return value == null ? "" : value;
+    }
+
+    private static String imagen(String dataUrl, String cssClass) {
+        if (dataUrl == null || !dataUrl.matches("^data:image/(png|jpeg);base64,[A-Za-z0-9+/=\\r\\n]+$")) {
+            return "";
+        }
+        return "<img class=\"" + cssClass + "\" src=\"" + dataUrl.replace("\r", "").replace("\n", "") + "\"/>";
     }
 
     private static PersonaCuentaBancaria cuentaPrincipal(Persona persona) {

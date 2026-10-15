@@ -12,5 +12,7 @@ public interface AsistenciaRegistroRepository extends JpaRepository<AsistenciaRe
     List<AsistenciaRegistro> findByFechaBetweenOrderByPersonaApellidosAscPersonaNombresAscFechaAsc(
             LocalDate inicio, LocalDate fin);
 
+    List<AsistenciaRegistro> findByPersonaIdAndFechaBetweenOrderByFechaAsc(Long personaId, LocalDate inicio, LocalDate fin);
+
     boolean existsByPersonaIdAndFecha(Long personaId, LocalDate fecha);
 }

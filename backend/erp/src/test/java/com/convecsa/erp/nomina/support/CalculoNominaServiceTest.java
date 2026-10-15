@@ -2,6 +2,8 @@ package com.convecsa.erp.nomina.support;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.nomina.catalogo.Afp;
@@ -11,13 +13,38 @@ import com.convecsa.erp.nomina.domain.EstadoBoletaPago;
 import com.convecsa.erp.nomina.domain.OrigenConcepto;
 import com.convecsa.erp.nomina.entity.BoletaConcepto;
 import com.convecsa.erp.nomina.entity.BoletaPago;
+import com.convecsa.erp.nomina.entity.AfpTasa;
+import com.convecsa.erp.nomina.entity.NominaConfiguracion;
+import com.convecsa.erp.nomina.repository.AfpTasaRepository;
+import com.convecsa.erp.nomina.repository.NominaConfiguracionRepository;
+import com.convecsa.erp.persona.entity.Persona;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class CalculoNominaServiceTest {
 
-    private final CalculoNominaService calculo = new CalculoNominaService();
+    private final AfpTasaRepository tasas = mock(AfpTasaRepository.class);
+    private final NominaConfiguracionRepository configuraciones = mock(NominaConfiguracionRepository.class);
+    private final CalculoNominaService calculo = new CalculoNominaService(tasas, configuraciones);
+
+    @BeforeEach
+    void prepararConfiguracion() {
+        NominaConfiguracion configuracion = new NominaConfiguracion();
+        configuracion.setTasaEssalud(new BigDecimal("0.09"));
+        configuracion.setTasaSctrSalud(BigDecimal.ZERO);
+        configuracion.setTasaSctrPension(BigDecimal.ZERO);
+        configuracion.setTasaVidaLey(BigDecimal.ZERO);
+        configuracion.setTasaEssaludVida(BigDecimal.ZERO);
+        when(configuraciones.findById(NominaConfiguracion.ID_UNICO)).thenReturn(Optional.of(configuracion));
+        when(tasas.findByAfpIdAndTipoComisionAndActivoTrue(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> Optional.of(tasa(
+                        invocation.getArgument(1).toString().equals("NO_APLICA") ? new BigDecimal("0.13") : new BigDecimal("0.10"),
+                        invocation.getArgument(1).toString().equals("FLUJO") ? new BigDecimal("0.0147") : BigDecimal.ZERO,
+                        invocation.getArgument(1).toString().equals("NO_APLICA") ? BigDecimal.ZERO : new BigDecimal("0.0137"))));
+    }
 
     @Test
     void sueldo1500HabitatSinAsignacion() {
@@ -101,8 +128,10 @@ class CalculoNominaServiceTest {
     private static BoletaPago boleta(BigDecimal sueldo, Afp afp, int dias, boolean asignacion) {
         Contrato contrato = new Contrato();
         contrato.setSueldo(sueldo);
+        Persona persona = new Persona();
         BoletaPago boleta = new BoletaPago();
         boleta.setContrato(contrato);
+        boleta.setPersona(persona);
         boleta.setAfp(afp);
         boleta.setDiasTrabajados(dias);
         boleta.setAplicaAsigFamiliar(asignacion);
@@ -112,6 +141,7 @@ class CalculoNominaServiceTest {
 
     private static Afp habitat() {
         Afp afp = new Afp();
+        afp.setId(1L);
         afp.setCodigo("HABITAT");
         afp.setLabel("AFP Habitat");
         afp.setAporteObligatorio(new BigDecimal("0.1000"));
@@ -123,6 +153,7 @@ class CalculoNominaServiceTest {
 
     private static Afp onp() {
         Afp afp = new Afp();
+        afp.setId(2L);
         afp.setCodigo("ONP");
         afp.setLabel("ONP");
         afp.setAporteObligatorio(new BigDecimal("0.1300"));
@@ -139,5 +170,14 @@ class CalculoNominaServiceTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("Falta concepto " + codigo));
         assertEquals(new BigDecimal(esperado).setScale(2, RoundingMode.HALF_UP), monto);
+    }
+
+    private static AfpTasa tasa(BigDecimal aporte, BigDecimal comision, BigDecimal prima) {
+        AfpTasa tasa = new AfpTasa();
+        tasa.setAporteObligatorio(aporte);
+        tasa.setComision(comision);
+        tasa.setPrimaSeguro(prima);
+        tasa.setActivo(true);
+        return tasa;
     }
 }

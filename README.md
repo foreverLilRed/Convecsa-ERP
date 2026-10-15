@@ -15,6 +15,13 @@ copy .env.prod.example .env.prod
 
 Editar `.env.prod` y cambiar `POSTGRES_PASSWORD`.
 
+### Correo de boletas
+
+El envío de boletas está deshabilitado por defecto. Para activarlo, configure `MAIL_HOST`,
+`MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `APP_NOMINA_MAIL_FROM`; luego cambie
+`APP_NOMINA_MAIL_ENABLED=true`. Use `MAIL_SMTP_AUTH` y `MAIL_STARTTLS` según el proveedor SMTP.
+El logo, la firma y los datos legales se administran dentro del ERP en **Gestión Humana → Firmas Digitales**.
+
 ### Local
 
 Requiere PostgreSQL y la base `convecsa` en el host (`localhost:5432`).

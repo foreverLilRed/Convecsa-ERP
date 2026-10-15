@@ -12,6 +12,10 @@ export type CodigoConcepto =
   | 'PRIMA_SEGURO'
   | 'APORTE_ONP'
   | 'ESSALUD'
+  | 'SCTR_SALUD'
+  | 'SCTR_PENSION'
+  | 'VIDA_LEY'
+  | 'ESSALUD_VIDA'
   | 'EXTRA'
 
 export type OrigenConcepto = 'CALCULADO' | 'MANUAL'
@@ -109,6 +113,55 @@ export type BoletaUpdateRequest = {
   extras: BoletaConceptoExtraRequest[]
 }
 
+export type BoletaEnvioResumen = {
+  enviados: number
+  errores: number
+  detalles: string[]
+}
+
+export type NominaDocumentoConfiguracion = {
+  razonSocial: string
+  ruc: string
+  domicilio: string
+  representante: string | null
+  logoDataUrl: string | null
+  firmaDataUrl: string | null
+}
+
+export type AsientoContableLinea = {
+  cuenta: string
+  descripcion: string
+  destino: string | null
+  debe: number
+  haber: number
+}
+
+export type AsientoContableBloque = {
+  codigo: string
+  titulo: string
+  lineas: AsientoContableLinea[]
+  totalDebe: number
+  totalHaber: number
+}
+
+export type AsientoContable = {
+  periodoId: number
+  anio: number
+  mes: number
+  estadoPeriodo: EstadoPeriodoNomina
+  preliminar: boolean
+  generadoAt: string
+  cantidadTrabajadores: number
+  totalHaberes: number
+  totalDescuentos: number
+  totalAportesEmpleador: number
+  totalNeto: number
+  asientos: AsientoContableBloque[]
+  totalDebe: number
+  totalHaber: number
+  diferencia: number
+}
+
 const MESES = [
   'Enero',
   'Febrero',
@@ -148,4 +201,9 @@ export function boletaDocumentoUrl(
   const query = params.toString()
   const path = `${API_BASE}/api/gestion-humana/nominas/boletas/${id}/documento`
   return query ? `${path}?${query}` : path
+}
+
+export function boletaPdfUrl(id: number, descarga = false): string {
+  const params = descarga ? '?descarga=true' : ''
+  return `${API_BASE}/api/gestion-humana/nominas/boletas/${id}/pdf${params}`
 }

@@ -21,13 +21,15 @@ import {
   eliminarFeriado,
   generarPlanilla,
   guardarConfigAsistencia,
+  eliminarConceptoVariable,
   listarFeriados,
+  listarConceptosVariables,
   obtenerPlanilla,
+  registrarConceptoVariable,
 } from '@/services/asistencia/asistenciaService'
 import { mesesCatalogo, periodoLabel } from '@/types/nomina'
 import {
   DIAS_SEMANA,
-  ESTADOS_ASISTENCIA,
   diaCorto,
   diaMes,
   fechaLarga,
@@ -35,7 +37,11 @@ import {
   type AsistenciaFila,
   type AsistenciaPlanilla,
   type AsistenciaRegistro,
+  CODIGOS_TAREO,
+  type CodigoTareo,
   type EstadoAsistencia,
+  type AsistenciaConceptoVariable,
+  type TipoConceptoVariableTareo,
 } from '@/types/asistencia'
 
 type FilaVista = AsistenciaFila & {
@@ -61,7 +67,14 @@ const loading = ref(true)
 const acting = ref(false)
 const saving = ref(false)
 const planilla = ref<AsistenciaPlanilla | null>(null)
-const edits = reactive<Record<number, { horasTrabajadas: string; estado: EstadoAsistencia }>>({})
+const edits = reactive<Record<number, {
+  horasTrabajadas: string
+  estado: EstadoAsistencia
+  codigo: CodigoTareo
+  minutosExtras25: string
+  minutosExtras35: string
+  minutosTardanza: string
+}>>({})
 const configOpen = ref(false)
 const configSaving = ref(false)
 const configError = ref('')
@@ -69,6 +82,14 @@ const configDias = ref<number[]>([1, 2, 3, 4, 5])
 const feriados = ref<AsistenciaFeriado[]>([])
 const feriadoForm = reactive({ fecha: '', nombre: '' })
 const feriadoError = ref('')
+const conceptosVariables = ref<AsistenciaConceptoVariable[]>([])
+const conceptoSaving = ref(false)
+const conceptoForm = reactive<{
+  personaId: string
+  tipo: TipoConceptoVariableTareo
+  monto: string
+  detalle: string
+}>({ personaId: '', tipo: 'COMISION', monto: '', detalle: '' })
 const meses = mesesCatalogo()
 const configTriggerWrap = ref<HTMLElement | null>(null)
 const configPanel = ref<HTMLElement | null>(null)
@@ -131,8 +152,18 @@ function estadoDe(registro: AsistenciaRegistro): EstadoAsistencia {
   return edits[registro.id]?.estado ?? registro.estado
 }
 
-function horasBloqueadas(estado: EstadoAsistencia): boolean {
-  return estado === 'FALTA' || estado === 'DESCANSO'
+function codigoDe(registro: AsistenciaRegistro): CodigoTareo {
+  return edits[registro.id]?.codigo ?? registro.codigo
+}
+
+function minutosDe(registro: AsistenciaRegistro, campo: 'minutosExtras25' | 'minutosExtras35' | 'minutosTardanza'): number {
+  const valor = edits[registro.id]?.[campo] ?? String(registro[campo])
+  const numero = Number(valor)
+  return Number.isFinite(numero) ? numero : 0
+}
+
+function horasBloqueadas(codigo: CodigoTareo): boolean {
+  return ['D', 'F', 'DM', 'SIT', 'MAT_PRE', 'MAT_POST', 'VAC', 'VAC_COMP', 'LCG', 'LSG', 'PAT', 'FI'].includes(codigo)
 }
 
 function totalFila(registros: AsistenciaRegistro[]): number {
@@ -166,33 +197,48 @@ function estadoSelectClase(estado: EstadoAsistencia): string {
 }
 
 function onHoras(registro: AsistenciaRegistro, esperado: number, value: string) {
-  markEdit(registro, value, estadoDe(registro), esperado)
+  markEdit(registro, value, estadoDe(registro), codigoDe(registro), esperado)
 }
 
-function onEstado(registro: AsistenciaRegistro, esperado: number, estado: EstadoAsistencia) {
+function onCodigo(registro: AsistenciaRegistro, esperado: number, codigo: CodigoTareo) {
   let horas = String(horasDe(registro))
-  if (estado === 'FALTA' || estado === 'DESCANSO' || estado === 'PERMISO') {
+  if (['D', 'F', 'DM', 'SIT', 'MAT_PRE', 'MAT_POST', 'VAC', 'VAC_COMP', 'LCG', 'LSG', 'PAT', 'FI'].includes(codigo)) {
     horas = '0'
-  } else if (estado === 'ASISTIO' && Number(horas) === 0) {
+  } else if (codigo === 'A' && Number(horas) === 0) {
     horas = String(esperado)
   }
-  markEdit(registro, horas, estado, esperado)
+  markEdit(registro, horas, estadoDe(registro), codigo, esperado)
 }
 
 function markEdit(
   registro: AsistenciaRegistro,
   horasTrabajadas: string,
   estado: EstadoAsistencia,
+  codigo: CodigoTareo,
   _esperado: number,
 ) {
   const originalHoras = String(Number(registro.horasTrabajadas))
   const sameHoras = Number(horasTrabajadas) === Number(originalHoras)
   const sameEstado = estado === registro.estado
-  if (sameHoras && sameEstado) {
+  const sameCodigo = codigo === registro.codigo
+  if (sameHoras && sameEstado && sameCodigo) {
     delete edits[registro.id]
     return
   }
-  edits[registro.id] = { horasTrabajadas, estado }
+  const previo = edits[registro.id]
+  edits[registro.id] = {
+    horasTrabajadas,
+    estado,
+    codigo,
+    minutosExtras25: previo?.minutosExtras25 ?? String(registro.minutosExtras25),
+    minutosExtras35: previo?.minutosExtras35 ?? String(registro.minutosExtras35),
+    minutosTardanza: previo?.minutosTardanza ?? String(registro.minutosTardanza),
+  }
+}
+
+function onMinutos(registro: AsistenciaRegistro, campo: 'minutosExtras25' | 'minutosExtras35' | 'minutosTardanza', valor: string) {
+  markEdit(registro, String(horasDe(registro)), estadoDe(registro), codigoDe(registro), 0)
+  edits[registro.id]![campo] = valor
 }
 
 function clearEdits() {
@@ -230,6 +276,10 @@ async function load() {
   estadoVivo.value = 'Cargando planilla de asistencia'
   try {
     planilla.value = await obtenerPlanilla(anio.value, mes.value)
+    conceptosVariables.value = await listarConceptosVariables(anio.value, mes.value)
+    if (!conceptoForm.personaId && planilla.value.filas[0]) {
+      conceptoForm.personaId = String(planilla.value.filas[0].personaId)
+    }
     clearEdits()
     estadoVivo.value = planilla.value.generado
       ? `Planilla de ${tituloPeriodo.value} con ${planilla.value.filas.length} personas`
@@ -240,6 +290,44 @@ async function load() {
     toast.error(message)
   } finally {
     loading.value = false
+  }
+}
+
+async function onRegistrarConceptoVariable() {
+  const personaId = Number(conceptoForm.personaId)
+  const fila = planilla.value?.filas.find((item) => item.personaId === personaId)
+  const monto = Number(conceptoForm.monto)
+  if (!fila || !Number.isFinite(monto) || monto < 0) {
+    toast.error('Seleccione una persona e ingrese un monto válido.')
+    return
+  }
+  conceptoSaving.value = true
+  try {
+    const creado = await registrarConceptoVariable(anio.value, mes.value, {
+      personaId,
+      contratoId: fila.contratoId,
+      tipo: conceptoForm.tipo,
+      monto,
+      detalle: conceptoForm.detalle || null,
+    })
+    conceptosVariables.value = [...conceptosVariables.value, creado]
+    conceptoForm.monto = ''
+    conceptoForm.detalle = ''
+    toast.success('Concepto variable registrado.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el concepto.')
+  } finally {
+    conceptoSaving.value = false
+  }
+}
+
+async function onEliminarConceptoVariable(id: number) {
+  try {
+    await eliminarConceptoVariable(id)
+    conceptosVariables.value = conceptosVariables.value.filter((item) => item.id !== id)
+    toast.success('Concepto variable eliminado.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo eliminar el concepto.')
   }
 }
 
@@ -273,6 +361,10 @@ async function onGuardar() {
     id: Number(id),
     horasTrabajadas: Number(value.horasTrabajadas),
     estado: value.estado,
+    codigo: value.codigo,
+    minutosExtras25: Number(value.minutosExtras25),
+    minutosExtras35: Number(value.minutosExtras35),
+    minutosTardanza: Number(value.minutosTardanza),
   }))
   if (!items.length) {
     return
@@ -280,6 +372,10 @@ async function onGuardar() {
   for (const item of items) {
     if (!Number.isFinite(item.horasTrabajadas) || item.horasTrabajadas < 0 || item.horasTrabajadas > 24) {
       toast.error('Las horas deben estar entre 0 y 24.')
+      return
+    }
+    if ([item.minutosExtras25, item.minutosExtras35, item.minutosTardanza].some((minutos) => !Number.isInteger(minutos) || minutos < 0 || minutos > 1440)) {
+      toast.error('Los minutos deben ser enteros entre 0 y 1440.')
       return
     }
   }
@@ -337,8 +433,8 @@ function onDocumentKeydown(event: KeyboardEvent) {
     configPanel.value?.focus()
     return
   }
-  const first = items[0]
-  const last = items[items.length - 1]
+  const first = items[0]!
+  const last = items[items.length - 1]!
   const active = document.activeElement
   if (event.shiftKey) {
     if (active === first || active === configPanel.value || !configPanel.value?.contains(active)) {
@@ -509,7 +605,7 @@ void load()
         <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
         <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Asistencia</h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
-          Planilla mensual del personal con contrato activo. Las horas se prellenan según la jornada; Falta y Descanso quedan en 0 h.
+          Tareo mensual del personal con contrato activo. Registre códigos, horas, sobretiempos, tardanzas e incidencias por día.
         </p>
       </div>
       <div ref="configTriggerWrap" class="sm:mt-7">
@@ -534,7 +630,7 @@ void load()
         <dd class="mt-2 text-lg font-bold text-palette-navy">{{ tituloPeriodo }}</dd>
       </div>
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-4">
-        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-600">Días laborables</dt>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-600">Días del período</dt>
         <dd class="mt-2 text-lg font-bold text-palette-navy">{{ planilla?.diasLaborables.length ?? '—' }}</dd>
       </div>
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-4">
@@ -654,6 +750,64 @@ void load()
       </li>
     </ul>
 
+    <section v-if="planilla?.generado" class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+      <div>
+        <h3 class="text-base font-semibold text-palette-navy">Conceptos variables del mes</h3>
+        <p class="mt-1 text-sm text-slate-600">
+          Registre comisiones, alimentación, trabajo nocturno, adelantos y descuentos. Se incorporan al generar la nómina del período.
+        </p>
+      </div>
+      <div class="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-700">
+          Persona
+          <select v-model="conceptoForm.personaId" :class="inputClass">
+            <option v-for="fila in planilla.filas" :key="fila.personaId" :value="String(fila.personaId)">
+              {{ fila.personaApellidos }}, {{ fila.personaNombres }}
+            </option>
+          </select>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-700">
+          Concepto
+          <select v-model="conceptoForm.tipo" :class="inputClass">
+            <option value="COMISION">Comisión</option>
+            <option value="TRABAJO_NOCTURNO">Trabajo nocturno (35%)</option>
+            <option value="ASIGNACION_ALIMENTACION">Asignación de alimentación</option>
+            <option value="ADELANTO_QUINCENA">Adelanto de quincena</option>
+            <option value="CUOTA_SINDICAL">Cuota sindical</option>
+            <option value="DESCUENTO_JUDICIAL">Descuento judicial</option>
+            <option value="OTRO_INGRESO">Otro ingreso</option>
+            <option value="OTRO_DESCUENTO">Otro descuento</option>
+          </select>
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-700">
+          Monto
+          <input v-model="conceptoForm.monto" :class="inputClass" type="number" min="0" step="0.01" />
+        </label>
+        <label class="text-xs font-semibold uppercase tracking-wide text-slate-700">
+          Detalle
+          <input v-model="conceptoForm.detalle" :class="inputClass" maxlength="300" />
+        </label>
+        <div class="flex items-end">
+          <Button class="h-10 w-full bg-palette-navy text-white hover:bg-palette-royal" type="button" :disabled="conceptoSaving" @click="onRegistrarConceptoVariable">
+            {{ conceptoSaving ? 'Registrando…' : 'Agregar concepto' }}
+          </Button>
+        </div>
+      </div>
+      <div v-if="conceptosVariables.length" class="mt-4 overflow-x-auto rounded-md border border-slate-200">
+        <table class="min-w-full text-sm">
+          <tbody>
+            <tr v-for="item in conceptosVariables" :key="item.id" class="border-b border-slate-100 last:border-0">
+              <td class="px-3 py-2">{{ planilla.filas.find((fila) => fila.personaId === item.personaId)?.personaApellidos }}</td>
+              <td class="px-3 py-2">{{ item.tipo.replaceAll('_', ' ') }}</td>
+              <td class="px-3 py-2 text-right tabular-nums">S/ {{ item.monto.toFixed(2) }}</td>
+              <td class="px-3 py-2 text-slate-600">{{ item.detalle }}</td>
+              <td class="px-3 py-2 text-right"><Button variant="ghost" size="sm" type="button" @click="onEliminarConceptoVariable(item.id)">Quitar</Button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <div class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -767,25 +921,54 @@ void load()
                     step="0.25"
                     inputmode="decimal"
                     autocomplete="off"
-                    :disabled="horasBloqueadas(estadoDe(fila.porFecha[fecha]))"
-                    :aria-describedby="horasBloqueadas(estadoDe(fila.porFecha[fecha])) ? 'asistencia-horas-bloqueadas' : undefined"
-                    :title="horasBloqueadas(estadoDe(fila.porFecha[fecha])) ? 'Las horas quedan en 0 con Falta o Descanso' : 'Horas trabajadas'"
+                    :disabled="horasBloqueadas(codigoDe(fila.porFecha[fecha]))"
+                    :aria-describedby="horasBloqueadas(codigoDe(fila.porFecha[fecha])) ? 'asistencia-horas-bloqueadas' : undefined"
+                    :title="horasBloqueadas(codigoDe(fila.porFecha[fecha])) ? 'Las horas quedan en 0 para esta incidencia' : 'Horas trabajadas'"
                     :value="horasDe(fila.porFecha[fecha])"
                     @input="onHoras(fila.porFecha[fecha], fila.horasEsperadasDia, ($event.target as HTMLInputElement).value)"
                   />
-                  <label class="sr-only" :for="`estado-${fila.porFecha[fecha].id}`">
-                    Estado de {{ fila.personaApellidos }}, {{ fila.personaNombres }} el {{ fechaLarga(fecha) }}
+                  <label class="sr-only" :for="`codigo-${fila.porFecha[fecha].id}`">
+                    Código de tareo de {{ fila.personaApellidos }}, {{ fila.personaNombres }} el {{ fechaLarga(fecha) }}
                   </label>
                   <select
-                    :id="`estado-${fila.porFecha[fecha].id}`"
+                    :id="`codigo-${fila.porFecha[fecha].id}`"
                     :class="[cellSelectClass, estadoSelectClase(estadoDe(fila.porFecha[fecha]))]"
-                    :value="estadoDe(fila.porFecha[fecha])"
-                    @change="onEstado(fila.porFecha[fecha], fila.horasEsperadasDia, ($event.target as HTMLSelectElement).value as EstadoAsistencia)"
+                    :value="codigoDe(fila.porFecha[fecha])"
+                    @change="onCodigo(fila.porFecha[fecha], fila.horasEsperadasDia, ($event.target as HTMLSelectElement).value as CodigoTareo)"
                   >
-                    <option v-for="item in ESTADOS_ASISTENCIA" :key="item.value" :value="item.value">
+                    <option v-for="item in CODIGOS_TAREO" :key="item.value" :value="item.value">
                       {{ item.label }}
                     </option>
                   </select>
+                  <div class="grid grid-cols-3 gap-1" title="Minutos: HE 25%, HE 35% y tardanza">
+                    <input
+                      :class="cellInputClass"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="25%"
+                      :value="minutosDe(fila.porFecha[fecha], 'minutosExtras25')"
+                      @input="onMinutos(fila.porFecha[fecha], 'minutosExtras25', ($event.target as HTMLInputElement).value)"
+                    />
+                    <input
+                      :class="cellInputClass"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="35%"
+                      :value="minutosDe(fila.porFecha[fecha], 'minutosExtras35')"
+                      @input="onMinutos(fila.porFecha[fecha], 'minutosExtras35', ($event.target as HTMLInputElement).value)"
+                    />
+                    <input
+                      :class="cellInputClass"
+                      type="number"
+                      min="0"
+                      step="1"
+                      placeholder="Tar"
+                      :value="minutosDe(fila.porFecha[fecha], 'minutosTardanza')"
+                      @input="onMinutos(fila.porFecha[fecha], 'minutosTardanza', ($event.target as HTMLInputElement).value)"
+                    />
+                  </div>
                 </div>
                 <span
                   v-else

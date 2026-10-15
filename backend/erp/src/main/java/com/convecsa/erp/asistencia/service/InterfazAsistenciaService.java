@@ -2,6 +2,8 @@ package com.convecsa.erp.asistencia.service;
 
 import com.convecsa.erp.asistencia.dto.AsistenciaConfigDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaConfigRequest;
+import com.convecsa.erp.asistencia.dto.AsistenciaConceptoVariableDTO;
+import com.convecsa.erp.asistencia.dto.AsistenciaConceptoVariableRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaFeriadoDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaFeriadoRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaGenerarRequest;
@@ -26,4 +28,11 @@ public interface InterfazAsistenciaService {
     AsistenciaPlanillaDTO generarPlanilla(AsistenciaGenerarRequest request);
 
     AsistenciaPlanillaDTO actualizarPlanilla(AsistenciaPlanillaUpdateRequest request);
+
+    List<AsistenciaConceptoVariableDTO> listarConceptosVariables(int anio, int mes);
+
+    AsistenciaConceptoVariableDTO registrarConceptoVariable(
+            int anio, int mes, AsistenciaConceptoVariableRequest request);
+
+    void eliminarConceptoVariable(Long id);
 }

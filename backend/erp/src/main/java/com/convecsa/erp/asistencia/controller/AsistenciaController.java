@@ -2,6 +2,8 @@ package com.convecsa.erp.asistencia.controller;
 
 import com.convecsa.erp.asistencia.dto.AsistenciaConfigDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaConfigRequest;
+import com.convecsa.erp.asistencia.dto.AsistenciaConceptoVariableDTO;
+import com.convecsa.erp.asistencia.dto.AsistenciaConceptoVariableRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaFeriadoDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaFeriadoRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaGenerarRequest;
@@ -70,5 +72,25 @@ public class AsistenciaController {
     @PutMapping("/planilla")
     public AsistenciaPlanillaDTO actualizar(@Valid @RequestBody AsistenciaPlanillaUpdateRequest request) {
         return asistenciaService.actualizarPlanilla(request);
+    }
+
+    @GetMapping("/conceptos-variables")
+    public List<AsistenciaConceptoVariableDTO> conceptosVariables(@RequestParam int anio, @RequestParam int mes) {
+        return asistenciaService.listarConceptosVariables(anio, mes);
+    }
+
+    @PostMapping("/conceptos-variables")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AsistenciaConceptoVariableDTO registrarConceptoVariable(
+            @RequestParam int anio,
+            @RequestParam int mes,
+            @Valid @RequestBody AsistenciaConceptoVariableRequest request) {
+        return asistenciaService.registrarConceptoVariable(anio, mes, request);
+    }
+
+    @DeleteMapping("/conceptos-variables/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarConceptoVariable(@PathVariable Long id) {
+        asistenciaService.eliminarConceptoVariable(id);
     }
 }

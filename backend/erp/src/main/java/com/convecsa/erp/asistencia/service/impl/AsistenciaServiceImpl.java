@@ -1,8 +1,11 @@
 package com.convecsa.erp.asistencia.service.impl;
 
 import com.convecsa.erp.asistencia.domain.EstadoAsistencia;
+import com.convecsa.erp.asistencia.domain.CodigoTareo;
 import com.convecsa.erp.asistencia.dto.AsistenciaConfigDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaConfigRequest;
+import com.convecsa.erp.asistencia.dto.AsistenciaConceptoVariableDTO;
+import com.convecsa.erp.asistencia.dto.AsistenciaConceptoVariableRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaFeriadoDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaFeriadoRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaFilaDTO;
@@ -12,9 +15,11 @@ import com.convecsa.erp.asistencia.dto.AsistenciaPlanillaUpdateRequest;
 import com.convecsa.erp.asistencia.dto.AsistenciaRegistroDTO;
 import com.convecsa.erp.asistencia.dto.AsistenciaRegistroUpdateRequest;
 import com.convecsa.erp.asistencia.entity.AsistenciaConfig;
+import com.convecsa.erp.asistencia.entity.AsistenciaConceptoVariable;
 import com.convecsa.erp.asistencia.entity.AsistenciaFeriado;
 import com.convecsa.erp.asistencia.entity.AsistenciaRegistro;
 import com.convecsa.erp.asistencia.repository.AsistenciaConfigRepository;
+import com.convecsa.erp.asistencia.repository.AsistenciaConceptoVariableRepository;
 import com.convecsa.erp.asistencia.repository.AsistenciaFeriadoRepository;
 import com.convecsa.erp.asistencia.repository.AsistenciaRegistroRepository;
 import com.convecsa.erp.asistencia.service.InterfazAsistenciaService;
@@ -48,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AsistenciaServiceImpl implements InterfazAsistenciaService {
 
     private final AsistenciaConfigRepository configRepository;
+    private final AsistenciaConceptoVariableRepository conceptoVariableRepository;
     private final AsistenciaFeriadoRepository feriadoRepository;
     private final AsistenciaRegistroRepository registroRepository;
     private final ContratoRepository contratoRepository;
@@ -142,15 +148,17 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
             BigDecimal esperado = horasJornadaService.horasEsperadasDia(contrato.getJornada(), diasConfig);
             Set<LocalDate> existentes = existentesPorPersona.getOrDefault(persona.getId(), Set.of());
             List<LocalDate> faltan = CalendarioLaborableService.faltantes(
-                    fechasVigentes(laborables, contrato), existentes);
+                    fechasVigentes(fechasDelMes(yearMonth), contrato), existentes);
             for (LocalDate fecha : faltan) {
                 AsistenciaRegistro registro = new AsistenciaRegistro();
                 registro.setPersona(persona);
                 registro.setContrato(contrato);
                 registro.setFecha(fecha);
-                registro.setHorasEsperadas(esperado);
-                registro.setHorasTrabajadas(esperado);
-                registro.setEstado(EstadoAsistencia.ASISTIO);
+                CodigoTareo codigo = codigoInicial(fecha, laborables, noLaborables);
+                registro.setCodigo(codigo);
+                registro.setHorasEsperadas(codigo == CodigoTareo.A ? esperado : BigDecimal.ZERO);
+                registro.setHorasTrabajadas(codigo == CodigoTareo.A ? esperado : BigDecimal.ZERO);
+                registro.setEstado(estadoPorCodigo(codigo));
                 registroRepository.save(registro);
             }
         }
@@ -166,15 +174,20 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
             AsistenciaRegistro registro = registroRepository.findById(item.getId())
                     .orElseThrow(() -> new AsistenciaRegistroNoEncontradoException(
                             "No se encontró el registro de asistencia"));
-            EstadoAsistencia estado = item.getEstado();
+            CodigoTareo codigo = item.getCodigo();
+            EstadoAsistencia estado = estadoPorCodigo(codigo);
             BigDecimal horas = item.getHorasTrabajadas().setScale(2, RoundingMode.HALF_UP);
-            if (estado == EstadoAsistencia.FALTA || estado == EstadoAsistencia.DESCANSO) {
+            if (bloqueaHoras(codigo)) {
                 horas = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
-            } else if (estado == EstadoAsistencia.ASISTIO && horas.compareTo(BigDecimal.ZERO) == 0) {
+            } else if (codigo == CodigoTareo.A && horas.compareTo(BigDecimal.ZERO) == 0) {
                 horas = registro.getHorasEsperadas();
             }
             registro.setEstado(estado);
+            registro.setCodigo(codigo);
             registro.setHorasTrabajadas(horas);
+            registro.setMinutosExtras25(minutosNoNegativos(item.getMinutosExtras25(), "Horas extras al 25%"));
+            registro.setMinutosExtras35(minutosNoNegativos(item.getMinutosExtras35(), "Horas extras al 35%"));
+            registro.setMinutosTardanza(minutosNoNegativos(item.getMinutosTardanza(), "Tardanzas"));
             registro.setObservacion(trimToNull(item.getObservacion()));
             anio = registro.getFecha().getYear();
             mes = registro.getFecha().getMonthValue();
@@ -183,6 +196,44 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
             throw new IllegalArgumentException("Debe indicar al menos un registro");
         }
         return armarPlanilla(anio, mes);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AsistenciaConceptoVariableDTO> listarConceptosVariables(int anio, int mes) {
+        validarPeriodo(anio, mes);
+        return conceptoVariableRepository.findByAnioAndMesOrderByPersonaApellidosAscPersonaNombresAscIdAsc(anio, mes)
+                .stream().map(AsistenciaServiceImpl::toConceptoVariableDto).toList();
+    }
+
+    @Override
+    @Transactional
+    public AsistenciaConceptoVariableDTO registrarConceptoVariable(
+            int anio, int mes, AsistenciaConceptoVariableRequest request) {
+        validarPeriodo(anio, mes);
+        Contrato contrato = contratoRepository.findById(request.getContratoId())
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró el contrato"));
+        if (!contrato.getPersona().getId().equals(request.getPersonaId())) {
+            throw new IllegalArgumentException("El contrato no corresponde a la persona indicada");
+        }
+        AsistenciaConceptoVariable concepto = new AsistenciaConceptoVariable();
+        concepto.setPersona(contrato.getPersona());
+        concepto.setContrato(contrato);
+        concepto.setAnio(anio);
+        concepto.setMes(mes);
+        concepto.setTipo(request.getTipo());
+        concepto.setMonto(request.getMonto().setScale(2, RoundingMode.HALF_UP));
+        concepto.setDetalle(trimToNull(request.getDetalle()));
+        return toConceptoVariableDto(conceptoVariableRepository.save(concepto));
+    }
+
+    @Override
+    @Transactional
+    public void eliminarConceptoVariable(Long id) {
+        if (!conceptoVariableRepository.existsById(id)) {
+            throw new IllegalArgumentException("No se encontró el concepto variable");
+        }
+        conceptoVariableRepository.deleteById(id);
     }
 
     private AsistenciaPlanillaDTO armarPlanilla(int anio, int mes) {
@@ -234,7 +285,7 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                 mes,
                 toConfigDto(config),
                 feriadosMes.stream().map(AsistenciaServiceImpl::toFeriadoDto).toList(),
-                laborables,
+                fechasDelMes(yearMonth),
                 !registros.isEmpty(),
                 filas);
     }
@@ -290,7 +341,61 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                 registro.getHorasEsperadas(),
                 registro.getHorasTrabajadas(),
                 registro.getEstado(),
+                registro.getCodigo(),
+                registro.getMinutosExtras25(),
+                registro.getMinutosExtras35(),
+                registro.getMinutosTardanza(),
                 registro.getObservacion());
+    }
+
+    private static AsistenciaConceptoVariableDTO toConceptoVariableDto(AsistenciaConceptoVariable concepto) {
+        return new AsistenciaConceptoVariableDTO(
+                concepto.getId(),
+                concepto.getPersona().getId(),
+                concepto.getContrato().getId(),
+                concepto.getTipo(),
+                concepto.getMonto(),
+                concepto.getDetalle());
+    }
+
+    private static List<LocalDate> fechasDelMes(YearMonth yearMonth) {
+        List<LocalDate> fechas = new ArrayList<>();
+        for (int dia = 1; dia <= yearMonth.lengthOfMonth(); dia++) {
+            fechas.add(yearMonth.atDay(dia));
+        }
+        return fechas;
+    }
+
+    private static CodigoTareo codigoInicial(
+            LocalDate fecha, List<LocalDate> laborables, Set<LocalDate> feriadosNoLaborables) {
+        if (feriadosNoLaborables.contains(fecha)) {
+            return CodigoTareo.F;
+        }
+        return laborables.contains(fecha) ? CodigoTareo.A : CodigoTareo.D;
+    }
+
+    private static EstadoAsistencia estadoPorCodigo(CodigoTareo codigo) {
+        return switch (codigo) {
+            case A, TF, TD -> EstadoAsistencia.ASISTIO;
+            case D, F -> EstadoAsistencia.DESCANSO;
+            case FI -> EstadoAsistencia.FALTA;
+            default -> EstadoAsistencia.PERMISO;
+        };
+    }
+
+    private static boolean bloqueaHoras(CodigoTareo codigo) {
+        return switch (codigo) {
+            case D, F, DM, SIT, MAT_PRE, MAT_POST, VAC, VAC_COMP, LCG, LSG, PAT, FI -> true;
+            default -> false;
+        };
+    }
+
+    private static int minutosNoNegativos(Integer valor, String etiqueta) {
+        int minutos = valor == null ? 0 : valor;
+        if (minutos < 0 || minutos > 1_440) {
+            throw new IllegalArgumentException(etiqueta + " deben estar entre 0 y 1440 minutos");
+        }
+        return minutos;
     }
 
     private static void validarPeriodo(int anio, int mes) {

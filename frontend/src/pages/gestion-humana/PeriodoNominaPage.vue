@@ -3,6 +3,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   DownloadIcon,
+  FileTextIcon,
+  MailIcon,
   PencilIcon,
   PlusIcon,
   PrinterIcon,
@@ -35,18 +37,24 @@ import {
 import {
   actualizarBoleta,
   cerrarPeriodo,
+  descargarBoletaPdf,
+  descargarBoletasPdf,
+  descargarAsientoContablePdf,
+  enviarBoletasCorreo,
   generarBoletas,
+  imprimirBoletaPdf,
+  imprimirBoletasPdf,
   listarAfp,
   listarBoletas,
   obtenerBoleta,
+  obtenerAsientoContable,
   obtenerPeriodo,
   recalcularPeriodo,
 } from '@/services/nomina/nominaService'
-import { openAuthenticatedDocument } from '@/services/http'
 import {
-  boletaDocumentoUrl,
   periodoLabel,
   type Afp,
+  type AsientoContable,
   type BoletaPago,
   type BoletaPagoResumen,
   type CategoriaConcepto,
@@ -78,6 +86,7 @@ const page = ref(0)
 const periodo = ref<PeriodoNomina | null>(null)
 const boletas = ref<PagedResponse<BoletaPagoResumen> | null>(null)
 const afps = ref<Afp[]>([])
+const asiento = ref<AsientoContable | null>(null)
 const editOpen = ref(false)
 const editError = ref('')
 const editBoleta = ref<BoletaPago | null>(null)
@@ -85,6 +94,7 @@ const editDias = ref('30')
 const editAsig = ref(false)
 const editAfpId = ref('')
 const extras = ref<ExtraRow[]>([])
+const selectedIds = ref<number[]>([])
 let extraSeq = 0
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
@@ -93,6 +103,10 @@ const totalPages = computed(() => boletas.value?.totalPages ?? 0)
 const totalElements = computed(() => boletas.value?.totalElements ?? 0)
 const esBorrador = computed(() => periodo.value?.estado === 'BORRADOR')
 const puedeGenerar = computed(() => esBorrador.value && (periodo.value?.cantidadBoletas ?? 0) === 0)
+const pageIds = computed(() => (boletas.value?.content ?? []).map((item) => item.id))
+const allPageSelected = computed(
+  () => pageIds.value.length > 0 && pageIds.value.every((id) => selectedIds.value.includes(id)),
+)
 const tituloPeriodo = computed(() => {
   if (!periodo.value) {
     const mes = Number(props.id)
@@ -119,7 +133,7 @@ async function load() {
     ])
     periodo.value = nextPeriodo
     afps.value = nextAfps
-    await loadBoletas()
+    await Promise.all([loadBoletas(), loadAsiento()])
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar el periodo.')
   } finally {
@@ -131,12 +145,20 @@ async function loadBoletas() {
   boletas.value = await listarBoletas(periodoId.value, page.value, PAGE_SIZE)
 }
 
+async function loadAsiento() {
+  if ((periodo.value?.cantidadBoletas ?? 0) === 0) {
+    asiento.value = null
+    return
+  }
+  asiento.value = await obtenerAsientoContable(periodoId.value)
+}
+
 async function onGenerar() {
   acting.value = true
   try {
     periodo.value = await generarBoletas(periodoId.value)
     page.value = 0
-    await loadBoletas()
+    await Promise.all([loadBoletas(), loadAsiento()])
     toast.success('Boletas generadas.')
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudieron generar las boletas.')
@@ -149,7 +171,7 @@ async function onRecalcularTodas() {
   acting.value = true
   try {
     periodo.value = await recalcularPeriodo(periodoId.value)
-    await loadBoletas()
+    await Promise.all([loadBoletas(), loadAsiento()])
     toast.success('Boletas recalculadas.')
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudieron recalcular las boletas.')
@@ -162,7 +184,7 @@ async function onCerrar() {
   acting.value = true
   try {
     periodo.value = await cerrarPeriodo(periodoId.value)
-    await loadBoletas()
+    await Promise.all([loadBoletas(), loadAsiento()])
     toast.success('Periodo cerrado.')
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudo cerrar el periodo.')
@@ -171,12 +193,102 @@ async function onCerrar() {
   }
 }
 
-function abrirDocumento(id: number, modo: 'ver' | 'descarga' | 'imprimir') {
-  const url = boletaDocumentoUrl(id, {
-    descarga: modo === 'descarga',
-    imprimir: modo === 'imprimir',
-  })
-  void openAuthenticatedDocument(url)
+async function abrirDocumento(boleta: BoletaPagoResumen, modo: 'descarga' | 'imprimir') {
+  try {
+    if (modo === 'descarga') {
+      await descargarBoletaPdf(
+        boleta.id,
+        `boleta-${boleta.numeroDocumento}-${periodo.value?.anio}${String(periodo.value?.mes ?? '').padStart(2, '0')}.pdf`,
+      )
+    } else {
+      await imprimirBoletaPdf(boleta.id)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo emitir la boleta.')
+  }
+}
+
+function togglePage(checked: boolean) {
+  selectedIds.value = checked
+    ? [...new Set([...selectedIds.value, ...pageIds.value])]
+    : selectedIds.value.filter((id) => !pageIds.value.includes(id))
+}
+
+function toggleBoleta(id: number, checked: boolean) {
+  selectedIds.value = checked
+    ? [...new Set([...selectedIds.value, id])]
+    : selectedIds.value.filter((selected) => selected !== id)
+}
+
+function requireSelection(): number[] | null {
+  if (!selectedIds.value.length) {
+    toast.error('Seleccione al menos una boleta.')
+    return null
+  }
+  return selectedIds.value
+}
+
+async function descargarSeleccion() {
+  const ids = requireSelection()
+  if (!ids || !periodo.value) return
+  acting.value = true
+  try {
+    await descargarBoletasPdf(
+      periodoId.value,
+      ids,
+      `boletas-${periodo.value.anio}${String(periodo.value.mes).padStart(2, '0')}.pdf`,
+    )
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo descargar el lote.')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function imprimirSeleccion() {
+  const ids = requireSelection()
+  if (!ids) return
+  acting.value = true
+  try {
+    await imprimirBoletasPdf(periodoId.value, ids)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo abrir el lote.')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function enviarSeleccion() {
+  const ids = requireSelection()
+  if (!ids) return
+  acting.value = true
+  try {
+    const result = await enviarBoletasCorreo(periodoId.value, ids)
+    if (result.errores) {
+      toast.warning(`${result.enviados} enviadas y ${result.errores} con error. ${result.detalles[0] ?? ''}`)
+    } else {
+      toast.success(`${result.enviados} boleta(s) enviadas por correo.`)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudieron enviar las boletas.')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function descargarAsiento() {
+  if (!periodo.value) return
+  acting.value = true
+  try {
+    await descargarAsientoContablePdf(
+      periodoId.value,
+      `asiento-contable-${periodo.value.anio}${String(periodo.value.mes).padStart(2, '0')}.pdf`,
+    )
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo descargar el asiento contable.')
+  } finally {
+    acting.value = false
+  }
 }
 
 function lockBodyScroll() {
@@ -290,7 +402,7 @@ async function guardarEdicion() {
     toast.success('Boleta actualizada.')
     editOpen.value = false
     periodo.value = await obtenerPeriodo(periodoId.value)
-    await loadBoletas()
+    await Promise.all([loadBoletas(), loadAsiento()])
   } catch (err) {
     const message = err instanceof Error ? err.message : 'No se pudo guardar la boleta.'
     editError.value = message
@@ -304,6 +416,7 @@ watch(
   () => props.id,
   () => {
     page.value = 0
+    selectedIds.value = []
     void load()
   },
 )
@@ -385,11 +498,116 @@ onMounted(() => {
       </Button>
     </div>
 
+    <section
+      v-if="asiento"
+      class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6"
+      aria-labelledby="asiento-contable-title"
+    >
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div class="flex flex-wrap items-center gap-2">
+            <h3 id="asiento-contable-title" class="text-base font-semibold text-palette-navy">
+              Integración contable
+            </h3>
+            <span
+              class="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+              :class="asiento.preliminar
+                ? 'border-amber-300 bg-amber-50 text-amber-700'
+                : 'border-emerald-300 bg-emerald-50 text-emerald-700'"
+            >
+              {{ asiento.preliminar ? 'Preliminar' : 'Definitivo' }}
+            </span>
+          </div>
+          <p class="mt-1 text-sm text-slate-500">
+            Devengo PCGE y destino agrupado por proyecto, área o administración.
+          </p>
+        </div>
+        <Button variant="outline" class="h-9 px-3" type="button" :disabled="acting" @click="descargarAsiento">
+          <FileTextIcon data-icon="inline-start" />
+          Descargar asiento PDF
+        </Button>
+      </div>
+
+      <div class="mt-4 grid gap-3 sm:grid-cols-4">
+        <div class="rounded-lg bg-slate-50 px-3 py-3">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Haberes</p>
+          <p class="mt-1 font-semibold text-palette-navy">{{ money.format(asiento.totalHaberes) }}</p>
+        </div>
+        <div class="rounded-lg bg-slate-50 px-3 py-3">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Aportes empleador</p>
+          <p class="mt-1 font-semibold text-palette-navy">{{ money.format(asiento.totalAportesEmpleador) }}</p>
+        </div>
+        <div class="rounded-lg bg-slate-50 px-3 py-3">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Debe / Haber</p>
+          <p class="mt-1 font-semibold text-palette-navy">{{ money.format(asiento.totalDebe) }}</p>
+        </div>
+        <div class="rounded-lg bg-slate-50 px-3 py-3">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Diferencia</p>
+          <p class="mt-1 font-semibold" :class="asiento.diferencia === 0 ? 'text-emerald-700' : 'text-red-600'">
+            {{ money.format(asiento.diferencia) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 grid gap-4 xl:grid-cols-2">
+        <article v-for="bloque in asiento.asientos" :key="bloque.codigo" class="overflow-hidden rounded-lg border border-slate-200">
+          <div class="bg-palette-navy px-3 py-2 text-sm font-semibold text-white">
+            {{ bloque.codigo }} · {{ bloque.titulo }}
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[34rem] text-left text-xs">
+              <thead class="bg-slate-50 uppercase text-slate-500">
+                <tr>
+                  <th class="px-3 py-2">Cuenta</th>
+                  <th class="px-3 py-2">Descripción</th>
+                  <th class="px-3 py-2">Destino</th>
+                  <th class="px-3 py-2 text-right">Debe</th>
+                  <th class="px-3 py-2 text-right">Haber</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(linea, lineaIndex) in bloque.lineas" :key="`${bloque.codigo}-${linea.cuenta}-${linea.destino ?? ''}-${lineaIndex}`" class="border-t border-slate-100">
+                  <td class="px-3 py-2 font-mono font-semibold">{{ linea.cuenta }}</td>
+                  <td class="px-3 py-2">{{ linea.descripcion }}</td>
+                  <td class="px-3 py-2 text-slate-500">{{ linea.destino || '—' }}</td>
+                  <td class="px-3 py-2 text-right">{{ linea.debe ? money.format(linea.debe) : '—' }}</td>
+                  <td class="px-3 py-2 text-right">{{ linea.haber ? money.format(linea.haber) : '—' }}</td>
+                </tr>
+              </tbody>
+              <tfoot class="border-t border-slate-200 bg-slate-50 font-semibold">
+                <tr>
+                  <td class="px-3 py-2" colspan="3">Totales</td>
+                  <td class="px-3 py-2 text-right">{{ money.format(bloque.totalDebe) }}</td>
+                  <td class="px-3 py-2 text-right">{{ money.format(bloque.totalHaber) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <h3 class="text-base font-semibold text-palette-navy">Boletas</h3>
       <p class="mt-1 text-sm text-slate-500">
-        Descargue o imprima el HTML. En borrador puede editar días, AFP y conceptos extra.
+        Seleccione trabajadores para descargar, imprimir o enviar sus boletas PDF. En borrador puede editar días, AFP y conceptos extra.
       </p>
+
+      <div v-if="(boletas?.content.length ?? 0) > 0" class="mt-4 flex flex-wrap items-center gap-2">
+        <Button variant="outline" class="h-9 px-3" type="button" :disabled="acting" @click="descargarSeleccion">
+          <DownloadIcon data-icon="inline-start" />
+          Descargar selección
+        </Button>
+        <Button variant="outline" class="h-9 px-3" type="button" :disabled="acting" @click="imprimirSeleccion">
+          <PrinterIcon data-icon="inline-start" />
+          Imprimir selección
+        </Button>
+        <Button class="h-9 bg-palette-navy px-3 text-white hover:bg-palette-royal" type="button" :disabled="acting" @click="enviarSeleccion">
+          <MailIcon data-icon="inline-start" />
+          Enviar por correo
+        </Button>
+        <span class="text-xs text-slate-500">{{ selectedIds.length }} seleccionada(s)</span>
+      </div>
 
       <div
         v-if="loading && !boletas"
@@ -408,6 +626,15 @@ onMounted(() => {
           <TableCaption class="sr-only">Listado paginado de boletas del periodo.</TableCaption>
           <TableHeader>
             <TableRow>
+              <TableHead class="w-10 px-3">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300"
+                  aria-label="Seleccionar todas las boletas de la página"
+                  :checked="allPageSelected"
+                  @change="togglePage(($event.target as HTMLInputElement).checked)"
+                />
+              </TableHead>
               <TableHead class="px-3">Persona</TableHead>
               <TableHead class="px-3">Cargo</TableHead>
               <TableHead class="px-3">Días</TableHead>
@@ -420,12 +647,21 @@ onMounted(() => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableEmpty v-if="!boletas?.content.length" :colspan="7">
+            <TableEmpty v-if="!boletas?.content.length" :colspan="8">
               <span class="text-slate-500">
                 {{ puedeGenerar ? 'Aún no hay boletas. Genere la planilla con los contratos vigentes.' : 'No hay boletas.' }}
               </span>
             </TableEmpty>
             <TableRow v-for="boleta in boletas?.content ?? []" :key="boleta.id">
+              <TableCell class="px-3 py-3">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 rounded border-slate-300"
+                  :aria-label="`Seleccionar boleta de ${boleta.personaApellidos}`"
+                  :checked="selectedIds.includes(boleta.id)"
+                  @change="toggleBoleta(boleta.id, ($event.target as HTMLInputElement).checked)"
+                />
+              </TableCell>
               <TableCell class="px-3 py-3 font-medium">
                 {{ boleta.personaApellidos }}, {{ boleta.personaNombres }}
                 <span class="mt-0.5 block text-xs font-normal text-slate-500">{{ boleta.numeroDocumento }}</span>
@@ -455,7 +691,7 @@ onMounted(() => {
                     class="h-8 px-3"
                     type="button"
                     :aria-label="`Descargar boleta de ${boleta.personaApellidos}`"
-                    @click="abrirDocumento(boleta.id, 'descarga')"
+                    @click="abrirDocumento(boleta, 'descarga')"
                   >
                     <DownloadIcon data-icon="inline-start" />
                     Descargar
@@ -465,7 +701,7 @@ onMounted(() => {
                     size="sm"
                     type="button"
                     :aria-label="`Imprimir boleta de ${boleta.personaApellidos}`"
-                    @click="abrirDocumento(boleta.id, 'imprimir')"
+                    @click="abrirDocumento(boleta, 'imprimir')"
                   >
                     <PrinterIcon data-icon="inline-start" />
                     Imprimir

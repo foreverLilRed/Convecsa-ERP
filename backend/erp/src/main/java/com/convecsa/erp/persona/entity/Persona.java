@@ -4,6 +4,7 @@ import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.Genero;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
+import com.convecsa.erp.nomina.domain.TipoComisionAfp;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -65,6 +66,10 @@ public class Persona {
 
     @Column(nullable = true, length = 30)
     private String cuspp;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_comision_afp", nullable = false, length = 20)
+    private TipoComisionAfp tipoComisionAfp = TipoComisionAfp.FLUJO;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

@@ -1,5 +1,32 @@
 export type EstadoAsistencia = 'ASISTIO' | 'FALTA' | 'PERMISO' | 'DESCANSO'
 
+export type CodigoTareo =
+  | 'A'
+  | 'D'
+  | 'F'
+  | 'TF'
+  | 'TD'
+  | 'DM'
+  | 'SIT'
+  | 'MAT_PRE'
+  | 'MAT_POST'
+  | 'VAC'
+  | 'VAC_COMP'
+  | 'LCG'
+  | 'LSG'
+  | 'PAT'
+  | 'FI'
+
+export type TipoConceptoVariableTareo =
+  | 'COMISION'
+  | 'TRABAJO_NOCTURNO'
+  | 'ASIGNACION_ALIMENTACION'
+  | 'ADELANTO_QUINCENA'
+  | 'CUOTA_SINDICAL'
+  | 'DESCUENTO_JUDICIAL'
+  | 'OTRO_INGRESO'
+  | 'OTRO_DESCUENTO'
+
 export type AsistenciaConfig = {
   diasSemana: number[]
 }
@@ -23,6 +50,10 @@ export type AsistenciaRegistro = {
   horasEsperadas: number
   horasTrabajadas: number
   estado: EstadoAsistencia
+  codigo: CodigoTareo
+  minutosExtras25: number
+  minutosExtras35: number
+  minutosTardanza: number
   observacion: string | null
 }
 
@@ -52,7 +83,24 @@ export type AsistenciaRegistroUpdate = {
   id: number
   horasTrabajadas: number
   estado: EstadoAsistencia
+  codigo: CodigoTareo
+  minutosExtras25: number
+  minutosExtras35: number
+  minutosTardanza: number
   observacion?: string | null
+}
+
+export type AsistenciaConceptoVariable = {
+  id: number
+  personaId: number
+  contratoId: number
+  tipo: TipoConceptoVariableTareo
+  monto: number
+  detalle: string | null
+}
+
+export type AsistenciaConceptoVariableRequest = Omit<AsistenciaConceptoVariable, 'id' | 'detalle'> & {
+  detalle?: string | null
 }
 
 export const DIAS_SEMANA = [
@@ -70,6 +118,24 @@ export const ESTADOS_ASISTENCIA: { value: EstadoAsistencia; label: string }[] = 
   { value: 'FALTA', label: 'Falta' },
   { value: 'PERMISO', label: 'Permiso' },
   { value: 'DESCANSO', label: 'Descanso' },
+]
+
+export const CODIGOS_TAREO: { value: CodigoTareo; label: string }[] = [
+  { value: 'A', label: 'A · Asistencia' },
+  { value: 'D', label: 'D · Descanso semanal' },
+  { value: 'F', label: 'F · Feriado no laborable' },
+  { value: 'TF', label: 'TF · Trabajo en feriado' },
+  { value: 'TD', label: 'TD · Trabajo en descanso' },
+  { value: 'DM', label: 'DM · Descanso médico' },
+  { value: 'SIT', label: 'SIT · Subsidio incapacidad temporal' },
+  { value: 'MAT_PRE', label: 'Pre natal' },
+  { value: 'MAT_POST', label: 'Post natal' },
+  { value: 'VAC', label: 'Vacaciones gozadas' },
+  { value: 'VAC_COMP', label: 'Vacaciones compensadas' },
+  { value: 'LCG', label: 'Licencia con goce' },
+  { value: 'LSG', label: 'Licencia sin goce' },
+  { value: 'PAT', label: 'Licencia por paternidad' },
+  { value: 'FI', label: 'Inasistencia injustificada' },
 ]
 
 export function diaMes(fecha: string): string {

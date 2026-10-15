@@ -197,7 +197,7 @@ watch(
         catalogos.value = nextCatalogos
         contratos.value = nextContratos.content
         if (plantillasAdenda.value.length === 1) {
-          form.plantillaContratoId = String(plantillasAdenda.value[0].id)
+          form.plantillaContratoId = String(plantillasAdenda.value[0]!.id)
         }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'No se pudieron cargar los catálogos.')

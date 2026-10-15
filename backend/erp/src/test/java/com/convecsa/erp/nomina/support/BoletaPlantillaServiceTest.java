@@ -51,7 +51,7 @@ class BoletaPlantillaServiceTest {
         BoletaPago boleta = boletaBase();
         String filas = BoletaPlantillaService.filas(boleta, CategoriaConcepto.HABER);
         assertTrue(filas.contains("0.00"));
-        assertTrue(filas.contains("—"));
+        assertTrue(filas.contains("-"));
     }
 
     private static BoletaPago boletaBase() {
