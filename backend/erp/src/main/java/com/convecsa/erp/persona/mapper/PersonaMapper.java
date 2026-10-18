@@ -52,7 +52,6 @@ public class PersonaMapper {
         persona.setDepartamento(request.getDepartamento().trim());
         persona.setProvincia(request.getProvincia().trim());
         persona.setDistrito(request.getDistrito().trim());
-        persona.setResidencia(request.getResidencia().trim());
         persona.setFotoUrl(blankToNull(request.getFotoUrl()));
         persona.setFechaVigenciaEmo(request.getFechaVigenciaEmo());
         persona.setAptitudMedica(request.getAptitudMedica());
@@ -164,7 +163,6 @@ public class PersonaMapper {
                 .departamento(persona.getDepartamento())
                 .provincia(persona.getProvincia())
                 .distrito(persona.getDistrito())
-                .residencia(persona.getResidencia())
                 .fotoUrl(persona.getFotoUrl())
                 .cuentasBancarias(toCuentaDtos(persona))
                 .experienciasLaborales(toExperienciaDtos(persona))
@@ -193,7 +191,6 @@ public class PersonaMapper {
                 .departamento(persona.getDepartamento())
                 .provincia(persona.getProvincia())
                 .distrito(persona.getDistrito())
-                .residencia(persona.getResidencia())
                 .cuentasBancarias(toCuentaDtos(persona))
                 .experienciasLaborales(toExperienciaDtos(persona))
                 .fechaVigenciaEmo(persona.getFechaVigenciaEmo())

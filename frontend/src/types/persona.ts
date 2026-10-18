@@ -74,7 +74,6 @@ export type PersonaForm = {
   departamento: string
   provincia: string
   distrito: string
-  residencia: string
   cuentasBancarias: CuentaBancariaForm[]
   experienciasLaborales: ExperienciaLaboralForm[]
   fotoUrl: string | null
@@ -124,7 +123,6 @@ export type PersonaRequest = {
   departamento: string
   provincia: string
   distrito: string
-  residencia: string
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaRequest[]
   experienciasLaborales: ExperienciaLaboralRequest[]
@@ -178,7 +176,6 @@ export type PersonaResumenDTO = {
   departamento: string
   provincia: string
   distrito: string
-  residencia: string
   cuentasBancarias: CuentaBancariaDTO[]
   experienciasLaborales: ExperienciaLaboralDTO[]
   fechaVigenciaEmo: string | null
@@ -227,7 +224,6 @@ export type PersonaDTO = {
   departamento: string | null
   provincia: string | null
   distrito: string | null
-  residencia: string | null
   fotoUrl: string | null
   cuentasBancarias: CuentaBancariaDTO[]
   experienciasLaborales: ExperienciaLaboralDTO[]
@@ -415,7 +411,6 @@ export function createEmptyPersonaForm(): PersonaForm {
     departamento: '',
     provincia: '',
     distrito: '',
-    residencia: '',
     cuentasBancarias: [],
     experienciasLaborales: [],
     fotoUrl: null,
@@ -448,7 +443,6 @@ export function toPersonaForm(dto: PersonaDTO): PersonaForm {
     departamento: dto.departamento ?? '',
     provincia: dto.provincia ?? '',
     distrito: dto.distrito ?? '',
-    residencia: dto.residencia ?? '',
     cuentasBancarias: (dto.cuentasBancarias ?? []).map((cuenta) => ({
       banco: cuenta.banco,
       numeroCuenta: cuenta.numeroCuenta,
@@ -491,7 +485,6 @@ export function toPersonaRequest(form: PersonaForm): PersonaRequest {
     departamento: form.departamento.trim(),
     provincia: form.provincia.trim(),
     distrito: form.distrito.trim(),
-    residencia: form.residencia.trim(),
     fotoUrl: toPersistedFotoUrl(form.fotoUrl),
     cuentasBancarias: form.cuentasBancarias.map((cuenta) => ({
       banco: cuenta.banco as Banco,

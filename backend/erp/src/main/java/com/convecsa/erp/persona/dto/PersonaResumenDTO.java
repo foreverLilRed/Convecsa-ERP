@@ -28,7 +28,6 @@ public class PersonaResumenDTO {
     private final String departamento;
     private final String provincia;
     private final String distrito;
-    private final String residencia;
     private final List<CuentaBancariaDTO> cuentasBancarias;
     private final List<ExperienciaLaboralDTO> experienciasLaborales;
     private final LocalDate fechaVigenciaEmo;

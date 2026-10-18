@@ -100,9 +100,6 @@ public class Persona {
     @Column(nullable = false, length = 80)
     private String distrito;
 
-    @Column(nullable = false, length = 120)
-    private String residencia;
-
     @Column(name = "foto_url", length = 500)
     private String fotoUrl;
 

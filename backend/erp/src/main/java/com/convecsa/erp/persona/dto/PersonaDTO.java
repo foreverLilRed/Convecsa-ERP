@@ -35,7 +35,6 @@ public class PersonaDTO {
     private final String departamento;
     private final String provincia;
     private final String distrito;
-    private final String residencia;
     private final String fotoUrl;
     private final List<CuentaBancariaDTO> cuentasBancarias;
     private final List<ExperienciaLaboralDTO> experienciasLaborales;

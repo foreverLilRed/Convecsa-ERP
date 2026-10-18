@@ -483,7 +483,6 @@ function validate(): { message: string; seccion: SeccionPersona } | null {
   if (!form.departamento.trim()) return { message: 'Ingrese el departamento.', seccion: 'identidad' }
   if (!form.provincia.trim()) return { message: 'Ingrese la provincia.', seccion: 'identidad' }
   if (!form.distrito.trim()) return { message: 'Ingrese el distrito.', seccion: 'identidad' }
-  if (!form.residencia.trim()) return { message: 'Ingrese la residencia.', seccion: 'identidad' }
 
   for (const [index, experiencia] of form.experienciasLaborales.entries()) {
     if (!experiencia.organizacion.trim() || !experiencia.cargo.trim() || !experiencia.fechaInicioLaboral) {
@@ -885,10 +884,6 @@ function onOverlayClick() {
                           placeholder="Seleccione o escriba"
                           :disabled="!distritoHabilitado"
                         />
-                      </label>
-                      <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
-                        Residencia
-                        <input v-model="form.residencia" :class="inputClass" type="text" />
                       </label>
                       <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700 sm:col-span-2">
                         Dirección completa

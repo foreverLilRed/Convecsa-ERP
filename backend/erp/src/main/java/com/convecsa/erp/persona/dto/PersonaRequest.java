@@ -93,10 +93,6 @@ public class PersonaRequest {
     @Size(max = 80)
     private String distrito;
 
-    @NotBlank
-    @Size(max = 120)
-    private String residencia;
-
     @Size(max = 500)
     private String fotoUrl;
 

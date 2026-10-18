@@ -30,7 +30,6 @@ class PersonaExcelExporterTest {
         persona.setDepartamento("Lima");
         persona.setProvincia("Lima");
         persona.setDistrito("Miraflores");
-        persona.setResidencia("Lima");
 
         byte[] file = new PersonaExcelExporter().export(List.of(persona));
 

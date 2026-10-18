@@ -39,7 +39,6 @@ function indicadorIdentidad(persona: PersonaResumenDTO): IndicadorSeccion {
     present(persona.departamento),
     present(persona.provincia),
     present(persona.distrito),
-    present(persona.residencia),
   ]
   if (persona.tipoDocumento === 'DNI') {
     campos.push(present(persona.fechaEmisionDni), present(persona.fechaCaducidadDni))
