@@ -1,7 +1,6 @@
 package com.convecsa.erp.contrato.controller;
 
 import com.convecsa.erp.common.web.PagedResponse;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.dto.AdendaDTO;
 import com.convecsa.erp.contrato.dto.AdendaRequest;
 import com.convecsa.erp.contrato.dto.ContratoDTO;
@@ -45,8 +44,8 @@ public class ContratoController {
     public PagedResponse<ContratoDTO> listar(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) EstadoContrato estado) {
-        return contratoService.listar(page, size, estado);
+            @RequestParam(required = false) Boolean activo) {
+        return contratoService.listar(page, size, activo);
     }
 
     @GetMapping("/adendas")

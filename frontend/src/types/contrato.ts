@@ -46,6 +46,7 @@ export type PlantillaContratoUpdateRequest = {
 }
 
 export type ContratosCatalogos = {
+  categoriasContrato: CatalogoItem[]
   jornadas: CatalogoItem[]
   causasObjetivas: CatalogoItem[]
   metodosPago: CatalogoItem[]
@@ -54,36 +55,38 @@ export type ContratosCatalogos = {
 }
 
 export type ContratoRequest = {
+  titulo: string
+  categoriaContratoId: number
   personaId: number
-  plantillaContratoId: number
-  fechaInicio: string
-  fechaFin: string
+  fechaInicio?: string | null
+  fechaFin?: string | null
   sueldo: number
-  afpId?: number | null
-  tieneAsignacionFamiliar?: boolean
+  activo?: boolean
+  fechaCorte?: string | null
+  tipoPlantillaId: number
+  observaciones?: string | null
   metadata: Record<string, string>
 }
 
 export type ContratoDTO = {
   id: number
+  titulo: string
+  categoriaContratoId: number
+  categoriaContratoCodigo: string
+  categoriaContratoNombre: string
   personaId: number
-  personaNombres: string
-  personaApellidos: string
-  numeroDocumento: string
-  estado: string
+  personaNombreCompleto: string
+  personaNumeroDocumento: string
   fechaInicio: string | null
   fechaFin: string | null
-  cargo: string | null
-  proyecto: string | null
-  ciudadFirma: string | null
-  plantillaCodigo: string | null
-  plantillaNombre: string | null
-  createdAt: string
   sueldo: number
-  afpId: number | null
-  afpCodigo: string | null
-  afpNombre: string | null
-  tieneAsignacionFamiliar: boolean
+  activo: boolean
+  fechaCorte: string | null
+  tipoPlantillaId: number
+  tipoPlantillaCodigo: string
+  tipoPlantillaNombre: string
+  observaciones: string | null
+  metadata: Record<string, string>
 }
 
 export type AdendaDTO = {

@@ -14,6 +14,7 @@ import PeriodoNominaPage from '@/pages/gestion-humana/PeriodoNominaPage.vue'
 import PlaceholderPage from '@/pages/gestion-humana/PlaceholderPage.vue'
 import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
 import PlantillasContratoPage from '@/pages/gestion-humana/PlantillasContratoPage.vue'
+import PlantillaContratoEditorPage from '@/pages/gestion-humana/PlantillaContratoEditorPage.vue'
 import ManualesMofPage from '@/pages/gestion-humana/ManualesMofPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
@@ -67,6 +68,16 @@ const router = createRouter({
           path: 'gestion-humana/plantillas-contrato',
           name: 'gh-plantillas-contrato',
           component: PlantillasContratoPage,
+        },
+        {
+          path: 'gestion-humana/plantillas-contrato/nueva',
+          name: 'gh-plantilla-contrato-nueva',
+          component: PlantillaContratoEditorPage,
+        },
+        {
+          path: 'gestion-humana/plantillas-contrato/:id(\\d+)/editar',
+          name: 'gh-plantilla-contrato-editar',
+          component: PlantillaContratoEditorPage,
         },
         {
           path: 'gestion-humana/onboarding',

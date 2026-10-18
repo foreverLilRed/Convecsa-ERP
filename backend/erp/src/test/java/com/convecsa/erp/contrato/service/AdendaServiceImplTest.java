@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import com.convecsa.erp.contrato.dto.AdendaDTO;
 import com.convecsa.erp.contrato.dto.AdendaRequest;
@@ -62,7 +61,7 @@ class AdendaServiceImplTest {
         contrato = new Contrato();
         contrato.setId(10L);
         contrato.setPersona(persona);
-        contrato.setEstado(EstadoContrato.ACTIVO);
+        contrato.setActivo(true);
         contrato.setFechaInicio(LocalDate.of(2026, 1, 15));
         contrato.setFechaFin(LocalDate.of(2026, 7, 15));
         contrato.setSueldo(new BigDecimal("2500.00"));

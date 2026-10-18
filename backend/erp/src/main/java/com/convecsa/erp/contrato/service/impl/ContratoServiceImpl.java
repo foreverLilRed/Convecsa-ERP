@@ -6,10 +6,10 @@ import com.convecsa.erp.common.exception.PlantillaNoEncontradaException;
 import com.convecsa.erp.common.exception.PlantillaPinInvalidoException;
 import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.catalogo.CausaObjetiva;
+import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
 import com.convecsa.erp.contrato.catalogo.Jornada;
 import com.convecsa.erp.contrato.catalogo.MetodoPago;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.dto.ContratoDTO;
@@ -25,13 +25,13 @@ import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.contrato.exception.ContratoNoEncontrado;
 import com.convecsa.erp.contrato.repository.CausaObjetivaRepository;
+import com.convecsa.erp.contrato.repository.CategoriaContratoRepository;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.JornadaRepository;
 import com.convecsa.erp.contrato.repository.MetodoPagoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
-import com.convecsa.erp.nomina.catalogo.Afp;
 import com.convecsa.erp.nomina.repository.AfpRepository;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
@@ -51,6 +51,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
 
     private final ContratoRepository contratoRepository;
     private final PersonaRepository personaRepository;
+    private final CategoriaContratoRepository categoriaContratoRepository;
     private final JornadaRepository jornadaRepository;
     private final CausaObjetivaRepository causaObjetivaRepository;
     private final MetodoPagoRepository metodoPagoRepository;
@@ -64,7 +65,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
     @Override
     @Transactional(readOnly = true)
     public ContratosResumeDTO resume() {
-        long conContratoActivo = contratoRepository.countDistinctPersonaIdByEstado(EstadoContrato.ACTIVO);
+        long conContratoActivo = contratoRepository.countDistinctPersonaIdByActivoTrue();
         long totalPersonas = personaRepository.count();
         long sinContratoActivo = Math.max(0, totalPersonas - conContratoActivo);
         return new ContratosResumeDTO(conContratoActivo, sinContratoActivo);
@@ -74,6 +75,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
     @Transactional(readOnly = true)
     public ContratosCatalogosDTO catalogos() {
         return new ContratosCatalogosDTO(
+                categoriaContratoRepository.findByActivoTrueOrderByIdAsc().stream()
+                        .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
+                        .toList(),
                 jornadaRepository.findByActivoTrueOrderByIdAsc().stream()
                         .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
                         .toList(),
@@ -93,13 +97,13 @@ public class ContratoServiceImpl implements InterfazContratoService {
 
     @Override
     @Transactional(readOnly = true)
-    public PagedResponse<ContratoDTO> listar(int page, int size, EstadoContrato estado) {
+    public PagedResponse<ContratoDTO> listar(int page, int size, Boolean activo) {
         int safePage = Math.max(page, 0);
         int safeSize = size < 1 ? 20 : Math.min(size, 100);
         var pageable = PageRequest.of(safePage, safeSize);
-        var resultado = estado == null
-                ? contratoRepository.findAllByOrderByCreatedAtDesc(pageable)
-                : contratoRepository.findByEstadoOrderByCreatedAtDesc(estado, pageable);
+        var resultado = activo == null
+                ? contratoRepository.findAllByOrderByIdDesc(pageable)
+                : contratoRepository.findByActivoOrderByIdDesc(activo, pageable);
         return PagedResponse.from(resultado.map(ContratoServiceImpl::toDto));
     }
 
@@ -108,23 +112,26 @@ public class ContratoServiceImpl implements InterfazContratoService {
     public ContratoDTO crear(ContratoRequest request) {
         Persona persona = personaRepository.findById(request.getPersonaId())
                 .orElseThrow(() -> new PersonaNoEncontradaException("No se encontró la persona"));
-        PlantillaContrato plantilla = plantillaContratoRepository.findById(request.getPlantillaContratoId())
+        CategoriaContrato categoria = categoriaContratoRepository.findById(request.getCategoriaContratoId())
+                .filter(CategoriaContrato::isActivo)
+                .orElseThrow(() -> new IllegalArgumentException("Categoría de contrato inválida"));
+        PlantillaContrato plantilla = plantillaContratoRepository.findById(request.getTipoPlantillaId())
+                .filter(PlantillaContrato::isActivo)
+                .filter(item -> item.getUso() == UsoPlantilla.CONTRATO)
                 .orElseThrow(() -> new IllegalArgumentException("Plantilla inválida"));
 
         Contrato contrato = new Contrato();
+        contrato.setTitulo(request.getTitulo().trim());
+        contrato.setCategoriaContrato(categoria);
         contrato.setPersona(persona);
-        contrato.setEstado(EstadoContrato.ACTIVO);
-        contrato.setPlantillaContrato(plantilla);
+        contrato.setActivo(request.getActivo() == null || request.getActivo());
+        contrato.setTipoPlantilla(plantilla);
         contrato.setFechaInicio(request.getFechaInicio());
         contrato.setFechaFin(request.getFechaFin());
         contrato.setSueldo(request.getSueldo());
-        contrato.setTieneAsignacionFamiliar(Boolean.TRUE.equals(request.getTieneAsignacionFamiliar()));
-        if (request.getAfpId() != null) {
-            Afp afp = afpRepository.findById(request.getAfpId())
-                    .orElseThrow(() -> new IllegalArgumentException("AFP inválida"));
-            contrato.setAfp(afp);
-        }
-        contrato.setMetadata(aplicarExtras(contrato, esquemaDe(plantilla), request.getMetadata()));
+        contrato.setFechaCorte(request.getFechaCorte());
+        contrato.setObservaciones(blankToNull(request.getObservaciones()));
+        contrato.setMetadata(aplicarExtras(esquemaDe(plantilla), request.getMetadata()));
         Contrato saved = contratoRepository.save(contrato);
         return toDto(saved);
     }
@@ -135,17 +142,8 @@ public class ContratoServiceImpl implements InterfazContratoService {
         Contrato contrato = contratoRepository.findById(id)
                 .orElseThrow(() -> new ContratoNoEncontrado("No se encontró el contrato"));
         contrato.getPersona().getNombres();
-        if (contrato.getPlantillaContrato() != null) {
-            contrato.getPlantillaContrato().getPlantilla();
-        }
-        if (contrato.getCausaObjetiva() != null) {
-            contrato.getCausaObjetiva().getLabel();
-        }
-        if (contrato.getJornada() != null) {
-            contrato.getJornada().getLabel();
-        }
-        if (contrato.getMetodoPago() != null) {
-            contrato.getMetodoPago().getLabel();
+        if (contrato.getTipoPlantilla() != null) {
+            contrato.getTipoPlantilla().getPlantilla();
         }
         return contratoPlantillaService.render(contrato);
     }
@@ -213,7 +211,6 @@ public class ContratoServiceImpl implements InterfazContratoService {
     }
 
     private Map<String, String> aplicarExtras(
-            Contrato contrato,
             List<PlantillaCampoEsquema> esquema,
             Map<String, String> enviados) {
         Map<String, String> origen = enviados == null ? Map.of() : enviados;
@@ -235,16 +232,14 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 continue;
             }
             if ("catalogo".equals(campo.getTipo())) {
-                valor = resolverCatalogo(contrato, campo.getCatalogo(), valor);
-            } else {
-                copiarColumna(contrato, clave, valor);
+                valor = resolverCatalogo(campo.getCatalogo(), valor);
             }
             guardados.put(clave, valor);
         }
         return guardados;
     }
 
-    private String resolverCatalogo(Contrato contrato, String catalogo, String idCrudo) {
+    private String resolverCatalogo(String catalogo, String idCrudo) {
         Long id;
         try {
             id = Long.valueOf(idCrudo);
@@ -254,37 +249,19 @@ public class ContratoServiceImpl implements InterfazContratoService {
         if ("jornadas".equals(catalogo)) {
             Jornada jornada = jornadaRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Jornada inválida"));
-            contrato.setJornada(jornada);
             return jornada.getLabel();
         }
         if ("causasObjetivas".equals(catalogo)) {
             CausaObjetiva causa = causaObjetivaRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Causa objetiva inválida"));
-            contrato.setCausaObjetiva(causa);
             return causa.getLabel();
         }
         if ("metodosPago".equals(catalogo)) {
             MetodoPago metodoPago = metodoPagoRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("Método de pago inválido"));
-            contrato.setMetodoPago(metodoPago);
             return metodoPago.getLabel();
         }
         throw new IllegalArgumentException("Catálogo no soportado");
-    }
-
-    private static void copiarColumna(Contrato contrato, String clave, String valor) {
-        switch (clave) {
-            case "cargo" -> contrato.setCargo(valor);
-            case "area" -> contrato.setArea(valor);
-            case "proyecto" -> contrato.setProyecto(valor);
-            case "ubicacion_obra" -> contrato.setUbicacionObra(valor);
-            case "ciudad_firma" -> contrato.setCiudadFirma(valor);
-            case "numero" -> contrato.setNumero(valor);
-            case "observaciones" -> contrato.setObservaciones(valor);
-            case "fecha_corte" -> contrato.setFechaCorte(LocalDate.parse(valor));
-            default -> {
-            }
-        }
     }
 
     private static String labelDe(PlantillaCampoEsquema campo) {
@@ -339,28 +316,31 @@ public class ContratoServiceImpl implements InterfazContratoService {
 
     private static ContratoDTO toDto(Contrato contrato) {
         Persona persona = contrato.getPersona();
-        PlantillaContrato plantilla = contrato.getPlantillaContrato();
-        Afp afp = contrato.getAfp();
+        PlantillaContrato plantilla = contrato.getTipoPlantilla();
+        CategoriaContrato categoria = contrato.getCategoriaContrato();
         return ContratoDTO.builder()
                 .id(contrato.getId())
+                .titulo(contrato.getTitulo())
+                .categoriaContratoId(categoria.getId())
+                .categoriaContratoCodigo(categoria.getCodigo())
+                .categoriaContratoNombre(categoria.getLabel())
                 .personaId(persona.getId())
-                .personaNombres(persona.getNombres())
-                .personaApellidos(persona.getApellidos())
-                .numeroDocumento(persona.getNumeroDocumento())
-                .estado(contrato.getEstado())
+                .personaNombreCompleto(persona.getApellidos() + ", " + persona.getNombres())
+                .personaNumeroDocumento(persona.getNumeroDocumento())
                 .fechaInicio(contrato.getFechaInicio())
                 .fechaFin(contrato.getFechaFin())
-                .cargo(contrato.getCargo())
-                .proyecto(contrato.getProyecto())
-                .ciudadFirma(contrato.getCiudadFirma())
-                .plantillaCodigo(plantilla == null ? null : plantilla.getCodigo())
-                .plantillaNombre(plantilla == null ? null : plantilla.getNombre())
-                .createdAt(contrato.getCreatedAt())
                 .sueldo(contrato.getSueldo())
-                .afpId(afp == null ? null : afp.getId())
-                .afpCodigo(afp == null ? null : afp.getCodigo())
-                .afpNombre(afp == null ? null : afp.getLabel())
-                .tieneAsignacionFamiliar(contrato.isTieneAsignacionFamiliar())
+                .activo(contrato.isActivo())
+                .fechaCorte(contrato.getFechaCorte())
+                .tipoPlantillaId(plantilla.getId())
+                .tipoPlantillaCodigo(plantilla.getCodigo())
+                .tipoPlantillaNombre(plantilla.getNombre())
+                .observaciones(contrato.getObservaciones())
+                .metadata(contrato.getMetadata())
                 .build();
+    }
+
+    private static String blankToNull(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 }

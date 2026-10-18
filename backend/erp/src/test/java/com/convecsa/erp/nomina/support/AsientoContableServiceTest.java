@@ -76,8 +76,8 @@ class AsientoContableServiceTest {
             String aportes,
             String neto) {
         Contrato contrato = new Contrato();
-        contrato.setProyecto(proyecto);
-        contrato.setArea(area);
+        contrato.getMetadata().put("proyecto", proyecto);
+        contrato.getMetadata().put("area", area);
         BoletaPago boleta = new BoletaPago();
         boleta.setContrato(contrato);
         boleta.setTotalHaberes(new BigDecimal(haberes));

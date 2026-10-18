@@ -53,7 +53,7 @@ public class BoletaPlantillaService {
         valores.put("persona_nombres", text(persona == null ? null : persona.getNombres()));
         valores.put("persona_apellidos", text(persona == null ? null : persona.getApellidos()));
         valores.put("persona_dni", text(persona == null ? null : persona.getNumeroDocumento()));
-        valores.put("persona_cargo", boleta.getContrato() == null ? "" : text(boleta.getContrato().getCargo()));
+        valores.put("persona_cargo", boleta.getContrato() == null ? "" : text(boleta.getContrato().metadata("cargo")));
         valores.put("persona_cci", cuenta == null ? "" : text(cuenta.getCci()));
         valores.put("persona_banco", cuenta == null || cuenta.getBanco() == null ? "" : cuenta.getBanco().name());
         valores.put("empleador_razon", escape(configuracion == null ? "CONVECSA S.A.C." : configuracion.getRazonSocial()));

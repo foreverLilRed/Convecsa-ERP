@@ -93,7 +93,7 @@ const contratoLabel = computed(() => {
   if (!contrato) {
     return ''
   }
-  return `${contrato.personaApellidos}, ${contrato.personaNombres} · ${contrato.numeroDocumento}`
+  return `${contrato.personaNombreCompleto} · ${contrato.personaNumeroDocumento}`
 })
 
 const contratosOpciones = computed(() => {
@@ -101,7 +101,7 @@ const contratosOpciones = computed(() => {
   const base = contratos.value
   const filtrados = q
     ? base.filter((item) =>
-        `${item.personaApellidos} ${item.personaNombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+        `${item.personaNombreCompleto} ${item.personaNumeroDocumento}`.toLowerCase().includes(q),
       )
     : base
   const seleccion = contratoSeleccionado.value
@@ -178,7 +178,7 @@ function aplicarContrato(contrato: ContratoDTO) {
   form.contratoId = contrato.id
   form.fechaFinAnterior = contrato.fechaFin ?? ''
   form.sueldo = contrato.sueldo != null ? String(contrato.sueldo) : ''
-  form.ciudadEmision = contrato.ciudadFirma?.trim() || 'Lima'
+  form.ciudadEmision = contrato.metadata.ciudad_firma?.trim() || 'Lima'
   form.fechaFinNueva = contrato.fechaFin ? plusThreeMonths(contrato.fechaFin) : ''
 }
 
@@ -192,7 +192,7 @@ watch(
       try {
         const [nextCatalogos, nextContratos] = await Promise.all([
           obtenerContratosCatalogos(),
-          listarContratos(0, 100, 'ACTIVO'),
+          listarContratos(0, 100, true),
         ])
         catalogos.value = nextCatalogos
         contratos.value = nextContratos.content
@@ -356,7 +356,7 @@ onUnmounted(() => {
                       <ComboboxEmpty>Sin contratos activos.</ComboboxEmpty>
                       <ComboboxGroup>
                         <ComboboxItem v-for="item in contratosOpciones" :key="item.id" :value="item.id">
-                          {{ item.personaApellidos }}, {{ item.personaNombres }} · {{ item.numeroDocumento }}
+                          {{ item.personaNombreCompleto }} · {{ item.personaNumeroDocumento }}
                           <ComboboxItemIndicator>
                             <CheckIcon />
                           </ComboboxItemIndicator>
@@ -365,8 +365,8 @@ onUnmounted(() => {
                     </ComboboxList>
                   </Combobox>
                   <p v-if="contratoSeleccionado" class="mt-2 text-sm text-slate-600">
-                    <template v-if="contratoSeleccionado.cargo">{{ contratoSeleccionado.cargo }}</template>
-                    <template v-if="contratoSeleccionado.proyecto"> · {{ contratoSeleccionado.proyecto }}</template>
+                    <template v-if="contratoSeleccionado.metadata.cargo">{{ contratoSeleccionado.metadata.cargo }}</template>
+                    <template v-if="contratoSeleccionado.metadata.proyecto"> · {{ contratoSeleccionado.metadata.proyecto }}</template>
                   </p>
                 </div>
 

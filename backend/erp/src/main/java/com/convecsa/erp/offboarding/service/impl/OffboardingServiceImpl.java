@@ -4,7 +4,6 @@ import com.convecsa.erp.common.exception.CeseNoEncontradoException;
 import com.convecsa.erp.common.exception.ContratoYaCesadoException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.web.PagedResponse;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.offboarding.domain.LiquidacionSnapshot;
@@ -134,7 +133,7 @@ public class OffboardingServiceImpl implements InterfazOffboardingService {
             throw ex;
         }
 
-        contrato.setEstado(EstadoContrato.RESCINDIDO);
+        contrato.setActivo(false);
         contrato.setFechaCorte(request.getFechaCese());
         contratoRepository.save(contrato);
         return toCeseDto(guardado);
@@ -255,7 +254,7 @@ public class OffboardingServiceImpl implements InterfazOffboardingService {
             throw new PersonaNoEncontradaException("No se encontró la persona");
         }
         return contratoRepository
-                .findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(personaId, EstadoContrato.ACTIVO)
+                .findFirstByPersonaIdAndActivoTrueOrderByIdDesc(personaId)
                 .orElseThrow(() -> new IllegalArgumentException("La persona no tiene un contrato activo"));
     }
 

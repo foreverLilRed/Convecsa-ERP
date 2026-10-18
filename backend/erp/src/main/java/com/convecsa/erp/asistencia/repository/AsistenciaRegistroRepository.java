@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AsistenciaRegistroRepository extends JpaRepository<AsistenciaRegistro, Long> {
 
-    @EntityGraph(attributePaths = {"persona", "contrato", "contrato.jornada"})
+    @EntityGraph(attributePaths = {"persona", "contrato"})
     List<AsistenciaRegistro> findByFechaBetweenOrderByPersonaApellidosAscPersonaNombresAscFechaAsc(
             LocalDate inicio, LocalDate fin);
 

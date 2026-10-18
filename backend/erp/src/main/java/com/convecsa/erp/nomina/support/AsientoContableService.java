@@ -208,11 +208,13 @@ public class AsientoContableService {
     }
 
     private static DestinoContable destino(Contrato contrato) {
-        if (contrato.getProyecto() != null && !contrato.getProyecto().isBlank()) {
-            return new DestinoContable("92", "Costos de producción / obra", contrato.getProyecto().trim());
+        String proyecto = contrato.metadata("proyecto");
+        if (proyecto != null && !proyecto.isBlank()) {
+            return new DestinoContable("92", "Costos de producción / obra", proyecto.trim());
         }
-        if (contrato.getArea() != null && !contrato.getArea().isBlank()) {
-            String area = contrato.getArea().trim();
+        String areaMetadata = contrato.metadata("area");
+        if (areaMetadata != null && !areaMetadata.isBlank()) {
+            String area = areaMetadata.trim();
             String normalizada = Normalizer.normalize(area, Normalizer.Form.NFD)
                     .replaceAll("\\p{M}", "").toLowerCase(ES_PE);
             if (normalizada.contains("venta") || normalizada.contains("comercial")) {

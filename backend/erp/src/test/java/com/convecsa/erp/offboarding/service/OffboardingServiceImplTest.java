@@ -1,6 +1,7 @@
 package com.convecsa.erp.offboarding.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -8,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.convecsa.erp.common.exception.ContratoYaCesadoException;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.offboarding.domain.TipoCese;
@@ -73,7 +73,7 @@ class OffboardingServiceImplTest {
         contrato = new Contrato();
         contrato.setId(9L);
         contrato.setPersona(persona);
-        contrato.setEstado(EstadoContrato.ACTIVO);
+        contrato.setActivo(true);
         contrato.setFechaInicio(LocalDate.of(2026, 1, 15));
         contrato.setSueldo(new BigDecimal("1500.00"));
 
@@ -87,7 +87,7 @@ class OffboardingServiceImplTest {
     @Test
     void registrarCeseRescindeContratoYGuardaSnapshot() {
         when(personaRepository.existsById(4L)).thenReturn(true);
-        when(contratoRepository.findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(4L, EstadoContrato.ACTIVO))
+        when(contratoRepository.findFirstByPersonaIdAndActivoTrueOrderByIdDesc(4L))
                 .thenReturn(Optional.of(contrato));
         when(ceseRepository.existsByContratoId(9L)).thenReturn(false);
         when(ceseRepository.save(any(Cese.class))).thenAnswer(invocation -> {
@@ -99,7 +99,7 @@ class OffboardingServiceImplTest {
 
         CeseDTO dto = servicio.registrarCese(request);
 
-        assertEquals(EstadoContrato.RESCINDIDO, contrato.getEstado());
+        assertFalse(contrato.isActivo());
         assertEquals(LocalDate.of(2026, 10, 11), contrato.getFechaCorte());
         assertEquals(new BigDecimal("1266.67"), dto.getLiquidacion().getTotal());
         ArgumentCaptor<Cese> captor = ArgumentCaptor.forClass(Cese.class);
@@ -110,7 +110,7 @@ class OffboardingServiceImplTest {
     @Test
     void registrarCeseDuplicadoFalla() {
         when(personaRepository.existsById(4L)).thenReturn(true);
-        when(contratoRepository.findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(4L, EstadoContrato.ACTIVO))
+        when(contratoRepository.findFirstByPersonaIdAndActivoTrueOrderByIdDesc(4L))
                 .thenReturn(Optional.of(contrato));
         when(ceseRepository.existsByContratoId(9L)).thenReturn(true);
 
@@ -121,7 +121,7 @@ class OffboardingServiceImplTest {
     @Test
     void previewSinContratoActivoFalla() {
         when(personaRepository.existsById(4L)).thenReturn(true);
-        when(contratoRepository.findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(4L, EstadoContrato.ACTIVO))
+        when(contratoRepository.findFirstByPersonaIdAndActivoTrueOrderByIdDesc(4L))
                 .thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> servicio.previewLiquidacion(4L, LocalDate.of(2026, 10, 11)));

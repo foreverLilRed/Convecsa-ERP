@@ -2,7 +2,6 @@ package com.convecsa.erp.desempeno.service.impl;
 
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.web.PagedResponse;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.desempeno.domain.EstadoEvaluacionDesempeno;
@@ -77,8 +76,8 @@ public class DesempenoServiceImpl implements InterfazDesempenoService {
                     persona.getApellidos(),
                     persona.getNumeroDocumento(),
                     persona.getFotoUrl(),
-                    contrato == null ? null : contrato.getCargo(),
-                    contrato == null ? null : contrato.getProyecto(),
+                    contrato == null ? null : contrato.metadata("cargo"),
+                    contrato == null ? null : contrato.metadata("proyecto"),
                     evaluacion == null ? null : evaluacion.getId(),
                     evaluacion == null ? null : promedioDe(evaluacion),
                     evaluacion == null ? null : evaluacion.getEstado(),
@@ -124,7 +123,7 @@ public class DesempenoServiceImpl implements InterfazDesempenoService {
     private ColaboradorDesempenoDetalleDTO toDetalle(
             Persona persona, String periodo, EvaluacionDesempeno evaluacion) {
         Contrato contrato = contratoRepository
-                .findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(persona.getId(), EstadoContrato.ACTIVO)
+                .findFirstByPersonaIdAndActivoTrueOrderByIdDesc(persona.getId())
                 .orElse(null);
         EvaluacionDesempenoDTO dto = evaluacion == null
                 ? vacia(persona.getId(), periodo)
@@ -135,8 +134,8 @@ public class DesempenoServiceImpl implements InterfazDesempenoService {
                 persona.getApellidos(),
                 persona.getNumeroDocumento(),
                 persona.getFotoUrl(),
-                contrato == null ? null : contrato.getCargo(),
-                contrato == null ? null : contrato.getProyecto(),
+                contrato == null ? null : contrato.metadata("cargo"),
+                contrato == null ? null : contrato.metadata("proyecto"),
                 dto);
     }
 
@@ -177,8 +176,7 @@ public class DesempenoServiceImpl implements InterfazDesempenoService {
             return Map.of();
         }
         Map<Long, Contrato> porPersona = new LinkedHashMap<>();
-        for (Contrato contrato :
-                contratoRepository.findByPersonaIdInAndEstadoOrderByCreatedAtDesc(personaIds, EstadoContrato.ACTIVO)) {
+        for (Contrato contrato : contratoRepository.findByPersonaIdInAndActivoTrueOrderByIdDesc(personaIds)) {
             porPersona.putIfAbsent(contrato.getPersona().getId(), contrato);
         }
         return porPersona;

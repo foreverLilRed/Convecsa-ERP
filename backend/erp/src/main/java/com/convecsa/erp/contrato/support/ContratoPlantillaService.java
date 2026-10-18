@@ -7,6 +7,7 @@ import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.entity.PersonaCelular;
+import com.convecsa.erp.persona.entity.PersonaCuentaBancaria;
 import com.convecsa.erp.persona.entity.PersonaExperienciaLaboral;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -37,12 +38,51 @@ public class ContratoPlantillaService {
             DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-PE"));
     private static final Pattern META_TOKEN = Pattern.compile("\\{\\{meta\\.([a-zA-Z0-9_]+)\\}\\}");
     private static final Set<String> TOKENS_FIJOS = Set.of(
+            "trabajador_id",
             "trabajador_nombres",
             "trabajador_apellidos",
+            "trabajador_nombre_completo",
+            "trabajador_apellido_paterno",
+            "trabajador_apellido_materno",
+            "trabajador_tipo_documento",
             "trabajador_dni",
+            "trabajador_numero_documento",
+            "trabajador_fecha_nacimiento",
+            "trabajador_fecha_emision_documento",
+            "trabajador_fecha_caducidad_documento",
+            "trabajador_correo",
+            "trabajador_telefono",
             "trabajador_direccion",
+            "trabajador_departamento",
+            "trabajador_provincia",
+            "trabajador_distrito",
+            "trabajador_genero",
+            "trabajador_grado_instruccion",
+            "trabajador_pension",
+            "trabajador_cuspp",
+            "trabajador_tipo_comision_afp",
+            "trabajador_banco",
+            "trabajador_numero_cuenta",
+            "trabajador_cci",
+            "trabajador_contacto_emergencia_nombre",
+            "trabajador_contacto_emergencia_telefono",
+            "trabajador_contacto_emergencia_parentesco",
+            "trabajador_activo",
+            "trabajador_foto_url",
+            "trabajador_fecha_vigencia_emo",
+            "trabajador_aptitud_medica",
+            "trabajador_restricciones_medicas",
+            "contrato_id",
+            "titulo",
+            "categoria_contrato",
+            "categoria_contrato_codigo",
+            "plantilla_nombre",
+            "plantilla_codigo",
+            "activo",
+            "observaciones",
             "fecha_inicio",
             "fecha_fin",
+            "fecha_corte",
             "duracion",
             "sueldo",
             "sueldo_letras",
@@ -204,19 +244,28 @@ public class ContratoPlantillaService {
     private Map<String, String> tokens(Contrato contrato) {
         Persona persona = contrato.getPersona();
         Map<String, String> valores = tokensPersona(persona);
-        valores.put("cargo", text(contrato.getCargo()));
-        valores.put("area", text(contrato.getArea()));
-        valores.put("causa_objetiva", contrato.getCausaObjetiva() == null ? "" : contrato.getCausaObjetiva().getLabel());
-        valores.put("proyecto", text(contrato.getProyecto()));
-        valores.put("ubicacion_obra", text(contrato.getUbicacionObra()));
+        valores.put("titulo", text(contrato.getTitulo()));
+        valores.put("categoria_contrato", contrato.getCategoriaContrato() == null ? "" : contrato.getCategoriaContrato().getLabel());
+        valores.put("categoria_contrato_codigo", contrato.getCategoriaContrato() == null ? "" : contrato.getCategoriaContrato().getCodigo());
+        valores.put("contrato_id", contrato.getId() == null ? "" : contrato.getId().toString());
+        valores.put("plantilla_nombre", contrato.getTipoPlantilla() == null ? "" : text(contrato.getTipoPlantilla().getNombre()));
+        valores.put("plantilla_codigo", contrato.getTipoPlantilla() == null ? "" : text(contrato.getTipoPlantilla().getCodigo()));
+        valores.put("cargo", text(contrato.metadata("cargo")));
+        valores.put("area", text(contrato.metadata("area")));
+        valores.put("causa_objetiva", text(contrato.metadata("causa_objetiva")));
+        valores.put("proyecto", text(contrato.metadata("proyecto")));
+        valores.put("ubicacion_obra", text(contrato.metadata("ubicacion_obra")));
         valores.put("fecha_inicio", fecha(contrato.getFechaInicio()));
         valores.put("fecha_fin", fecha(contrato.getFechaFin()));
+        valores.put("fecha_corte", fecha(contrato.getFechaCorte()));
         valores.put("duracion", duracion(contrato.getFechaInicio(), contrato.getFechaFin()));
-        valores.put("jornada", contrato.getJornada() == null ? "" : contrato.getJornada().getLabel());
+        valores.put("jornada", text(contrato.metadata("jornada")));
         valores.put("sueldo", sueldo(contrato.getSueldo()));
         valores.put("sueldo_letras", SueldoEnLetras.de(contrato.getSueldo()));
-        valores.put("metodo_pago", contrato.getMetodoPago() == null ? "" : contrato.getMetodoPago().getLabel().toLowerCase(Locale.ROOT));
-        valores.put("ciudad_firma", text(contrato.getCiudadFirma()));
+        valores.put("metodo_pago", text(contrato.metadata("metodo_pago")).toLowerCase(Locale.ROOT));
+        valores.put("ciudad_firma", text(contrato.metadata("ciudad_firma")));
+        valores.put("observaciones", text(contrato.getObservaciones()));
+        valores.put("activo", contrato.isActivo() ? "Sí" : "No");
         valores.put("fecha_firma", fecha(contrato.getFechaInicio() == null ? LocalDate.now() : contrato.getFechaInicio()));
         if (contrato.getMetadata() != null) {
             for (Map.Entry<String, String> extra : contrato.getMetadata().entrySet()) {
@@ -231,10 +280,50 @@ public class ContratoPlantillaService {
 
     private Map<String, String> tokensPersona(Persona persona) {
         Map<String, String> valores = new LinkedHashMap<>();
+        String[] apellidos = partirApellidos(persona.getApellidos());
+        PersonaCuentaBancaria cuenta = cuentaPrincipal(persona);
+        valores.put("trabajador_id", persona.getId() == null ? "" : persona.getId().toString());
         valores.put("trabajador_nombres", text(persona.getNombres()));
         valores.put("trabajador_apellidos", text(persona.getApellidos()));
+        valores.put("trabajador_nombre_completo", (text(persona.getNombres()) + " " + text(persona.getApellidos())).trim());
+        valores.put("trabajador_apellido_paterno", apellidos[0]);
+        valores.put("trabajador_apellido_materno", apellidos[1]);
+        valores.put("trabajador_tipo_documento", enumLabel(persona.getTipoDocumento()));
         valores.put("trabajador_dni", text(persona.getNumeroDocumento()));
+        valores.put("trabajador_numero_documento", text(persona.getNumeroDocumento()));
+        valores.put("trabajador_fecha_nacimiento", fecha(persona.getFechaNacimiento()));
+        valores.put("trabajador_fecha_emision_documento", fecha(persona.getFechaEmisionDni()));
+        valores.put("trabajador_fecha_caducidad_documento", fecha(persona.getFechaCaducidadDni()));
+        valores.put("trabajador_correo", text(persona.getCorreo()));
+        valores.put("trabajador_telefono", primerCelular(persona));
         valores.put("trabajador_direccion", text(persona.getDireccion()));
+        valores.put("trabajador_departamento", text(persona.getDepartamento()));
+        valores.put("trabajador_provincia", text(persona.getProvincia()));
+        valores.put("trabajador_distrito", text(persona.getDistrito()));
+        valores.put("trabajador_genero", enumLabel(persona.getGenero()));
+        valores.put("trabajador_grado_instruccion", grado(persona.getGradoInstruccion()));
+        valores.put("trabajador_pension", text(persona.getPension()));
+        valores.put("trabajador_cuspp", text(persona.getCuspp()));
+        valores.put("trabajador_tipo_comision_afp", enumLabel(persona.getTipoComisionAfp()));
+        valores.put("trabajador_banco", cuenta == null ? "" : enumLabel(cuenta.getBanco()));
+        valores.put("trabajador_numero_cuenta", cuenta == null ? "" : text(cuenta.getNumeroCuenta()));
+        valores.put("trabajador_cci", cuenta == null ? "" : text(cuenta.getCci()));
+        valores.put("trabajador_contacto_emergencia_nombre", text(persona.getContactoEmergenciaNombre()));
+        valores.put("trabajador_contacto_emergencia_telefono", text(persona.getContactoEmergenciaTelefono()));
+        valores.put("trabajador_contacto_emergencia_parentesco", text(persona.getContactoEmergenciaParentesco()));
+        valores.put("trabajador_activo", persona.isActivo() ? "Sí" : "No");
+        valores.put("trabajador_foto_url", text(persona.getFotoUrl()));
+        valores.put("trabajador_fecha_vigencia_emo", fecha(persona.getFechaVigenciaEmo()));
+        valores.put("trabajador_aptitud_medica", enumLabel(persona.getAptitudMedica()));
+        valores.put("trabajador_restricciones_medicas", text(persona.getRestriccionesMedicas()));
+        valores.put("contrato_id", "");
+        valores.put("titulo", "");
+        valores.put("categoria_contrato", "");
+        valores.put("categoria_contrato_codigo", "");
+        valores.put("plantilla_nombre", "");
+        valores.put("plantilla_codigo", "");
+        valores.put("activo", "");
+        valores.put("observaciones", "");
         valores.put("cargo", "");
         valores.put("area", "");
         valores.put("causa_objetiva", "");
@@ -242,6 +331,7 @@ public class ContratoPlantillaService {
         valores.put("ubicacion_obra", "");
         valores.put("fecha_inicio", "");
         valores.put("fecha_fin", "");
+        valores.put("fecha_corte", "");
         valores.put("duracion", "");
         valores.put("jornada", "");
         valores.put("sueldo", "");
@@ -258,7 +348,7 @@ public class ContratoPlantillaService {
     }
 
     private static String htmlDe(Contrato contrato) {
-        PlantillaContrato plantilla = contrato.getPlantillaContrato();
+        PlantillaContrato plantilla = contrato.getTipoPlantilla();
         if (plantilla != null && plantilla.getPlantilla() != null && !plantilla.getPlantilla().isBlank()) {
             return plantilla.getPlantilla();
         }
@@ -318,6 +408,27 @@ public class ContratoPlantillaService {
         }
         PersonaCelular celular = persona.getCelulares().get(0);
         return celular == null ? "" : text(celular.getNumero());
+    }
+
+    private static PersonaCuentaBancaria cuentaPrincipal(Persona persona) {
+        if (persona.getCuentasBancarias() == null || persona.getCuentasBancarias().isEmpty()) {
+            return null;
+        }
+        return persona.getCuentasBancarias().stream()
+                .filter(PersonaCuentaBancaria::isPrincipal)
+                .findFirst()
+                .orElse(persona.getCuentasBancarias().get(0));
+    }
+
+    private static String enumLabel(Enum<?> value) {
+        if (value == null) {
+            return "";
+        }
+        String raw = value.name().replace('_', ' ').toLowerCase(Locale.ROOT);
+        if (raw.length() <= 3) {
+            return raw.toUpperCase(Locale.ROOT);
+        }
+        return Character.toUpperCase(raw.charAt(0)) + raw.substring(1);
     }
 
     private static List<PersonaExperienciaLaboral> experienciasOrdenadas(Persona persona) {

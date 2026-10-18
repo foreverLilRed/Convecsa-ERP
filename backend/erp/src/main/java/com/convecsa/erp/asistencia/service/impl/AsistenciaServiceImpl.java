@@ -29,7 +29,6 @@ import com.convecsa.erp.common.exception.AsistenciaFeriadoNoEncontradoException;
 import com.convecsa.erp.common.exception.AsistenciaRegistroNoEncontradoException;
 import com.convecsa.erp.common.exception.FeriadoDuplicadoException;
 import com.convecsa.erp.contrato.catalogo.Jornada;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.persona.entity.Persona;
@@ -145,7 +144,7 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
         int diasConfig = diasSemana.size();
         for (Contrato contrato : porPersona.values()) {
             Persona persona = contrato.getPersona();
-            BigDecimal esperado = horasJornadaService.horasEsperadasDia(contrato.getJornada(), diasConfig);
+            BigDecimal esperado = horasJornadaService.horasEsperadasDia(null, diasConfig);
             Set<LocalDate> existentes = existentesPorPersona.getOrDefault(persona.getId(), Set.of());
             List<LocalDate> faltan = CalendarioLaborableService.faltantes(
                     fechasVigentes(fechasDelMes(yearMonth), contrato), existentes);
@@ -266,16 +265,16 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                 .thenComparing(contrato -> contrato.getPersona().getNombres(), String.CASE_INSENSITIVE_ORDER));
         for (Contrato contrato : contratos) {
             Persona persona = contrato.getPersona();
-            Jornada jornada = contrato.getJornada();
+            String jornada = contrato.metadata("jornada");
             filas.add(new AsistenciaFilaDTO(
                     persona.getId(),
                     persona.getNombres(),
                     persona.getApellidos(),
                     persona.getNumeroDocumento(),
                     contrato.getId(),
-                    jornada == null ? null : jornada.getCodigo(),
-                    jornada == null ? null : jornada.getLabel(),
-                    horasJornadaService.horasEsperadasDia(jornada, diasConfig),
+                    null,
+                    jornada,
+                    horasJornadaService.horasEsperadasDia(null, diasConfig),
                     porPersonaRegistros.getOrDefault(persona.getId(), List.of()).stream()
                             .map(AsistenciaServiceImpl::toRegistroDto)
                             .toList()));
@@ -291,7 +290,7 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
     }
 
     private Map<Long, Contrato> contratosVigentes(LocalDate inicio, LocalDate fin) {
-        List<Contrato> vigentes = contratoRepository.findVigentesEnRango(EstadoContrato.ACTIVO, inicio, fin);
+        List<Contrato> vigentes = contratoRepository.findVigentesEnRango(inicio, fin);
         Map<Long, Contrato> porPersona = new LinkedHashMap<>();
         for (Contrato contrato : vigentes) {
             porPersona.putIfAbsent(contrato.getPersona().getId(), contrato);

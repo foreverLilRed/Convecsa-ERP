@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, XIcon } from '@lucide/vue'
+import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon, CircleHelpIcon, PlusIcon, XIcon } from '@lucide/vue'
 import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import {
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogOverlay,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+  DialogTrigger,
+} from 'reka-ui'
 import { toast } from 'vue-sonner'
 
 import { Button } from '@/components/ui/button'
@@ -94,6 +104,7 @@ const meses = mesesCatalogo()
 const configTriggerWrap = ref<HTMLElement | null>(null)
 const configPanel = ref<HTMLElement | null>(null)
 const estadoVivo = ref('')
+const tutorialOpen = ref(false)
 let skipPeriodoWatch = false
 
 const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
@@ -809,16 +820,129 @@ void load()
     </section>
 
     <div class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
-      <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h3 class="text-base font-semibold text-palette-navy">Planilla</h3>
           <p class="mt-1 text-sm text-slate-600">
             Desplace horizontalmente para ver todos los días. La columna de persona permanece fija.
           </p>
         </div>
-        <p v-if="planilla" class="text-sm text-slate-600">
-          {{ planilla.filas.length }} persona{{ planilla.filas.length === 1 ? '' : 's' }}
-        </p>
+        <div class="flex flex-wrap items-center gap-3 sm:justify-end">
+          <DialogRoot v-model:open="tutorialOpen">
+            <DialogTrigger as-child>
+              <Button variant="outline" class="h-9 bg-white px-3" type="button">
+                <CircleHelpIcon data-icon="inline-start" />
+                ¿Cómo llenar el tareo?
+              </Button>
+            </DialogTrigger>
+            <DialogPortal>
+              <DialogOverlay
+                class="fixed inset-0 z-[90] bg-palette-navy/45 backdrop-blur-[1px] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+              />
+              <DialogContent
+                class="fixed top-1/2 left-1/2 z-[100] flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+              >
+                <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+                  <div>
+                    <DialogTitle class="text-lg font-semibold text-palette-navy sm:text-xl">
+                      Cómo registrar el tareo diario
+                    </DialogTitle>
+                    <DialogDescription class="mt-1 text-sm leading-6 text-slate-600">
+                      Esta planilla registra el resultado del día, no las horas de entrada y salida.
+                    </DialogDescription>
+                  </div>
+                  <DialogClose as-child>
+                    <Button variant="ghost" size="icon" class="shrink-0" type="button" aria-label="Cerrar tutorial">
+                      <XIcon />
+                    </Button>
+                  </DialogClose>
+                </header>
+
+                <div class="overflow-y-auto px-5 py-5 sm:px-6">
+                  <div class="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
+                    <strong>Si completó sus 8 horas:</strong> escriba <strong>8</strong> en Horas, seleccione
+                    <strong>A · Asistencia</strong> y deje HE 25%, HE 35% y Tardanza en <strong>0</strong>.
+                  </div>
+
+                  <ol class="mt-5 space-y-4">
+                    <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
+                      <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">1</span>
+                      <div>
+                        <h4 class="font-semibold text-palette-navy">Horas trabajadas</h4>
+                        <p class="mt-1 text-sm leading-6 text-slate-600">
+                          Ingrese el total real trabajado ese día. Jornada completa: <strong>8</strong>. Si trabajó 7 horas
+                          y 45 minutos: <strong>7.75</strong>. Este campo no representa la hora del reloj a la que llegó.
+                        </p>
+                      </div>
+                    </li>
+                    <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
+                      <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">2</span>
+                      <div>
+                        <h4 class="font-semibold text-palette-navy">Código del día</h4>
+                        <p class="mt-1 text-sm leading-6 text-slate-600">
+                          Use <strong>A</strong> para asistencia normal. Seleccione otro código cuando corresponda:
+                          descanso, feriado, trabajo en descanso/feriado, descanso médico, vacaciones, licencia o falta.
+                          Los códigos que no implican trabajo colocan las horas en cero automáticamente.
+                        </p>
+                      </div>
+                    </li>
+                    <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
+                      <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">3</span>
+                      <div>
+                        <h4 class="font-semibold text-palette-navy">Minutos adicionales</h4>
+                        <p class="mt-1 text-sm leading-6 text-slate-600">
+                          Registre en minutos las horas extra sujetas a sobretasa del <strong>25%</strong> o
+                          <strong>35%</strong>, y los minutos de <strong>tardanza</strong>. Ejemplo: una hora extra se
+                          registra como <strong>60</strong>.
+                        </p>
+                      </div>
+                    </li>
+                  </ol>
+
+                  <div class="mt-5">
+                    <h4 class="font-semibold text-palette-navy">Ejemplos rápidos</h4>
+                    <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
+                      <table class="min-w-[36rem] w-full text-left text-sm">
+                        <thead class="bg-palette-ice text-palette-navy">
+                          <tr>
+                            <th class="px-3 py-2.5 font-semibold">Caso</th>
+                            <th class="px-3 py-2.5 text-center font-semibold">Horas</th>
+                            <th class="px-3 py-2.5 text-center font-semibold">Código</th>
+                            <th class="px-3 py-2.5 text-center font-semibold">HE 25%</th>
+                            <th class="px-3 py-2.5 text-center font-semibold">HE 35%</th>
+                            <th class="px-3 py-2.5 text-center font-semibold">Tardanza</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-slate-700">
+                          <tr><td class="px-3 py-2.5">Jornada normal completa</td><td class="px-3 py-2.5 text-center">8</td><td class="px-3 py-2.5 text-center">A</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td></tr>
+                          <tr><td class="px-3 py-2.5">Llegó 15 min tarde y trabajó 7 h 45 min</td><td class="px-3 py-2.5 text-center">7.75</td><td class="px-3 py-2.5 text-center">A</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">15</td></tr>
+                          <tr><td class="px-3 py-2.5">Trabajó 1 hora extra al 25%</td><td class="px-3 py-2.5 text-center">9</td><td class="px-3 py-2.5 text-center">A</td><td class="px-3 py-2.5 text-center">60</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td></tr>
+                          <tr><td class="px-3 py-2.5">Descanso semanal</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">D</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
+                    Si el horario comienza a las 8:00 y la persona llegó exactamente a las 8:00, no existe tardanza:
+                    registre <strong>0 minutos</strong>. Si llegó a las 8:15, registre <strong>15 minutos</strong>.
+                  </div>
+                </div>
+
+                <footer class="flex justify-end border-t border-slate-200 px-5 py-4 sm:px-6">
+                  <DialogClose as-child>
+                    <Button class="h-10 bg-palette-navy px-5 text-white hover:bg-palette-royal" type="button">
+                      Entendido
+                    </Button>
+                  </DialogClose>
+                </footer>
+              </DialogContent>
+            </DialogPortal>
+          </DialogRoot>
+          <p v-if="planilla" class="text-sm text-slate-600">
+            {{ planilla.filas.length }} persona{{ planilla.filas.length === 1 ? '' : 's' }}
+          </p>
+        </div>
       </div>
 
       <div
@@ -855,7 +979,8 @@ void load()
         <Table class="min-w-max">
           <TableCaption class="sr-only">
             {{ tituloPeriodo }} · {{ planilla.diasLaborables.length }} días laborables.
-            Cada celda tiene horas y estado. Falta y Descanso dejan las horas en cero.
+            Cada celda tiene horas, código de tareo, minutos extra al 25 y 35 por ciento y minutos de tardanza.
+            Falta y Descanso dejan las horas en cero.
           </TableCaption>
           <TableHeader>
             <TableRow class="hover:bg-transparent">
@@ -866,7 +991,7 @@ void load()
               <TableHead
                 v-for="fecha in planilla.diasLaborables"
                 :key="fecha"
-                class="sticky top-0 z-20 min-w-26 px-1.5 text-center"
+                class="sticky top-0 z-20 min-w-40 px-1.5 text-center"
                 :class="fecha === hoyIso ? 'bg-sky-100' : 'bg-palette-ice'"
                 :aria-current="fecha === hoyIso ? 'date' : undefined"
               >
@@ -908,7 +1033,7 @@ void load()
                   fecha === hoyIso ? 'ring-1 ring-inset ring-sky-400' : '',
                 ]"
               >
-                <div v-if="fila.porFecha[fecha]" class="flex min-w-24 flex-col gap-1 p-1">
+                <div v-if="fila.porFecha[fecha]" class="flex min-w-38 flex-col gap-1 p-1">
                   <label class="sr-only" :for="`horas-${fila.porFecha[fecha].id}`">
                     Horas de {{ fila.personaApellidos }}, {{ fila.personaNombres }} el {{ fechaLarga(fecha) }}
                   </label>
@@ -940,34 +1065,52 @@ void load()
                       {{ item.label }}
                     </option>
                   </select>
-                  <div class="grid grid-cols-3 gap-1" title="Minutos: HE 25%, HE 35% y tardanza">
-                    <input
-                      :class="cellInputClass"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="25%"
-                      :value="minutosDe(fila.porFecha[fecha], 'minutosExtras25')"
-                      @input="onMinutos(fila.porFecha[fecha], 'minutosExtras25', ($event.target as HTMLInputElement).value)"
-                    />
-                    <input
-                      :class="cellInputClass"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="35%"
-                      :value="minutosDe(fila.porFecha[fecha], 'minutosExtras35')"
-                      @input="onMinutos(fila.porFecha[fecha], 'minutosExtras35', ($event.target as HTMLInputElement).value)"
-                    />
-                    <input
-                      :class="cellInputClass"
-                      type="number"
-                      min="0"
-                      step="1"
-                      placeholder="Tar"
-                      :value="minutosDe(fila.porFecha[fecha], 'minutosTardanza')"
-                      @input="onMinutos(fila.porFecha[fecha], 'minutosTardanza', ($event.target as HTMLInputElement).value)"
-                    />
+                  <div class="grid grid-cols-3 gap-1" aria-label="Minutos adicionales del día">
+                    <label class="min-w-0 text-center text-[9px] font-semibold leading-3 text-slate-600">
+                      <span class="block whitespace-nowrap">HE 25%</span>
+                      <input
+                        :id="`extras-25-${fila.porFecha[fecha].id}`"
+                        :class="cellInputClass"
+                        type="number"
+                        min="0"
+                        max="1440"
+                        step="1"
+                        inputmode="numeric"
+                        title="Minutos de horas extra con sobretasa del 25%"
+                        :value="minutosDe(fila.porFecha[fecha], 'minutosExtras25')"
+                        @input="onMinutos(fila.porFecha[fecha], 'minutosExtras25', ($event.target as HTMLInputElement).value)"
+                      />
+                    </label>
+                    <label class="min-w-0 text-center text-[9px] font-semibold leading-3 text-slate-600">
+                      <span class="block whitespace-nowrap">HE 35%</span>
+                      <input
+                        :id="`extras-35-${fila.porFecha[fecha].id}`"
+                        :class="cellInputClass"
+                        type="number"
+                        min="0"
+                        max="1440"
+                        step="1"
+                        inputmode="numeric"
+                        title="Minutos de horas extra con sobretasa del 35%"
+                        :value="minutosDe(fila.porFecha[fecha], 'minutosExtras35')"
+                        @input="onMinutos(fila.porFecha[fecha], 'minutosExtras35', ($event.target as HTMLInputElement).value)"
+                      />
+                    </label>
+                    <label class="min-w-0 text-center text-[9px] font-semibold leading-3 text-slate-600">
+                      <span class="block whitespace-nowrap">Tardanza</span>
+                      <input
+                        :id="`tardanza-${fila.porFecha[fecha].id}`"
+                        :class="cellInputClass"
+                        type="number"
+                        min="0"
+                        max="1440"
+                        step="1"
+                        inputmode="numeric"
+                        title="Minutos de tardanza"
+                        :value="minutosDe(fila.porFecha[fecha], 'minutosTardanza')"
+                        @input="onMinutos(fila.porFecha[fecha], 'minutosTardanza', ($event.target as HTMLInputElement).value)"
+                      />
+                    </label>
                   </div>
                 </div>
                 <span

@@ -1,9 +1,8 @@
 package com.convecsa.erp.contrato.dto;
 
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Map;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -12,22 +11,21 @@ import lombok.Getter;
 public class ContratoDTO {
 
     private final Long id;
+    private final String titulo;
+    private final Long categoriaContratoId;
+    private final String categoriaContratoCodigo;
+    private final String categoriaContratoNombre;
     private final Long personaId;
-    private final String personaNombres;
-    private final String personaApellidos;
-    private final String numeroDocumento;
-    private final EstadoContrato estado;
+    private final String personaNombreCompleto;
+    private final String personaNumeroDocumento;
     private final LocalDate fechaInicio;
     private final LocalDate fechaFin;
-    private final String cargo;
-    private final String proyecto;
-    private final String ciudadFirma;
-    private final String plantillaCodigo;
-    private final String plantillaNombre;
-    private final Instant createdAt;
     private final BigDecimal sueldo;
-    private final Long afpId;
-    private final String afpCodigo;
-    private final String afpNombre;
-    private final boolean tieneAsignacionFamiliar;
+    private final boolean activo;
+    private final LocalDate fechaCorte;
+    private final Long tipoPlantillaId;
+    private final String tipoPlantillaCodigo;
+    private final String tipoPlantillaNombre;
+    private final String observaciones;
+    private final Map<String, String> metadata;
 }

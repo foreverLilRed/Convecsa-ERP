@@ -24,14 +24,14 @@ export function obtenerContratosCatalogos(): Promise<ContratosCatalogos> {
 export function listarContratos(
   page = 0,
   size = 20,
-  estado?: string,
+  activo?: boolean,
 ): Promise<PagedResponse<ContratoDTO>> {
   const params = new URLSearchParams({
     page: String(page),
     size: String(size),
   })
-  if (estado) {
-    params.set('estado', estado)
+  if (activo !== undefined) {
+    params.set('activo', String(activo))
   }
   return apiRequest<PagedResponse<ContratoDTO>>(`/api/gestion-humana/contratos?${params}`)
 }

@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner'
 
 import AdendaRegistroModal from '@/components/gestion-humana/AdendaRegistroModal.vue'
 import ContratoRegistroModal from '@/components/gestion-humana/ContratoRegistroModal.vue'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Pagination,
@@ -48,6 +49,7 @@ const page = ref(0)
 const adendaPage = ref(0)
 const modalOpen = ref(false)
 const adendaModalOpen = ref(false)
+const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 
 const displayPage = computed(() => page.value + 1)
 const totalPages = computed(() => data.value?.totalPages ?? 0)
@@ -67,22 +69,9 @@ function formatFecha(value: string | null): string {
   return parsed.toLocaleDateString('es-PE')
 }
 
-function estadoLabel(estado: string): string {
-  const labels: Record<string, string> = {
-    ACTIVO: 'Activo',
-    RESCINDIDO: 'Rescindido',
-    VENCIDO: 'Vencido',
-  }
-  return labels[estado] ?? estado
-}
-
 function etiquetaPlantilla(contrato: ContratoDTO): string {
-  const codigo = contrato.plantillaCodigo?.trim()
-  const nombre = contrato.plantillaNombre?.trim()
-  if (codigo && nombre) {
-    return `${codigo} · ${nombre}`
-  }
-  return codigo || nombre || '—'
+  const nombre = contrato.tipoPlantillaNombre?.trim()
+  return nombre || contrato.tipoPlantillaCodigo?.trim() || 'Sin plantilla'
 }
 
 function onDisplayPageChange(nextPage: number) {
@@ -250,14 +239,17 @@ onMounted(() => {
           </div>
 
           <div v-else class="mt-5 overflow-hidden rounded-lg border border-palette-cyan/60">
-            <Table>
+            <Table class="min-w-[1260px]">
               <TableCaption class="sr-only">Listado paginado de contratos.</TableCaption>
               <TableHeader>
                 <TableRow>
+                  <TableHead class="px-3">Contrato</TableHead>
                   <TableHead class="px-3">Persona</TableHead>
-                  <TableHead class="px-3">Documento</TableHead>
+                  <TableHead class="px-3">Vigencia</TableHead>
+                  <TableHead class="px-3 text-right">Sueldo</TableHead>
+                  <TableHead class="px-3">Fecha de corte</TableHead>
                   <TableHead class="px-3">Plantilla</TableHead>
-                  <TableHead class="px-3">Fechas</TableHead>
+                  <TableHead class="px-3">Observaciones</TableHead>
                   <TableHead class="px-3">Estado</TableHead>
                   <TableHead class="px-3">
                     <span class="sr-only">Descargar</span>
@@ -265,21 +257,47 @@ onMounted(() => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableEmpty v-if="!data?.content.length" :colspan="6">
+                <TableEmpty v-if="!data?.content.length" :colspan="9">
                   <span class="text-slate-500">No hay contratos generados.</span>
                 </TableEmpty>
                 <TableRow v-for="contrato in data?.content ?? []" :key="contrato.id">
-                  <TableCell class="px-3 py-3 font-medium">
-                    {{ contrato.personaApellidos }}, {{ contrato.personaNombres }}
+                  <TableCell class="max-w-64 px-3 py-3">
+                    <span class="block truncate font-medium" :title="contrato.titulo">{{ contrato.titulo }}</span>
+                    <span class="block truncate text-xs text-slate-500">{{ contrato.categoriaContratoNombre }}</span>
                   </TableCell>
-                  <TableCell class="px-3 py-3">{{ contrato.numeroDocumento }}</TableCell>
-                  <TableCell class="max-w-56 truncate px-3 py-3" :title="etiquetaPlantilla(contrato)">
-                    {{ etiquetaPlantilla(contrato) }}
+                  <TableCell class="max-w-56 px-3 py-3">
+                    <span class="block truncate font-medium" :title="contrato.personaNombreCompleto">
+                      {{ contrato.personaNombreCompleto }}
+                    </span>
+                    <span class="block text-xs text-slate-500">{{ contrato.personaNumeroDocumento }}</span>
                   </TableCell>
                   <TableCell class="px-3 py-3 whitespace-nowrap text-slate-500">
                     {{ formatFecha(contrato.fechaInicio) }} – {{ formatFecha(contrato.fechaFin) }}
                   </TableCell>
-                  <TableCell class="px-3 py-3">{{ estadoLabel(contrato.estado) }}</TableCell>
+                  <TableCell class="px-3 py-3 text-right font-medium tabular-nums">
+                    {{ money.format(contrato.sueldo) }}
+                  </TableCell>
+                  <TableCell class="px-3 py-3 text-slate-500">
+                    {{ formatFecha(contrato.fechaCorte) }}
+                  </TableCell>
+                  <TableCell class="max-w-56 px-3 py-3">
+                    <Badge
+                      class="max-w-full"
+                      :title="contrato.tipoPlantillaCodigo"
+                    >
+                      <span class="truncate">{{ etiquetaPlantilla(contrato) }}</span>
+                    </Badge>
+                  </TableCell>
+                  <TableCell class="max-w-64 whitespace-normal px-3 py-3 text-slate-500">
+                    <span class="line-clamp-2" :title="contrato.observaciones ?? undefined">
+                      {{ contrato.observaciones || '—' }}
+                    </span>
+                  </TableCell>
+                  <TableCell class="px-3 py-3">
+                    <Badge :variant="contrato.activo ? 'success' : 'secondary'">
+                      {{ contrato.activo ? 'Activo' : 'Inactivo' }}
+                    </Badge>
+                  </TableCell>
                   <TableCell class="px-3 py-3">
                     <div class="flex justify-end">
                       <Button

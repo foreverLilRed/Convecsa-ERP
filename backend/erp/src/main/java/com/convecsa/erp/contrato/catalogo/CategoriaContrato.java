@@ -11,20 +11,20 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "tipo_plantilla")
+@Table(name = "categoria_contrato")
 @Getter
 @Setter
 @NoArgsConstructor
-public class TipoPlantilla {
+public class CategoriaContrato {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 40)
+    @Column(nullable = false, unique = true, length = 50)
     private String codigo;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = false, length = 160)
     private String label;
 
     @Column(nullable = false)

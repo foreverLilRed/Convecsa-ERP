@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.convecsa.erp.common.web.PagedResponse;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.desempeno.domain.EstadoEvaluacionDesempeno;
 import com.convecsa.erp.desempeno.dto.ColaboradorDesempenoDTO;
@@ -65,7 +64,7 @@ class DesempenoServiceImplTest {
         when(personaRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(persona)));
         when(evaluacionRepository.findByPersonaIdInAndPeriodo(List.of(7L), "2026-Q3")).thenReturn(List.of());
-        when(contratoRepository.findByPersonaIdInAndEstadoOrderByCreatedAtDesc(List.of(7L), EstadoContrato.ACTIVO))
+        when(contratoRepository.findByPersonaIdInAndActivoTrueOrderByIdDesc(List.of(7L)))
                 .thenReturn(List.of());
 
         PagedResponse<ColaboradorDesempenoDTO> page =
@@ -96,7 +95,7 @@ class DesempenoServiceImplTest {
         when(personaRepository.findById(7L)).thenReturn(Optional.of(persona));
         when(evaluacionRepository.findByPersonaIdAndPeriodo(7L, "2026-Q3")).thenReturn(Optional.of(existente));
         when(evaluacionRepository.save(existente)).thenReturn(existente);
-        when(contratoRepository.findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(7L, EstadoContrato.ACTIVO))
+        when(contratoRepository.findFirstByPersonaIdAndActivoTrueOrderByIdDesc(7L))
                 .thenReturn(Optional.empty());
 
         EvaluacionDesempenoRequest request = new EvaluacionDesempenoRequest();

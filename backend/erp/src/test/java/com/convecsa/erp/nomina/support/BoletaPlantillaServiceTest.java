@@ -60,7 +60,7 @@ class BoletaPlantillaServiceTest {
         persona.setApellidos("ROJAS");
         persona.setNumeroDocumento("8644232");
         Contrato contrato = new Contrato();
-        contrato.setCargo("OPERARIO");
+        contrato.getMetadata().put("cargo", "OPERARIO");
         PeriodoNomina periodo = new PeriodoNomina();
         periodo.setAnio(2026);
         periodo.setMes(9);

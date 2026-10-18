@@ -3,7 +3,6 @@ package com.convecsa.erp.onboarding.service.impl;
 import com.convecsa.erp.common.exception.GeneracionOnboardingNoEncontradaException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.web.PagedResponse;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
@@ -129,21 +128,12 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
 
     private Contrato contratoActivo(Long personaId) {
         return contratoRepository
-                .findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(personaId, EstadoContrato.ACTIVO)
+                .findFirstByPersonaIdAndActivoTrueOrderByIdDesc(personaId)
                 .orElseThrow(() -> new IllegalArgumentException("La persona no tiene un contrato activo"));
     }
 
     private void prepararContrato(Contrato contrato, Persona persona) {
         contrato.setPersona(persona);
-        if (contrato.getCausaObjetiva() != null) {
-            contrato.getCausaObjetiva().getLabel();
-        }
-        if (contrato.getJornada() != null) {
-            contrato.getJornada().getLabel();
-        }
-        if (contrato.getMetodoPago() != null) {
-            contrato.getMetodoPago().getLabel();
-        }
     }
 
     private String renderPaquete(Persona persona, Contrato contrato, List<String> codigos) {

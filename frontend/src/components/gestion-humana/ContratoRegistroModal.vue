@@ -21,13 +21,16 @@ import type { CatalogoItem, ContratosCatalogos, PlantillaCampo, PlantillaContrat
 import type { PersonaResumenDTO } from '@/types/persona'
 
 type ContratoForm = {
+  titulo: string
+  categoriaContratoId: string
   personaId: number | null
-  plantillaContratoId: string
+  tipoPlantillaId: string
   fechaInicio: string
   fechaFin: string
   sueldo: string
-  afpId: string
-  tieneAsignacionFamiliar: boolean
+  activo: boolean
+  fechaCorte: string
+  observaciones: string
 }
 
 const props = defineProps<{
@@ -41,13 +44,16 @@ const emit = defineEmits<{
 
 function emptyForm(): ContratoForm {
   return {
+    titulo: '',
+    categoriaContratoId: '',
     personaId: null,
-    plantillaContratoId: '',
+    tipoPlantillaId: '',
     fechaInicio: '',
     fechaFin: '',
     sueldo: '',
-    afpId: '',
-    tieneAsignacionFamiliar: false,
+    activo: true,
+    fechaCorte: '',
+    observaciones: '',
   }
 }
 
@@ -62,14 +68,14 @@ const personaSearch = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const inputClass =
-  'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
+  'mt-1.5 block h-10 min-w-0 max-w-full w-full rounded-lg border border-slate-200 bg-white px-3 py-0 text-sm leading-normal text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
 
 const plantillasContrato = computed(() =>
   (catalogos.value?.plantillas ?? []).filter((item) => (item.uso ?? 'CONTRATO') === 'CONTRATO'),
 )
 
 const plantillaSeleccionada = computed<PlantillaContrato | null>(() => {
-  const id = Number(form.plantillaContratoId)
+  const id = Number(form.tipoPlantillaId)
   if (!Number.isFinite(id)) {
     return null
   }
@@ -176,7 +182,7 @@ watch(
 )
 
 watch(
-  () => form.plantillaContratoId,
+  () => form.tipoPlantillaId,
   () => {
     resetExtras(camposExtra.value)
   },
@@ -207,10 +213,10 @@ function onPersonaChange(value: unknown) {
 
 function validate(): string | null {
   if (!form.personaId) return 'Seleccione una persona del listado.'
-  if (!form.plantillaContratoId) return 'Seleccione la plantilla.'
-  if (!form.fechaInicio) return 'Ingrese la fecha de inicio.'
-  if (!form.fechaFin) return 'Ingrese la fecha de fin.'
-  if (form.fechaFin < form.fechaInicio) return 'La fecha de fin no puede ser menor que la de inicio.'
+  if (!form.titulo.trim()) return 'Ingrese el título del contrato.'
+  if (!form.categoriaContratoId) return 'Seleccione la categoría del contrato.'
+  if (!form.tipoPlantillaId) return 'Seleccione el tipo de plantilla.'
+  if (form.fechaInicio && form.fechaFin && form.fechaFin < form.fechaInicio) return 'La fecha de fin no puede ser menor que la de inicio.'
   const sueldo = Number(form.sueldo)
   if (!Number.isFinite(sueldo) || sueldo <= 0) return 'Ingrese un sueldo mayor a cero.'
   for (const campo of camposExtra.value) {
@@ -241,13 +247,16 @@ async function onSubmit() {
       }
     }
     await crearContrato({
+      titulo: form.titulo.trim(),
+      categoriaContratoId: Number(form.categoriaContratoId),
       personaId: form.personaId as number,
-      plantillaContratoId: Number(form.plantillaContratoId),
-      fechaInicio: form.fechaInicio,
-      fechaFin: form.fechaFin,
+      tipoPlantillaId: Number(form.tipoPlantillaId),
+      fechaInicio: form.fechaInicio || null,
+      fechaFin: form.fechaFin || null,
       sueldo: Number(form.sueldo),
-      afpId: form.afpId ? Number(form.afpId) : null,
-      tieneAsignacionFamiliar: form.tieneAsignacionFamiliar,
+      activo: form.activo,
+      fechaCorte: form.fechaCorte || null,
+      observaciones: form.observaciones.trim() || null,
       metadata,
     })
     toast.success('Contrato creado.')
@@ -295,15 +304,15 @@ onUnmounted(() => {
       >
         <div class="modal-backdrop fixed inset-0 bg-palette-navy/40" @click="onOverlayClick" />
 
-        <div class="relative flex min-h-full items-center justify-center p-4 sm:p-6">
+        <div class="relative flex min-h-full items-center justify-center p-0 sm:p-4 lg:p-6">
           <section
-            class="modal-panel relative z-10 flex h-[min(92vh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-palette-cyan/70 bg-white shadow-lg"
+            class="modal-panel relative z-10 flex h-[100dvh] max-h-[100dvh] min-w-0 w-full flex-col overflow-hidden bg-white shadow-lg sm:h-[min(92vh,52rem)] sm:max-h-[min(92vh,52rem)] sm:max-w-4xl sm:rounded-2xl sm:border sm:border-palette-cyan/70"
             role="dialog"
             aria-modal="true"
             aria-labelledby="contrato-modal-title"
           >
-            <header class="flex shrink-0 items-center justify-between border-b border-palette-cyan/70 px-5 py-4">
-              <div>
+            <header class="flex shrink-0 items-center justify-between gap-3 border-b border-palette-cyan/70 px-4 py-3 sm:px-6 sm:py-4">
+              <div class="min-w-0">
                 <p class="text-[11px] font-semibold uppercase tracking-widest text-palette-royal">
                   Gestión Humana / Contratos
                 </p>
@@ -324,32 +333,79 @@ onUnmounted(() => {
               </Button>
             </header>
 
-            <form class="flex min-h-0 flex-1 flex-col px-5 py-5" @submit.prevent="onSubmit">
-              <fieldset class="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1" :disabled="submitting">
-                <div>
+            <form class="flex min-h-0 min-w-0 flex-1 flex-col px-4 py-4 sm:px-6 sm:py-5" @submit.prevent="onSubmit">
+              <fieldset
+                class="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pr-2"
+                :disabled="submitting"
+              >
+                <div class="grid min-w-0 gap-x-4 gap-y-5 md:grid-cols-2">
+                <div class="min-w-0 md:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-titulo">Título</label>
+                  <input
+                    id="contrato-titulo"
+                    v-model="form.titulo"
+                    type="text"
+                    maxlength="200"
+                    placeholder="Ej. Contrato de trabajo a plazo fijo"
+                    :class="inputClass"
+                  />
+                </div>
+
+                <div class="min-w-0">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-categoria">Categoría</label>
+                  <select id="contrato-categoria" v-model="form.categoriaContratoId" :class="inputClass">
+                    <option value="">Seleccione</option>
+                    <option
+                      v-for="item in catalogos?.categoriasContrato ?? []"
+                      :key="item.id"
+                      :value="String(item.id)"
+                    >
+                      {{ item.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="min-w-0">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-plantilla">Tipo de plantilla</label>
+                  <select id="contrato-plantilla" v-model="form.tipoPlantillaId" :class="inputClass">
+                    <option value="">Seleccione</option>
+                    <option
+                      v-for="item in plantillasContrato"
+                      :key="item.id"
+                      :value="String(item.id)"
+                    >
+                      {{ item.nombre }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="min-w-0 md:col-span-2">
                   <label class="text-sm font-medium text-slate-700" for="contrato-persona">Persona</label>
                   <Combobox
                     :model-value="form.personaId ?? undefined"
                     ignore-filter
-                    class="w-full"
+                    class="min-w-0 w-full"
                     @update:model-value="onPersonaChange"
                   >
-                    <ComboboxAnchor class="w-full">
+                    <ComboboxAnchor class="min-w-0 w-full">
                       <ComboboxTrigger as-child>
                         <Button
                           id="contrato-persona"
                           variant="outline"
-                          class="mt-1.5 h-10 w-full justify-between px-3 font-normal text-slate-900"
+                          class="mt-1.5 h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
                           type="button"
                         >
-                          <span class="truncate" :class="personaLabel ? 'text-slate-900' : 'text-slate-400'">
+                          <span class="min-w-0 flex-1 truncate text-left" :class="personaLabel ? 'text-slate-900' : 'text-slate-400'">
                             {{ personaLabel || 'Buscar por nombre o documento' }}
                           </span>
                           <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
                         </Button>
                       </ComboboxTrigger>
                     </ComboboxAnchor>
-                    <ComboboxList class="z-100 w-(--reka-combobox-trigger-width)" align="start">
+                    <ComboboxList
+                      class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)"
+                      align="start"
+                    >
                       <ComboboxInput
                         v-model="personaSearch"
                         placeholder="Buscar persona..."
@@ -372,32 +428,18 @@ onUnmounted(() => {
                   </Combobox>
                 </div>
 
-                <div>
-                  <label class="text-sm font-medium text-slate-700" for="contrato-plantilla">Plantilla</label>
-                  <select id="contrato-plantilla" v-model="form.plantillaContratoId" :class="inputClass">
-                    <option value="">Seleccione</option>
-                    <option
-                      v-for="item in plantillasContrato"
-                      :key="item.id"
-                      :value="String(item.id)"
-                    >
-                      {{ item.nombre }}
-                    </option>
-                  </select>
-                </div>
-
-                <div class="grid gap-4 sm:grid-cols-2">
-                  <div>
+                <div class="contents">
+                  <div class="min-w-0">
                     <label class="text-sm font-medium text-slate-700" for="contrato-inicio">Fecha de inicio</label>
                     <input id="contrato-inicio" v-model="form.fechaInicio" type="date" :class="inputClass" />
                   </div>
-                  <div>
+                  <div class="min-w-0">
                     <label class="text-sm font-medium text-slate-700" for="contrato-fin">Fecha de fin</label>
                     <input id="contrato-fin" v-model="form.fechaFin" type="date" :class="inputClass" />
                   </div>
                 </div>
 
-                <div>
+                <div class="min-w-0">
                   <label class="text-sm font-medium text-slate-700" for="contrato-sueldo">Sueldo</label>
                   <input
                     id="contrato-sueldo"
@@ -409,33 +451,35 @@ onUnmounted(() => {
                   />
                 </div>
 
-                <div>
-                  <label class="text-sm font-medium text-slate-700" for="contrato-afp">AFP / ONP</label>
-                  <select id="contrato-afp" v-model="form.afpId" :class="inputClass">
-                    <option value="">ONP por defecto al generar nómina</option>
-                    <option
-                      v-for="item in catalogos?.afps ?? []"
-                      :key="item.id"
-                      :value="String(item.id)"
-                    >
-                      {{ item.label }}
-                    </option>
-                  </select>
+                <div class="min-w-0">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-corte">Fecha de corte</label>
+                  <input id="contrato-corte" v-model="form.fechaCorte" type="date" :class="inputClass" />
                 </div>
 
-                <label class="flex items-center gap-2 text-sm text-slate-700" for="contrato-asig">
+                <label class="flex min-w-0 items-center gap-2 self-end pb-2 text-sm text-slate-700" for="contrato-activo">
                   <input
-                    id="contrato-asig"
-                    v-model="form.tieneAsignacionFamiliar"
+                    id="contrato-activo"
+                    v-model="form.activo"
                     type="checkbox"
                     class="h-4 w-4 rounded border-slate-300"
                   />
-                  Tiene asignación familiar
+                  Contrato activo
                 </label>
 
-                <div v-if="camposExtra.length" class="grid gap-4 sm:grid-cols-2">
-                  <div v-for="campo in camposExtra" :key="campo.clave">
-                    <label class="text-sm font-medium text-slate-700" :for="`contrato-extra-${campo.clave}`">
+                <div class="min-w-0 md:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-observaciones">Observaciones</label>
+                  <textarea
+                    id="contrato-observaciones"
+                    v-model="form.observaciones"
+                    rows="3"
+                    maxlength="10000"
+                    class="mt-1.5 block min-h-24 min-w-0 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                  />
+                </div>
+
+                <div v-if="camposExtra.length" class="grid min-w-0 gap-4 sm:grid-cols-2 md:col-span-2">
+                  <div v-for="campo in camposExtra" :key="campo.clave" class="min-w-0">
+                    <label class="block break-words text-sm font-medium text-slate-700" :for="`contrato-extra-${campo.clave}`">
                       {{ campo.label }}
                     </label>
                     <select
@@ -462,16 +506,17 @@ onUnmounted(() => {
                     />
                   </div>
                 </div>
+                </div>
               </fieldset>
 
-              <p v-if="error" id="contrato-form-error" class="mt-4 shrink-0 text-sm font-medium text-red-600" role="alert">
+              <p v-if="error" id="contrato-form-error" class="mt-4 shrink-0 break-words text-sm font-medium text-red-600" role="alert">
                 {{ error }}
               </p>
 
               <footer class="mt-4 flex shrink-0 flex-col-reverse gap-3 border-t border-palette-cyan/70 pt-4 sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
-                  class="h-10 px-4"
+                  class="h-10 w-full px-4 sm:w-auto"
                   type="button"
                   :disabled="submitting"
                   @click="emit('close')"
@@ -479,7 +524,7 @@ onUnmounted(() => {
                   Cancelar
                 </Button>
                 <Button
-                  class="h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
+                  class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
                   type="submit"
                   :disabled="submitting"
                   :aria-describedby="error ? 'contrato-form-error' : undefined"

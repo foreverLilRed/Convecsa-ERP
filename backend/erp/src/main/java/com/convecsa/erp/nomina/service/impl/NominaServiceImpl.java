@@ -10,7 +10,6 @@ import com.convecsa.erp.common.exception.BoletaPagoNoEncontradaException;
 import com.convecsa.erp.common.exception.PeriodoNominaDuplicadoException;
 import com.convecsa.erp.common.exception.PeriodoNominaNoEncontradoException;
 import com.convecsa.erp.common.web.PagedResponse;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.nomina.catalogo.Afp;
@@ -137,7 +136,7 @@ public class NominaServiceImpl implements InterfazNominaService {
         YearMonth yearMonth = YearMonth.of(periodo.getAnio(), periodo.getMes());
         LocalDate inicio = yearMonth.atDay(1);
         LocalDate fin = yearMonth.atEndOfMonth();
-        List<Contrato> vigentes = contratoRepository.findVigentesEnRango(EstadoContrato.ACTIVO, inicio, fin);
+        List<Contrato> vigentes = contratoRepository.findVigentesEnRango(inicio, fin);
         Map<Long, Contrato> porPersona = new LinkedHashMap<>();
         for (Contrato contrato : vigentes) {
             Long personaId = contrato.getPersona().getId();
@@ -162,9 +161,9 @@ public class NominaServiceImpl implements InterfazNominaService {
             boleta.setPeriodo(periodo);
             boleta.setPersona(persona);
             boleta.setContrato(contrato);
-            boleta.setAfp(contrato.getAfp() == null ? afpDefault : contrato.getAfp());
+            boleta.setAfp(afpPara(persona, afpDefault));
             aplicarTareo(boleta, inicio, fin);
-            boleta.setAplicaAsigFamiliar(contrato.isTieneAsignacionFamiliar());
+            boleta.setAplicaAsigFamiliar(Boolean.parseBoolean(contrato.metadata("tiene_asignacion_familiar")));
             boleta.setEstado(EstadoBoletaPago.BORRADOR);
             calculoNominaService.calcular(boleta);
             boletaPagoRepository.save(boleta);
@@ -508,7 +507,7 @@ public class NominaServiceImpl implements InterfazNominaService {
                 persona.getNombres(),
                 persona.getApellidos(),
                 persona.getNumeroDocumento(),
-                contrato == null ? null : contrato.getCargo(),
+                contrato == null ? null : contrato.metadata("cargo"),
                 boleta.getAfp() == null ? null : boleta.getAfp().getLabel(),
                 boleta.getDiasTrabajados(),
                 boleta.getTotalHaberes(),
@@ -532,7 +531,7 @@ public class NominaServiceImpl implements InterfazNominaService {
                 persona.getNombres(),
                 persona.getApellidos(),
                 persona.getNumeroDocumento(),
-                contrato == null ? null : contrato.getCargo(),
+                contrato == null ? null : contrato.metadata("cargo"),
                 cuenta == null || cuenta.getBanco() == null ? null : cuenta.getBanco().name(),
                 cuenta == null ? null : cuenta.getCci(),
                 afp == null ? null : afp.getId(),
@@ -637,6 +636,20 @@ public class NominaServiceImpl implements InterfazNominaService {
                 afp.getComisionFlujo(),
                 afp.getPrimaSeguro(),
                 afp.isEsOnp());
+    }
+
+    private Afp afpPara(Persona persona, Afp fallback) {
+        String pension = persona.getPension();
+        if (pension == null || pension.isBlank()) {
+            return fallback;
+        }
+        String buscado = pension.trim();
+        return afpRepository.findByActivoTrueOrderByIdAsc().stream()
+                .filter(afp -> afp.getCodigo().equalsIgnoreCase(buscado)
+                        || afp.getLabel().equalsIgnoreCase(buscado)
+                        || afp.getLabel().toLowerCase().contains(buscado.toLowerCase()))
+                .findFirst()
+                .orElse(fallback);
     }
 
     private static PersonaCuentaBancaria cuentaPrincipal(Persona persona) {

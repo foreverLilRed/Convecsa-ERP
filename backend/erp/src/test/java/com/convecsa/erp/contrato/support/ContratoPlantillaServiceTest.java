@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
 import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
@@ -20,8 +21,8 @@ class ContratoPlantillaServiceTest {
     @Test
     void sustituyeDatosDePersonaYContrato() {
         Contrato contrato = contratoBase();
-        contrato.setCargo("RESIDENTE DE OBRA");
-        contrato.setProyecto("Obra Central");
+        contrato.getMetadata().put("cargo", "RESIDENTE DE OBRA");
+        contrato.getMetadata().put("proyecto", "Obra Central");
 
         String html = new ContratoPlantillaService().render(contrato);
 
@@ -56,12 +57,47 @@ class ContratoPlantillaServiceTest {
     }
 
     @Test
+    void sustituyeNuevosDatosDePersonaContratoYVigencia() {
+        Contrato contrato = contratoBase();
+        contrato.setTitulo("Contrato de supervisión");
+        contrato.setFechaCorte(LocalDate.of(2026, 6, 30));
+        contrato.setObservaciones("Renovable por acuerdo de las partes");
+        contrato.setActivo(true);
+        contrato.getPersona().setCorreo("pedro@convecsa.pe");
+        contrato.getPersona().setDistrito("San Borja");
+        contrato.getPersona().setPension("AFP Integra");
+        contrato.getPersona().setCuspp("123456789012");
+
+        CategoriaContrato categoria = new CategoriaContrato();
+        categoria.setCodigo("PLAZO_FIJO");
+        categoria.setLabel("Plazo fijo");
+        contrato.setCategoriaContrato(categoria);
+
+        PlantillaContrato plantilla = new PlantillaContrato();
+        plantilla.setCodigo("CONTRATO_BASE");
+        plantilla.setNombre("Contrato base");
+        contrato.setTipoPlantilla(plantilla);
+
+        String html = new ContratoPlantillaService().apply(
+                "{{titulo}}|{{categoria_contrato}}|{{categoria_contrato_codigo}}|{{plantilla_nombre}}|"
+                        + "{{trabajador_nombre_completo}}|{{trabajador_correo}}|{{trabajador_distrito}}|"
+                        + "{{trabajador_pension}}|{{trabajador_cuspp}}|{{fecha_corte}}|{{activo}}|{{observaciones}}",
+                contrato);
+
+        assertEquals(
+                "Contrato de supervisión|Plazo fijo|PLAZO_FIJO|Contrato base|PEDRO QUISPE HUAMAN|"
+                        + "pedro@convecsa.pe|San Borja|AFP Integra|123456789012|30 de junio de 2026|Sí|"
+                        + "Renovable por acuerdo de las partes",
+                html);
+    }
+
+    @Test
     void renderUsaHtmlDeLaPlantillaEnBd() {
         Contrato contrato = contratoBase();
         contrato.getMetadata().put("cargo", "INGENIERO");
         PlantillaContrato plantilla = new PlantillaContrato();
         plantilla.setPlantilla("<p>{{trabajador_nombres}} — {{cargo}}</p>");
-        contrato.setPlantillaContrato(plantilla);
+        contrato.setTipoPlantilla(plantilla);
 
         String html = new ContratoPlantillaService().render(contrato);
 
@@ -90,8 +126,8 @@ class ContratoPlantillaServiceTest {
     @Test
     void renderAdendaSustituyeProrrogaYMotivo() {
         Contrato contrato = contratoBase();
-        contrato.setCargo("RESIDENTE DE OBRA");
-        contrato.setProyecto("Clínica");
+        contrato.getMetadata().put("cargo", "RESIDENTE DE OBRA");
+        contrato.getMetadata().put("proyecto", "Clínica");
         Adenda adenda = new Adenda();
         adenda.setContrato(contrato);
         adenda.setFechaFinAnterior(LocalDate.of(2026, 7, 15));

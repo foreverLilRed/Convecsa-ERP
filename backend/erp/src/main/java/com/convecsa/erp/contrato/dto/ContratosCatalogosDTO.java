@@ -8,6 +8,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ContratosCatalogosDTO {
 
+    private final List<CatalogoItemDTO> categoriasContrato;
     private final List<CatalogoItemDTO> jornadas;
     private final List<CatalogoItemDTO> causasObjetivas;
     private final List<CatalogoItemDTO> metodosPago;

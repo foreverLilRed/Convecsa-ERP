@@ -3,7 +3,6 @@ package com.convecsa.erp.contrato.service.impl;
 import com.convecsa.erp.common.exception.AdendaNoEncontradaException;
 import com.convecsa.erp.common.web.PagedResponse;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import com.convecsa.erp.contrato.dto.AdendaDTO;
 import com.convecsa.erp.contrato.dto.AdendaRequest;
@@ -50,7 +49,7 @@ public class AdendaServiceImpl implements InterfazAdendaService {
     public AdendaDTO crear(AdendaRequest request) {
         Contrato contrato = contratoRepository.findById(request.getContratoId())
                 .orElseThrow(() -> new ContratoNoEncontrado("No se encontró el contrato"));
-        if (contrato.getEstado() != EstadoContrato.ACTIVO) {
+        if (!contrato.isActivo()) {
             throw new IllegalArgumentException("Solo se puede prorrogar un contrato activo.");
         }
         PlantillaContrato plantilla = plantillaContratoRepository.findById(request.getPlantillaContratoId())
@@ -81,7 +80,9 @@ public class AdendaServiceImpl implements InterfazAdendaService {
         contrato.setFechaFin(request.getFechaFinNueva());
         contrato.setSueldo(request.getSueldo());
         if (saved.getCiudadEmision() != null) {
-            contrato.setCiudadFirma(saved.getCiudadEmision());
+            Map<String, String> metadata = new LinkedHashMap<>(contrato.getMetadata());
+            metadata.put("ciudad_firma", saved.getCiudadEmision());
+            contrato.setMetadata(metadata);
         }
         contratoRepository.save(contrato);
         return toDto(saved);

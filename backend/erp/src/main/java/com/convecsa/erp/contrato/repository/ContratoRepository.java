@@ -1,6 +1,5 @@
 package com.convecsa.erp.contrato.repository;
 
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import java.time.LocalDate;
 import java.util.Collection;
@@ -15,34 +14,32 @@ import org.springframework.data.repository.query.Param;
 
 public interface ContratoRepository extends JpaRepository<Contrato, Long> {
 
-    long countDistinctPersonaIdByEstado(EstadoContrato estado);
+    long countDistinctPersonaIdByActivoTrue();
 
-    @EntityGraph(attributePaths = {"persona", "plantillaContrato", "afp"})
-    Page<Contrato> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato"})
+    Page<Contrato> findAllByOrderByIdDesc(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"persona", "plantillaContrato", "afp"})
-    Page<Contrato> findByEstadoOrderByCreatedAtDesc(EstadoContrato estado, Pageable pageable);
+    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato"})
+    Page<Contrato> findByActivoOrderByIdDesc(boolean activo, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"persona", "jornada", "metodoPago", "causaObjetiva"})
-    Optional<Contrato> findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(Long personaId, EstadoContrato estado);
+    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato"})
+    Optional<Contrato> findFirstByPersonaIdAndActivoTrueOrderByIdDesc(Long personaId);
 
     default Optional<Contrato> findUltimoContratoActivoPorPersonaId(Long personaId) {
-        return findFirstByPersonaIdAndEstadoOrderByCreatedAtDesc(personaId, EstadoContrato.ACTIVO);
+        return findFirstByPersonaIdAndActivoTrueOrderByIdDesc(personaId);
     }
 
-    List<Contrato> findByPersonaIdInAndEstadoOrderByCreatedAtDesc(
-            Collection<Long> personaIds, EstadoContrato estado);
+    List<Contrato> findByPersonaIdInAndActivoTrueOrderByIdDesc(Collection<Long> personaIds);
 
-    @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "afp", "jornada"})
+    @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "tipoPlantilla", "categoriaContrato"})
     @Query("""
             SELECT c FROM Contrato c
-            WHERE c.estado = :estado
+            WHERE c.activo = true
               AND (c.fechaInicio IS NULL OR c.fechaInicio <= :finMes)
               AND (c.fechaFin IS NULL OR c.fechaFin >= :inicioMes)
-            ORDER BY c.createdAt DESC
+            ORDER BY c.id DESC
             """)
     List<Contrato> findVigentesEnRango(
-            @Param("estado") EstadoContrato estado,
             @Param("inicioMes") LocalDate inicioMes,
             @Param("finMes") LocalDate finMes);
 }

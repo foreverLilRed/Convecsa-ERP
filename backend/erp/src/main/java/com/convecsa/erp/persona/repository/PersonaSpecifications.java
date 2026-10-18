@@ -1,6 +1,5 @@
 package com.convecsa.erp.persona.repository;
 
-import com.convecsa.erp.contrato.domain.EstadoContrato;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.domain.TipoDocumento;
@@ -68,7 +67,7 @@ public final class PersonaSpecifications {
             sub.select(contrato.get("id"));
             sub.where(
                     cb.equal(contrato.get("persona").get("id"), root.get("id")),
-                    cb.equal(contrato.get("estado"), EstadoContrato.ACTIVO));
+                    cb.isTrue(contrato.get("activo")));
             return cb.exists(sub);
         };
     }

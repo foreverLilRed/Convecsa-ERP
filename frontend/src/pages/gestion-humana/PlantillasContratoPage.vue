@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { PencilIcon, PlusIcon } from '@lucide/vue'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
-import PlantillaEdicionModal from '@/components/gestion-humana/PlantillaEdicionModal.vue'
-import PlantillaRegistroModal from '@/components/gestion-humana/PlantillaRegistroModal.vue'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -22,9 +21,7 @@ import type { PlantillaContrato } from '@/types/contrato'
 
 const loading = ref(true)
 const plantillas = ref<PlantillaContrato[]>([])
-const modalOpen = ref(false)
-const edicionOpen = ref(false)
-const edicionId = ref<number | null>(null)
+const router = useRouter()
 
 async function load() {
   loading.value = true
@@ -37,24 +34,31 @@ async function load() {
   }
 }
 
-function onSaved() {
-  modalOpen.value = false
-  void load()
+function openRoute(name: 'gh-plantilla-contrato-nueva' | 'gh-plantilla-contrato-editar', id?: number) {
+  const route = router.resolve({ name, params: id == null ? undefined : { id } })
+  const opened = window.open(route.href, '_blank')
+  if (!opened) {
+    toast.error('El navegador bloqueó la nueva pestaña. Permita ventanas emergentes para este sitio.')
+    return
+  }
+  opened.opener = null
 }
 
 function onEdit(id: number) {
-  edicionId.value = id
-  edicionOpen.value = true
+  openRoute('gh-plantilla-contrato-editar', id)
 }
 
-function onEditSaved() {
-  edicionOpen.value = false
-  edicionId.value = null
+function onWindowFocus() {
   void load()
 }
 
 onMounted(() => {
   void load()
+  window.addEventListener('focus', onWindowFocus)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('focus', onWindowFocus)
 })
 </script>
 
@@ -73,7 +77,7 @@ onMounted(() => {
       <Button
         class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:mt-7 sm:w-auto"
         type="button"
-        @click="modalOpen = true"
+        @click="openRoute('gh-plantilla-contrato-nueva')"
       >
         <PlusIcon data-icon="inline-start" />
         Nueva plantilla
@@ -129,13 +133,5 @@ onMounted(() => {
         </Table>
       </div>
     </div>
-
-    <PlantillaRegistroModal :open="modalOpen" @close="modalOpen = false" @saved="onSaved" />
-    <PlantillaEdicionModal
-      :open="edicionOpen"
-      :plantilla-id="edicionId"
-      @close="edicionOpen = false"
-      @saved="onEditSaved"
-    />
   </section>
 </template>
