@@ -209,10 +209,6 @@ function clearFoto() {
   }
 }
 
-function addCelular() {
-  form.celulares.push('')
-}
-
 function removeCelular(index: number) {
   if (form.celulares.length === 1) {
     return
@@ -813,42 +809,37 @@ function onOverlayClick() {
                   <fieldset class="min-w-0 rounded-xl border border-slate-200 p-4 sm:p-5">
                     <legend class="text-sm font-semibold text-palette-navy">Contacto</legend>
                     <div class="aligned-fields mt-4 grid gap-x-4 gap-y-4 sm:grid-cols-2">
-                      <div class="sm:col-span-2">
+                      <div class="grid min-w-0 grid-rows-[2rem_auto] items-start">
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-700">Celulares</p>
-                        <div
-                          v-for="(_, index) in form.celulares"
-                          :key="index"
-                          class="mt-2 flex items-center gap-2"
-                        >
-                          <input
-                            v-model="form.celulares[index]"
-                            :class="inputClass"
-                            class="mt-0!"
-                            type="tel"
-                            :placeholder="`Celular ${index + 1}`"
-                          />
-                          <Button
-                            v-if="form.celulares.length > 1"
-                            variant="ghost"
-                            size="sm"
-                            class="h-9 shrink-0 px-3"
-                            type="button"
-                            @click="removeCelular(index)"
+                        <div>
+                          <div
+                            v-for="(_, index) in form.celulares"
+                            :key="index"
+                            class="flex items-center gap-2"
+                            :class="index === 0 ? '' : 'mt-2'"
                           >
-                            Quitar
-                          </Button>
+                            <input
+                              v-model="form.celulares[index]"
+                              :class="inputClass"
+                              class="mt-0!"
+                              type="tel"
+                              :placeholder="`Celular ${index + 1}`"
+                            />
+                            <Button
+                              v-if="form.celulares.length > 1"
+                              variant="ghost"
+                              size="sm"
+                              class="h-9 shrink-0 px-3"
+                              type="button"
+                              @click="removeCelular(index)"
+                            >
+                              Quitar
+                            </Button>
+                          </div>
                         </div>
-                        <Button
-                          variant="link"
-                          class="mt-1 h-auto px-0 text-palette-royal"
-                          type="button"
-                          @click="addCelular"
-                        >
-                          Agregar celular
-                        </Button>
                       </div>
 
-                      <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700 sm:col-span-2">
+                      <label class="block min-w-0 text-xs font-semibold uppercase tracking-wide text-slate-700">
                         Correo electrónico
                         <input v-model="form.correo" :class="inputClass" type="email" autocomplete="email" />
                       </label>
