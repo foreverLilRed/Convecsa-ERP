@@ -103,7 +103,7 @@ function onProvinciaInput() {
 }
 
 const inputClass =
-  'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:bg-slate-100 disabled:text-slate-500'
+  'mt-1.5 block h-10 w-full rounded-lg border border-slate-200 bg-white px-3 py-0 text-sm leading-normal text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20 disabled:bg-slate-100 disabled:text-slate-500'
 
 function revokeFotoUrl() {
   if (form.fotoUrl?.startsWith('blob:')) {
@@ -639,15 +639,15 @@ function onOverlayClick() {
           @submit.prevent="onSubmit"
         >
           <Tabs v-model="seccionActiva" :class="isPage ? 'w-full gap-6' : 'min-h-0 flex-1 gap-6'">
-            <div class="shrink-0 overflow-x-auto pb-2">
+            <div :class="isPage ? 'w-full shrink-0 overflow-x-auto pb-2' : 'w-full shrink-0 overflow-x-auto pb-2 pr-1'">
             <TabsList
-              class="inline-flex h-auto w-max min-w-full gap-1 rounded-xl border border-slate-200 bg-slate-100/85 p-1.5 sm:min-w-0"
+              class="grid h-12! w-full min-w-[42rem] grid-cols-5 gap-1 rounded-xl border border-slate-200 bg-slate-100/85 p-1.5 md:min-w-0"
             >
               <TabsTrigger
                 v-for="seccion in SECCIONES"
                 :key="seccion.value"
                 :value="seccion.value"
-                class="h-9 flex-none rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+                class="h-9 w-full min-w-0 rounded-lg px-3 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
               >
                 {{ seccion.label }}
               </TabsTrigger>
@@ -656,42 +656,43 @@ function onOverlayClick() {
 
             <div :class="isPage ? 'mt-1' : 'min-h-0 flex-1 overflow-y-auto pr-1'">
             <TabsContent value="identidad" class="space-y-8">
-              <div class="grid items-start gap-8 md:grid-cols-2">
-                <fieldset>
+              <div class="flex min-w-0 flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4 sm:flex-row sm:items-center sm:p-5">
+                <div
+                  class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-palette-cyan/70 bg-palette-soft"
+                >
+                  <img
+                    v-if="form.fotoUrl"
+                    :src="form.fotoUrl"
+                    alt="Foto de la persona"
+                    class="h-full w-full object-cover"
+                  />
+                  <span v-else class="px-2 text-center text-[10px] font-medium text-slate-400">Sin foto</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-slate-700">Foto</p>
+                  <input
+                    ref="fotoInput"
+                    class="mt-1.5 block max-w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-palette-ice file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-palette-navy hover:file:bg-palette-cyan/40"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    @change="onFotoChange"
+                  />
+                  <p class="mt-1 text-[11px] text-slate-400">JPG, PNG, WEBP o GIF</p>
+                  <button
+                    v-if="form.fotoUrl"
+                    class="mt-1 text-xs font-medium text-slate-500 hover:text-palette-navy"
+                    type="button"
+                    @click="clearFoto"
+                  >
+                    Quitar foto
+                  </button>
+                </div>
+              </div>
+
+              <div class="grid min-w-0 items-start gap-6 xl:grid-cols-2">
+                <fieldset class="min-w-0 rounded-xl border border-slate-200 p-4 sm:p-5">
                   <legend class="text-sm font-semibold text-palette-navy">Datos personales</legend>
-                  <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                    <div class="flex flex-wrap items-center gap-4 sm:col-span-2">
-                      <div
-                        class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-palette-cyan/70 bg-palette-soft"
-                      >
-                        <img
-                          v-if="form.fotoUrl"
-                          :src="form.fotoUrl"
-                          alt="Foto de la persona"
-                          class="h-full w-full object-cover"
-                        />
-                        <span v-else class="px-2 text-center text-[10px] font-medium text-slate-400">Sin foto</span>
-                      </div>
-                      <div>
-                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-700">Foto</p>
-                        <input
-                          ref="fotoInput"
-                          class="mt-1.5 block w-full text-sm text-slate-600 file:mr-3 file:rounded-md file:border-0 file:bg-palette-ice file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-palette-navy hover:file:bg-palette-cyan/40"
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/gif"
-                          @change="onFotoChange"
-                        />
-                        <p class="mt-1 text-[11px] text-slate-400">JPG, PNG, WEBP o GIF</p>
-                        <button
-                          v-if="form.fotoUrl"
-                          class="mt-1 text-xs font-medium text-slate-500 hover:text-palette-navy"
-                          type="button"
-                          @click="clearFoto"
-                        >
-                          Quitar foto
-                        </button>
-                      </div>
-                    </div>
+                  <div class="aligned-fields mt-4 grid gap-x-4 gap-y-4 sm:grid-cols-2">
                     <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                       Apellidos
                       <input
@@ -771,7 +772,7 @@ function onOverlayClick() {
                       <p class="text-xs font-semibold uppercase tracking-wide text-slate-700">
                         Contacto de emergencia
                       </p>
-                      <div class="grid gap-3 sm:grid-cols-3">
+                      <div class="aligned-fields grid gap-x-3 gap-y-3 sm:grid-cols-3">
                         <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                           Nombre y apellidos
                           <input
@@ -808,11 +809,11 @@ function onOverlayClick() {
                   </div>
                 </fieldset>
 
-                <div class="space-y-8">
-                  <fieldset>
+                <div class="grid min-w-0 gap-6">
+                  <fieldset class="min-w-0 rounded-xl border border-slate-200 p-4 sm:p-5">
                     <legend class="text-sm font-semibold text-palette-navy">Contacto</legend>
-                    <div class="mt-4 space-y-3">
-                      <div>
+                    <div class="aligned-fields mt-4 grid gap-x-4 gap-y-4 sm:grid-cols-2">
+                      <div class="sm:col-span-2">
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-700">Celulares</p>
                         <div
                           v-for="(_, index) in form.celulares"
@@ -847,16 +848,16 @@ function onOverlayClick() {
                         </Button>
                       </div>
 
-                      <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                      <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700 sm:col-span-2">
                         Correo electrónico
                         <input v-model="form.correo" :class="inputClass" type="email" autocomplete="email" />
                       </label>
                     </div>
                   </fieldset>
 
-                  <fieldset>
+                  <fieldset class="min-w-0 rounded-xl border border-slate-200 p-4 sm:p-5">
                     <legend class="text-sm font-semibold text-palette-navy">Domicilio</legend>
-                    <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div class="aligned-fields mt-4 grid gap-x-4 gap-y-4 sm:grid-cols-2">
                       <label class="block text-xs font-semibold uppercase tracking-wide text-slate-700">
                         Departamento
                         <UbigeoCombobox
@@ -1240,3 +1241,17 @@ function onOverlayClick() {
     </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+.aligned-fields > label {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: 2rem 2.5rem;
+  align-items: start;
+}
+
+.aligned-fields > label > input,
+.aligned-fields > label > select {
+  margin-top: 0;
+}
+</style>

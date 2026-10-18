@@ -66,7 +66,7 @@ const customOption = computed(() => {
       <ComboboxTrigger as-child>
         <Button
           variant="outline"
-          class="mt-1.5 h-10 w-full justify-between px-3 font-normal text-slate-900"
+          class="h-10 w-full justify-between rounded-lg border-slate-200 bg-white px-3 py-0 font-normal text-slate-900 focus-visible:border-sky-600 focus-visible:ring-2 focus-visible:ring-sky-500/20"
           :disabled="disabled"
           type="button"
         >
