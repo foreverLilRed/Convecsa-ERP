@@ -26,6 +26,15 @@ public interface BoletaPagoRepository extends JpaRepository<BoletaPago, Long> {
     @Query("SELECT COALESCE(SUM(b.neto), 0) FROM BoletaPago b WHERE b.periodo.id = :periodoId")
     BigDecimal sumNetoByPeriodoId(@Param("periodoId") Long periodoId);
 
+    @Query("SELECT COALESCE(SUM(b.totalHaberes), 0) FROM BoletaPago b WHERE b.periodo.id = :periodoId")
+    BigDecimal sumHaberesByPeriodoId(@Param("periodoId") Long periodoId);
+
+    @Query("SELECT COALESCE(SUM(b.totalDescuentos), 0) FROM BoletaPago b WHERE b.periodo.id = :periodoId")
+    BigDecimal sumDescuentosByPeriodoId(@Param("periodoId") Long periodoId);
+
+    @Query("SELECT COALESCE(SUM(b.totalAportesEmpleador), 0) FROM BoletaPago b WHERE b.periodo.id = :periodoId")
+    BigDecimal sumAportesEmpleadorByPeriodoId(@Param("periodoId") Long periodoId);
+
     @EntityGraph(attributePaths = {
             "periodo",
             "persona",
