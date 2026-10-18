@@ -11,6 +11,16 @@ import {
   DownloadIcon,
   SearchIcon,
 } from '@lucide/vue'
+import {
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogOverlay,
+  AlertDialogPortal,
+  AlertDialogRoot,
+  AlertDialogTitle,
+} from 'reka-ui'
 import { toast } from 'vue-sonner'
 
 import { Button } from '@/components/ui/button'
@@ -39,7 +49,13 @@ import {
   SECCIONES_INDICADOR,
   type IndicadorSeccion,
 } from '@/services/persona/indicadoresPersona'
-import { crearLinkInvitado, exportarPersonas, listarPersonas } from '@/services/persona/personaService'
+import {
+  crearLinkInvitado,
+  deshabilitarPersona,
+  exportarPersonas,
+  habilitarPersona,
+  listarPersonas,
+} from '@/services/persona/personaService'
 import { type PagedResponse, type PersonaResumenDTO } from '@/types/persona'
 
 const PAGE_SIZE = 10
@@ -81,6 +97,9 @@ const sortField = ref<SortField>(initialSort.field)
 const sortDir = ref<'asc' | 'desc'>(initialSort.dir)
 const loading = ref(true)
 const creatingLinkId = ref<number | null>(null)
+const changingStatusIds = ref<number[]>([])
+const statusDialogOpen = ref(false)
+const pendingStatusPersona = ref<PersonaResumenDTO | null>(null)
 const exporting = ref(false)
 const data = ref<PagedResponse<PersonaResumenDTO> | null>(null)
 
@@ -190,6 +209,47 @@ async function onExportar() {
   }
 }
 
+function isChangingStatus(id: number): boolean {
+  return changingStatusIds.value.includes(id)
+}
+
+async function onActivoChange(persona: PersonaResumenDTO, activo: boolean) {
+  if (isChangingStatus(persona.id) || persona.activo === activo) {
+    return
+  }
+  changingStatusIds.value = [...changingStatusIds.value, persona.id]
+  try {
+    const updated = activo
+      ? await habilitarPersona(persona.id)
+      : await deshabilitarPersona(persona.id)
+    persona.activo = updated.activo
+    toast.success(activo ? 'Persona activada.' : 'Persona desactivada.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo cambiar el estado de la persona.')
+  } finally {
+    changingStatusIds.value = changingStatusIds.value.filter((id) => id !== persona.id)
+  }
+}
+
+function requestActivoChange(persona: PersonaResumenDTO) {
+  if (isChangingStatus(persona.id)) {
+    return
+  }
+  pendingStatusPersona.value = persona
+  statusDialogOpen.value = true
+}
+
+async function confirmActivoChange() {
+  const persona = pendingStatusPersona.value
+  if (!persona) {
+    return
+  }
+  const activo = !persona.activo
+  statusDialogOpen.value = false
+  pendingStatusPersona.value = null
+  await onActivoChange(persona, activo)
+}
+
 async function load() {
   loading.value = true
   try {
@@ -223,6 +283,12 @@ watch([page, q, sort, () => props.reloadKey], () => {
   syncQuery()
   void load()
 }, { immediate: true })
+
+watch(statusDialogOpen, (open) => {
+  if (!open) {
+    pendingStatusPersona.value = null
+  }
+})
 
 watch(
   () => route.query,
@@ -437,6 +503,29 @@ function indicadorLabel(seccion: string, indicador: IndicadorSeccion): string {
                 >
                   {{ creatingLinkId === persona.id ? 'Creando…' : 'Link temporal' }}
                 </Button>
+                <div class="ml-1 flex items-center gap-1.5">
+                  <span
+                    class="text-xs font-medium"
+                    :class="persona.activo ? 'text-emerald-700' : 'text-slate-500'"
+                  >
+                    {{ persona.activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                  <button
+                    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+                    :class="persona.activo ? 'border-emerald-600 bg-emerald-600' : 'border-slate-300 bg-slate-200'"
+                    type="button"
+                    role="switch"
+                    :aria-checked="persona.activo"
+                    :aria-label="`${persona.activo ? 'Desactivar' : 'Activar'} a ${persona.nombres} ${persona.apellidos}`"
+                    :disabled="isChangingStatus(persona.id)"
+                    @click="requestActivoChange(persona)"
+                  >
+                    <span
+                      class="pointer-events-none block size-4 rounded-full bg-white shadow-sm transition-transform"
+                      :class="persona.activo ? 'translate-x-6' : 'translate-x-1'"
+                    />
+                  </button>
+                </div>
               </div>
             </TableCell>
           </TableRow>
@@ -480,5 +569,50 @@ function indicadorLabel(seccion: string, indicador: IndicadorSeccion): string {
         </PaginationContent>
       </Pagination>
     </div>
+
+    <AlertDialogRoot v-model:open="statusDialogOpen">
+      <AlertDialogPortal>
+        <AlertDialogOverlay
+          class="fixed inset-0 z-[90] bg-palette-navy/45 backdrop-blur-[1px] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        />
+        <AlertDialogContent
+          class="fixed top-1/2 left-1/2 z-[100] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-slate-200 bg-white p-6 shadow-xl data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+        >
+          <AlertDialogTitle class="text-lg font-semibold text-palette-navy">
+            ¿{{ pendingStatusPersona?.activo ? 'Desactivar' : 'Activar' }} persona?
+          </AlertDialogTitle>
+          <AlertDialogDescription class="mt-2 text-sm leading-6 text-slate-500">
+            Se cambiará el estado de
+            <strong class="font-semibold text-slate-700">
+              {{ pendingStatusPersona?.nombres }} {{ pendingStatusPersona?.apellidos }}
+            </strong>
+            a {{ pendingStatusPersona?.activo ? 'inactivo' : 'activo' }}.
+          </AlertDialogDescription>
+          <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <AlertDialogCancel as-child>
+              <Button
+                variant="outline"
+                class="h-10 px-4"
+                type="button"
+                @click="pendingStatusPersona = null"
+              >
+                Cancelar
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction as-child>
+              <Button
+                :variant="pendingStatusPersona?.activo ? 'destructive' : 'default'"
+                class="h-10 px-4"
+                :class="pendingStatusPersona?.activo ? '' : 'bg-palette-navy text-white hover:bg-palette-royal'"
+                type="button"
+                @click="confirmActivoChange"
+              >
+                Sí, {{ pendingStatusPersona?.activo ? 'desactivar' : 'activar' }}
+              </Button>
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialogPortal>
+    </AlertDialogRoot>
   </div>
 </template>

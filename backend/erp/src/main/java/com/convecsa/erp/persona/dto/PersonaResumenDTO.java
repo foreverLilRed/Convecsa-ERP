@@ -23,6 +23,7 @@ public class PersonaResumenDTO {
     private final LocalDate fechaCaducidadDni;
     private final List<CelularDTO> celulares;
     private final String correo;
+    private final boolean activo;
     private final GradoInstruccion gradoInstruccion;
     private final String direccion;
     private final String departamento;

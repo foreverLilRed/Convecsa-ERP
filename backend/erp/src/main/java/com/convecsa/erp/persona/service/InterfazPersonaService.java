@@ -15,6 +15,10 @@ public interface InterfazPersonaService {
 
     PersonaDTO actualizar(Long id, PersonaRequest request);
 
+    PersonaDTO habilitar(Long id);
+
+    PersonaDTO deshabilitar(Long id);
+
     PagedResponse<PersonaResumenDTO> listar(PersonaListQuery query);
 
     byte[] exportar(PersonaListQuery query);

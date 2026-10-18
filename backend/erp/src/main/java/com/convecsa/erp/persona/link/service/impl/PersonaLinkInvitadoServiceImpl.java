@@ -123,6 +123,7 @@ public class PersonaLinkInvitadoServiceImpl implements InterfazPersonaLinkInvita
                 .nombres(link.getNombres())
                 .tipoDocumento(link.getTipoDocumento())
                 .numeroDocumento(link.getNumeroDocumento())
+                .activo(true)
                 .celulares(List.of())
                 .cuentasBancarias(List.of())
                 .experienciasLaborales(List.of())

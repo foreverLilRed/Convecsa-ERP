@@ -26,6 +26,7 @@ public class PersonaDTO {
     private final String correo;
     private final String pension;
     private final String cuspp;
+    private final boolean activo;
     private final Genero genero;
     private final String contactoEmergenciaNombre;
     private final String contactoEmergenciaTelefono;

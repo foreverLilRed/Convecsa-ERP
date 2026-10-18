@@ -67,6 +67,9 @@ public class Persona {
     @Column(nullable = true, length = 30)
     private String cuspp;
 
+    @Column(nullable = false)
+    private boolean activo = true;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo_comision_afp", nullable = false, length = 20)
     private TipoComisionAfp tipoComisionAfp = TipoComisionAfp.FLUJO;

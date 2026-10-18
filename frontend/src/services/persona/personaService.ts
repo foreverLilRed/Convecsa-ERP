@@ -39,6 +39,18 @@ export function actualizarPersona(id: number, request: PersonaRequest): Promise<
   })
 }
 
+export function habilitarPersona(id: number): Promise<PersonaDTO> {
+  return apiRequest<PersonaDTO>(`/api/gestion-humana/personas/${id}/enable`, {
+    method: 'PATCH',
+  })
+}
+
+export function deshabilitarPersona(id: number): Promise<PersonaDTO> {
+  return apiRequest<PersonaDTO>(`/api/gestion-humana/personas/${id}/disable`, {
+    method: 'PATCH',
+  })
+}
+
 export function listarPersonas(query: PersonaListQuery = {}): Promise<PagedResponse<PersonaResumenDTO>> {
   const params = new URLSearchParams()
   if (query.page !== undefined) {

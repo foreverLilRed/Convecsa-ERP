@@ -73,6 +73,18 @@ public class PersonaServiceImpl implements InterfazPersonaService {
     }
 
     @Override
+    @Transactional
+    public PersonaDTO habilitar(Long id) {
+        return actualizarEstado(id, true);
+    }
+
+    @Override
+    @Transactional
+    public PersonaDTO deshabilitar(Long id) {
+        return actualizarEstado(id, false);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public PagedResponse<PersonaResumenDTO> listar(PersonaListQuery query) {
         Pageable pageable = PageRequest.of(
@@ -95,5 +107,11 @@ public class PersonaServiceImpl implements InterfazPersonaService {
         return personaRepository
                 .findById(id)
                 .orElseThrow(() -> new PersonaNoEncontradaException("No se encontró la persona"));
+    }
+
+    private PersonaDTO actualizarEstado(Long id, boolean activo) {
+        Persona persona = findOrThrow(id);
+        persona.setActivo(activo);
+        return personaMapper.toDto(personaRepository.save(persona));
     }
 }

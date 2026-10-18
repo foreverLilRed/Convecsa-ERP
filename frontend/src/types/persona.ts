@@ -171,6 +171,7 @@ export type PersonaResumenDTO = {
   fechaCaducidadDni: string | null
   celulares: CelularDTO[]
   correo: string
+  activo: boolean
   gradoInstruccion: GradoInstruccion
   direccion: string
   departamento: string
@@ -215,6 +216,7 @@ export type PersonaDTO = {
   correo: string | null
   pension: string | null
   cuspp: string | null
+  activo: boolean
   genero: Genero | null
   contactoEmergenciaNombre: string | null
   contactoEmergenciaTelefono: string | null
