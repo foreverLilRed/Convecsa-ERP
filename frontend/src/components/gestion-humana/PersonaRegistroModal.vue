@@ -49,11 +49,14 @@ const SECCIONES: { value: SeccionPersona; label: string }[] = [
   { value: 'documentos', label: 'Checklist de documentos' },
 ]
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   open: boolean
   persona?: PersonaDTO | null
   guestToken?: string
-}>()
+  presentation?: 'modal' | 'page'
+}>(), {
+  presentation: 'modal',
+})
 
 const emit = defineEmits<{
   close: []
@@ -66,6 +69,7 @@ const submitting = ref(false)
 const fotoInput = ref<HTMLInputElement | null>(null)
 const seccionActiva = ref<SeccionPersona>('identidad')
 const isGuest = computed(() => Boolean(props.guestToken))
+const isPage = computed(() => props.presentation === 'page')
 const isEdit = computed(() => Boolean(props.persona?.id) || isGuest.value)
 const tituloModal = computed(() => {
   if (isGuest.value) {
@@ -122,15 +126,22 @@ function resetForm() {
   fillForm(createEmptyPersonaForm())
 }
 
+let bodyScrollLocked = false
+
 function lockBodyScroll() {
   const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
   document.body.style.overflow = 'hidden'
   document.body.style.paddingRight = scrollbarWidth > 0 ? `${scrollbarWidth}px` : ''
+  bodyScrollLocked = true
 }
 
 function unlockBodyScroll() {
+  if (!bodyScrollLocked) {
+    return
+  }
   document.body.style.overflow = ''
   document.body.style.paddingRight = ''
+  bodyScrollLocked = false
 }
 
 function onDocumentKeydown(event: KeyboardEvent) {
@@ -155,8 +166,10 @@ watch(
       } else {
         resetForm()
       }
-      lockBodyScroll()
-      document.addEventListener('keydown', onDocumentKeydown)
+      if (!isPage.value) {
+        lockBodyScroll()
+        document.addEventListener('keydown', onDocumentKeydown)
+      }
     } else {
       document.removeEventListener('keydown', onDocumentKeydown)
     }
@@ -578,22 +591,28 @@ function onOverlayClick() {
 </script>
 
 <template>
-  <Teleport to="body">
+  <Teleport to="body" :disabled="isPage">
     <Transition name="modal" :duration="{ enter: 240, leave: 220 }" @after-leave="unlockBodyScroll">
       <div
         v-if="open"
-        class="modal-root fixed inset-0 z-50 overflow-y-auto"
+        :class="isPage ? 'w-full' : 'modal-root fixed inset-0 z-50 overflow-y-auto'"
       >
-        <div class="modal-backdrop fixed inset-0 bg-palette-navy/40" @click="onOverlayClick" />
+        <div
+          v-if="!isPage"
+          class="modal-backdrop fixed inset-0 bg-palette-navy/40"
+          @click="onOverlayClick"
+        />
 
-        <div class="relative flex min-h-full items-center justify-center p-4 sm:p-6">
+        <div :class="isPage ? 'w-full' : 'relative flex min-h-full items-center justify-center p-4 sm:p-6'">
       <section
-        class="modal-panel relative z-10 flex h-[min(92vh,52rem)] w-full max-w-[96vw] flex-col overflow-hidden rounded-xl border border-palette-cyan/70 bg-white shadow-lg"
-        role="dialog"
-        aria-modal="true"
+        :class="isPage
+          ? 'relative flex w-full flex-col overflow-hidden rounded-2xl border border-palette-cyan/70 bg-white shadow-sm'
+          : 'modal-panel relative z-10 flex h-[min(92vh,52rem)] w-full max-w-[96vw] flex-col overflow-hidden rounded-xl border border-palette-cyan/70 bg-white shadow-lg'"
+        :role="isPage ? 'region' : 'dialog'"
+        :aria-modal="isPage ? undefined : 'true'"
         aria-labelledby="persona-modal-title"
       >
-        <header class="flex shrink-0 items-center justify-between border-b border-palette-cyan/70 px-5 py-4">
+        <header class="flex shrink-0 items-center justify-between border-b border-palette-cyan/70 px-4 py-4 sm:px-6 lg:px-8">
           <div>
             <p class="text-[11px] font-semibold uppercase tracking-widest text-palette-royal">
               Gestión Humana / Personal
@@ -616,8 +635,11 @@ function onOverlayClick() {
           </Button>
         </header>
 
-        <form class="flex min-h-0 flex-1 flex-col px-5 py-5" @submit.prevent="onSubmit">
-          <Tabs v-model="seccionActiva" class="min-h-0 flex-1 gap-6">
+        <form
+          :class="isPage ? 'px-4 py-5 sm:px-6 sm:py-6 lg:px-8' : 'flex min-h-0 flex-1 flex-col px-5 py-5'"
+          @submit.prevent="onSubmit"
+        >
+          <Tabs v-model="seccionActiva" :class="isPage ? 'w-full gap-6' : 'min-h-0 flex-1 gap-6'">
             <div class="shrink-0 overflow-x-auto pb-2">
             <TabsList
               class="inline-flex h-auto w-max min-w-full gap-1 rounded-xl border border-slate-200 bg-slate-100/85 p-1.5 sm:min-w-0"
@@ -633,7 +655,7 @@ function onOverlayClick() {
             </TabsList>
             </div>
 
-            <div class="min-h-0 flex-1 overflow-y-auto pr-1">
+            <div :class="isPage ? 'mt-1' : 'min-h-0 flex-1 overflow-y-auto pr-1'">
             <TabsContent value="identidad" class="space-y-8">
               <div class="grid items-start gap-8 md:grid-cols-2">
                 <fieldset>
@@ -1192,7 +1214,11 @@ function onOverlayClick() {
             {{ error }}
           </p>
 
-          <footer class="mt-4 flex shrink-0 flex-col-reverse gap-3 border-t border-palette-cyan/70 pt-4 sm:flex-row sm:justify-end">
+          <footer
+            :class="isPage
+              ? 'sticky bottom-0 z-20 -mx-4 -mb-5 mt-6 flex flex-col-reverse gap-3 border-t border-palette-cyan/70 bg-white/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:-mb-6 sm:flex-row sm:justify-end sm:px-6 lg:-mx-8 lg:px-8'
+              : 'mt-4 flex shrink-0 flex-col-reverse gap-3 border-t border-palette-cyan/70 pt-4 sm:flex-row sm:justify-end'"
+          >
             <Button
               variant="outline"
               class="h-10 px-4"
@@ -1204,7 +1230,7 @@ function onOverlayClick() {
               Cancelar
             </Button>
             <Button
-              class="h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
+              class="h-11 w-full bg-palette-navy px-5 text-white hover:bg-palette-royal sm:h-10 sm:w-auto"
               type="submit"
               :disabled="submitting"
               :aria-describedby="error ? 'persona-form-error' : undefined"
