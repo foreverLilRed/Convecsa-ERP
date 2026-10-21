@@ -9,6 +9,7 @@ import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
 import com.convecsa.erp.contrato.dto.ContratosResumeDTO;
 import com.convecsa.erp.contrato.service.InterfazAdendaService;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
+import com.convecsa.erp.contrato.support.ConstanciaTrabajoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -29,6 +30,7 @@ public class ContratoController {
 
     private final InterfazContratoService contratoService;
     private final InterfazAdendaService adendaService;
+    private final ConstanciaTrabajoService constanciaTrabajoService;
 
     @GetMapping("/resume")
     public ContratosResumeDTO resume() {
@@ -80,5 +82,10 @@ public class ContratoController {
     @GetMapping(value = "/{id}/documento", produces = MediaType.TEXT_HTML_VALUE)
     public String documento(@PathVariable Long id) {
         return contratoService.documento(id);
+    }
+
+    @GetMapping(value = "/{id}/constancia-trabajo", produces = MediaType.TEXT_HTML_VALUE)
+    public String constanciaTrabajo(@PathVariable Long id) {
+        return constanciaTrabajoService.generar(id);
     }
 }

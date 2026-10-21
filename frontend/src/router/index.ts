@@ -11,7 +11,6 @@ import KpisDesempenoPage from '@/pages/gestion-humana/KpisDesempenoPage.vue'
 import NominasPage from '@/pages/gestion-humana/NominasPage.vue'
 import OnboardingPage from '@/pages/gestion-humana/OnboardingPage.vue'
 import PeriodoNominaPage from '@/pages/gestion-humana/PeriodoNominaPage.vue'
-import PlaceholderPage from '@/pages/gestion-humana/PlaceholderPage.vue'
 import PersonalPage from '@/pages/gestion-humana/PersonalPage.vue'
 import PlantillasContratoPage from '@/pages/gestion-humana/PlantillasContratoPage.vue'
 import PlantillaContratoEditorPage from '@/pages/gestion-humana/PlantillaContratoEditorPage.vue'
@@ -20,10 +19,7 @@ import LoginPage from '@/pages/LoginPage.vue'
 import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 import VacacionesPage from '@/pages/gestion-humana/VacacionesPage.vue'
-
-const gestionHumanaPages = [
-  { path: 'constancias-certificados', name: 'gh-constancias-certificados', title: 'Constancias y Certificados' },
-] as const
+import ConstanciasCertificadosPage from '@/pages/gestion-humana/ConstanciasCertificadosPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -111,6 +107,11 @@ const router = createRouter({
           component: VacacionesPage,
         },
         {
+          path: 'gestion-humana/constancias-certificados',
+          name: 'gh-constancias-certificados',
+          component: ConstanciasCertificadosPage,
+        },
+        {
           path: 'gestion-humana/kpis',
           name: 'gh-kpis',
           component: KpisDesempenoPage,
@@ -125,12 +126,6 @@ const router = createRouter({
           name: 'gh-manuales-mof',
           component: ManualesMofPage,
         },
-        ...gestionHumanaPages.map((page) => ({
-          path: `gestion-humana/${page.path}`,
-          name: page.name,
-          component: PlaceholderPage,
-          meta: { title: page.title },
-        })),
         {
           path: 'personal/:legacy(.*)*',
           redirect: { name: 'gh-personal' },
