@@ -32,6 +32,9 @@ import com.convecsa.erp.contrato.catalogo.Jornada;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.persona.entity.Persona;
+import com.convecsa.erp.vacacion.domain.EstadoVacacion;
+import com.convecsa.erp.vacacion.entity.VacacionSolicitud;
+import com.convecsa.erp.vacacion.repository.VacacionSolicitudRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -56,6 +59,7 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
     private final AsistenciaFeriadoRepository feriadoRepository;
     private final AsistenciaRegistroRepository registroRepository;
     private final ContratoRepository contratoRepository;
+    private final VacacionSolicitudRepository vacacionRepository;
     private final CalendarioLaborableService calendarioLaborableService;
     private final HorasJornadaService horasJornadaService;
 
@@ -141,6 +145,10 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                 .collect(Collectors.groupingBy(
                         registro -> registro.getPersona().getId(),
                         Collectors.mapping(AsistenciaRegistro::getFecha, Collectors.toSet())));
+        Map<Long, List<VacacionSolicitud>> vacacionesPorPersona = vacacionRepository
+                .findAprobadasEnRango(EstadoVacacion.APROBADA, inicio, fin)
+                .stream()
+                .collect(Collectors.groupingBy(vacacion -> vacacion.getPersona().getId()));
         int diasConfig = diasSemana.size();
         for (Contrato contrato : porPersona.values()) {
             Persona persona = contrato.getPersona();
@@ -153,7 +161,10 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                 registro.setPersona(persona);
                 registro.setContrato(contrato);
                 registro.setFecha(fecha);
-                CodigoTareo codigo = codigoInicial(fecha, laborables, noLaborables);
+                CodigoTareo codigo = estaDeVacaciones(
+                        vacacionesPorPersona.getOrDefault(persona.getId(), List.of()), fecha)
+                        ? CodigoTareo.VAC
+                        : codigoInicial(fecha, laborables, noLaborables);
                 registro.setCodigo(codigo);
                 registro.setHorasEsperadas(codigo == CodigoTareo.A ? esperado : BigDecimal.ZERO);
                 registro.setHorasTrabajadas(codigo == CodigoTareo.A ? esperado : BigDecimal.ZERO);
@@ -174,6 +185,12 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                     .orElseThrow(() -> new AsistenciaRegistroNoEncontradoException(
                             "No se encontró el registro de asistencia"));
             CodigoTareo codigo = item.getCodigo();
+            if (vacacionRepository.existeEnFecha(
+                    registro.getPersona().getId(), EstadoVacacion.APROBADA, registro.getFecha())
+                    && codigo != CodigoTareo.VAC) {
+                throw new IllegalArgumentException(
+                        "El " + registro.getFecha() + " pertenece a vacaciones aprobadas y debe conservar el código VAC");
+            }
             EstadoAsistencia estado = estadoPorCodigo(codigo);
             BigDecimal horas = item.getHorasTrabajadas().setScale(2, RoundingMode.HALF_UP);
             if (bloqueaHoras(codigo)) {
@@ -371,6 +388,11 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
             return CodigoTareo.F;
         }
         return laborables.contains(fecha) ? CodigoTareo.A : CodigoTareo.D;
+    }
+
+    private static boolean estaDeVacaciones(List<VacacionSolicitud> vacaciones, LocalDate fecha) {
+        return vacaciones.stream().anyMatch(vacacion ->
+                !fecha.isBefore(vacacion.getFechaInicio()) && !fecha.isAfter(vacacion.getFechaFin()));
     }
 
     private static EstadoAsistencia estadoPorCodigo(CodigoTareo codigo) {

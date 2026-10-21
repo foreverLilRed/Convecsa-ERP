@@ -19,9 +19,9 @@ import ManualesMofPage from '@/pages/gestion-humana/ManualesMofPage.vue'
 import LoginPage from '@/pages/LoginPage.vue'
 import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
+import VacacionesPage from '@/pages/gestion-humana/VacacionesPage.vue'
 
 const gestionHumanaPages = [
-  { path: 'vacaciones', name: 'gh-vacaciones', title: 'Vacaciones' },
   { path: 'constancias-certificados', name: 'gh-constancias-certificados', title: 'Constancias y Certificados' },
 ] as const
 
@@ -104,6 +104,11 @@ const router = createRouter({
           path: 'gestion-humana/asistencia',
           name: 'gh-asistencia',
           component: AsistenciaPage,
+        },
+        {
+          path: 'gestion-humana/vacaciones',
+          name: 'gh-vacaciones',
+          component: VacacionesPage,
         },
         {
           path: 'gestion-humana/kpis',

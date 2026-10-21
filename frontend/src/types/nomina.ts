@@ -18,7 +18,7 @@ export type CodigoConcepto =
   | 'ESSALUD_VIDA'
   | 'EXTRA'
 
-export type OrigenConcepto = 'CALCULADO' | 'MANUAL'
+export type OrigenConcepto = 'CALCULADO' | 'MANUAL' | 'TAREO'
 
 export type Afp = {
   id: number

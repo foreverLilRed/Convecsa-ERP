@@ -60,7 +60,7 @@ public class CalculoNominaService {
         }
 
         BigDecimal extrasHaber = boleta.getConceptos().stream()
-                .filter(concepto -> concepto.getOrigen() == OrigenConcepto.MANUAL)
+                .filter(concepto -> concepto.getOrigen() != OrigenConcepto.CALCULADO)
                 .filter(concepto -> concepto.getCategoria() == CategoriaConcepto.HABER)
                 .map(BoletaConcepto::getMonto)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);

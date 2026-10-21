@@ -181,10 +181,12 @@ public class NominaServiceImpl implements InterfazNominaService {
         PeriodoNomina periodo = cargarPeriodo(periodoId);
         asegurarBorrador(periodo);
         List<BoletaPago> boletas = boletaPagoRepository.findByPeriodoId(periodo.getId());
+        YearMonth yearMonth = YearMonth.of(periodo.getAnio(), periodo.getMes());
         for (BoletaPago boleta : boletas) {
             if (boleta.getEstado() != EstadoBoletaPago.BORRADOR) {
                 continue;
             }
+            aplicarTareo(boleta, yearMonth.atDay(1), yearMonth.atEndOfMonth());
             calculoNominaService.calcular(boleta);
         }
         return toPeriodoDto(periodo);
@@ -261,6 +263,8 @@ public class NominaServiceImpl implements InterfazNominaService {
     public BoletaPagoDTO recalcularBoleta(Long id) {
         BoletaPago boleta = cargarBoleta(id);
         asegurarBoletaEditable(boleta);
+        YearMonth yearMonth = YearMonth.of(boleta.getPeriodo().getAnio(), boleta.getPeriodo().getMes());
+        aplicarTareo(boleta, yearMonth.atDay(1), yearMonth.atEndOfMonth());
         calculoNominaService.calcular(boleta);
         boletaPagoRepository.saveAndFlush(boleta);
         return toBoletaDto(boleta);
@@ -561,6 +565,7 @@ public class NominaServiceImpl implements InterfazNominaService {
     }
 
     private void aplicarTareo(BoletaPago boleta, LocalDate inicio, LocalDate fin) {
+        boleta.getConceptos().removeIf(concepto -> concepto.getOrigen() == OrigenConcepto.TAREO);
         List<AsistenciaRegistro> registros = asistenciaRegistroRepository
                 .findByPersonaIdAndFechaBetweenOrderByFechaAsc(boleta.getPersona().getId(), inicio, fin);
         long descuentosDia = registros.stream()
@@ -602,7 +607,7 @@ public class NominaServiceImpl implements InterfazNominaService {
         concepto.setLabel(etiqueta);
         concepto.setMonto(monto);
         concepto.setOrden(boleta.getConceptos().size() + 1);
-        concepto.setOrigen(OrigenConcepto.MANUAL);
+        concepto.setOrigen(OrigenConcepto.TAREO);
         boleta.addConcepto(concepto);
     }
 

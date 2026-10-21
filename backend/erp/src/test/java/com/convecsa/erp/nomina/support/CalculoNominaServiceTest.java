@@ -125,6 +125,26 @@ class CalculoNominaServiceTest {
         assertMonto(boleta, CodigoConcepto.APORTE_OBLIG, "160.00");
     }
 
+    @Test
+    void conceptoDeTareoEntraEnBaseYSePreservaAlRecalcular() {
+        BoletaPago boleta = boleta(new BigDecimal("1500.00"), habitat(), 30, false);
+        BoletaConcepto extra = new BoletaConcepto();
+        extra.setCategoria(CategoriaConcepto.HABER);
+        extra.setCodigo(CodigoConcepto.EXTRA);
+        extra.setLabel("Horas extras 25% (240 min)");
+        extra.setMonto(new BigDecimal("31.25"));
+        extra.setOrden(1);
+        extra.setOrigen(OrigenConcepto.TAREO);
+        boleta.addConcepto(extra);
+
+        calculo.calcular(boleta);
+        calculo.calcular(boleta);
+
+        assertEquals(1, boleta.getConceptos().stream()
+                .filter(c -> c.getOrigen() == OrigenConcepto.TAREO).count());
+        assertEquals(new BigDecimal("1531.25"), boleta.getTotalHaberes());
+    }
+
     private static BoletaPago boleta(BigDecimal sueldo, Afp afp, int dias, boolean asignacion) {
         Contrato contrato = new Contrato();
         contrato.setSueldo(sueldo);
