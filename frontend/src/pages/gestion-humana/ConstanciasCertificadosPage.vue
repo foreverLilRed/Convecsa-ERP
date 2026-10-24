@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 
@@ -64,36 +63,102 @@ onMounted(() => void cargar())
 </script>
 
 <template>
-  <section class="space-y-3">
-    <div class="rounded-2xl bg-gradient-to-r from-palette-navy to-palette-royal p-6 text-white shadow-sm sm:p-8">
-      <h2 class="text-2xl font-bold sm:text-3xl">Constancias y certificados</h2>
-      <p class="mt-2 max-w-2xl text-sm text-blue-50">Genera una constancia de trabajo con los datos de la persona y su contrato. El cargo, proyecto y período se completan automáticamente.</p>
-    </div>
+  <section class="min-w-0 space-y-3">
+    <header>
+      <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+        Constancias y certificados
+      </h2>
+      <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-500">
+        Genere una constancia de trabajo con los datos de la persona y su contrato. El cargo, proyecto y período se completan automáticamente.
+      </p>
+    </header>
 
-    <div class="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div class="border-b border-slate-200 p-5">
-        <h3 class="font-semibold text-palette-navy">Constancia de trabajo</h3>
-        <p class="mt-1 text-sm text-slate-500">Elige el contrato correspondiente. La constancia se abrirá lista para imprimir o guardar como PDF.</p>
+    <div class="rounded-lg border border-palette-cyan/70 bg-white">
+      <div class="border-b border-slate-100 px-4 py-4 sm:px-5">
+        <h3 class="text-base font-semibold text-palette-navy">Constancia de trabajo</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Elija el contrato correspondiente. El documento se abrirá listo para imprimir o guardar como PDF.
+        </p>
       </div>
-      <div v-if="loading" class="space-y-3 p-5"><Skeleton v-for="n in 4" :key="n" class="h-16 w-full" /></div>
-      <Table v-else>
-        <TableHeader><TableRow><TableHead>Trabajador</TableHead><TableHead>Cargo y plantilla</TableHead><TableHead>Período</TableHead><TableHead>Estado</TableHead><TableHead class="text-right">Documento</TableHead></TableRow></TableHeader>
-        <TableBody>
-          <TableEmpty v-if="!data?.content.length" :colspan="5">No hay contratos para generar constancias.</TableEmpty>
-          <TableRow v-for="contrato in data?.content" :key="contrato.id">
-            <TableCell><p class="font-semibold text-slate-900">{{ contrato.personaNombreCompleto }}</p><p class="text-xs text-slate-500">{{ contrato.personaNumeroDocumento }}</p></TableCell>
-            <TableCell><p class="font-medium text-slate-800">{{ cargo(contrato) }}</p><p class="text-xs text-slate-500">{{ contrato.tipoPlantillaNombre || contrato.categoriaContratoNombre }}</p></TableCell>
-            <TableCell class="text-sm text-slate-600">{{ fecha(contrato.fechaInicio) }} – {{ finContrato(contrato) }}</TableCell>
-            <TableCell><Badge variant="secondary">{{ contrato.activo ? 'Activo' : 'Finalizado' }}</Badge></TableCell>
-            <TableCell class="text-right"><Button size="sm" :disabled="openingId === contrato.id" @click="abrir(contrato)"><PrinterIcon class="mr-2 size-4" />Generar constancia</Button></TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-      <div v-if="totalPages > 1" class="flex items-center justify-end gap-3 border-t border-slate-200 p-4 text-sm text-slate-600">
+
+      <div v-if="loading" class="space-y-3 p-5">
+        <Skeleton v-for="n in 4" :key="n" class="h-14 w-full" />
+      </div>
+
+      <div v-else class="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Trabajador</TableHead>
+              <TableHead>Cargo y plantilla</TableHead>
+              <TableHead>Período</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead class="text-right">Documento</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableEmpty v-if="!data?.content.length" :colspan="5">
+              No hay contratos para generar constancias.
+            </TableEmpty>
+            <TableRow v-for="contrato in data?.content" :key="contrato.id">
+              <TableCell>
+                <p class="font-semibold text-slate-900">{{ contrato.personaNombreCompleto }}</p>
+                <p class="mt-1 text-xs text-slate-500">{{ contrato.personaNumeroDocumento }}</p>
+              </TableCell>
+              <TableCell>
+                <p class="font-medium text-slate-800">{{ cargo(contrato) }}</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  {{ contrato.tipoPlantillaNombre || contrato.categoriaContratoNombre }}
+                </p>
+              </TableCell>
+              <TableCell class="text-sm text-slate-600">
+                {{ fecha(contrato.fechaInicio) }} – {{ finContrato(contrato) }}
+              </TableCell>
+              <TableCell>
+                <Badge variant="secondary">{{ contrato.activo ? 'Activo' : 'Finalizado' }}</Badge>
+              </TableCell>
+              <TableCell class="text-right">
+                <Button
+                  size="sm"
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="button"
+                  :disabled="openingId === contrato.id"
+                  @click="abrir(contrato)"
+                >
+                  {{ openingId === contrato.id ? 'Generando…' : 'Generar constancia' }}
+                </Button>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+
+      <footer
+        v-if="totalPages > 1"
+        class="flex flex-col gap-2 border-t border-slate-100 px-4 py-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between"
+      >
         <span>Página {{ page + 1 }} de {{ totalPages }}</span>
-        <Button variant="outline" size="sm" :disabled="page === 0 || loading" aria-label="Página anterior" @click="cambiarPagina(-1)"><ChevronLeftIcon class="size-4" /></Button>
-        <Button variant="outline" size="sm" :disabled="page + 1 >= totalPages || loading" aria-label="Página siguiente" @click="cambiarPagina(1)"><ChevronRightIcon class="size-4" /></Button>
-      </div>
+        <div class="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            :disabled="page === 0 || loading"
+            @click="cambiarPagina(-1)"
+          >
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            type="button"
+            :disabled="page + 1 >= totalPages || loading"
+            @click="cambiarPagina(1)"
+          >
+            Siguiente
+          </Button>
+        </div>
+      </footer>
     </div>
   </section>
 </template>
