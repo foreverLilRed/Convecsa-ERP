@@ -430,8 +430,7 @@ onMounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
           {{ tituloPeriodo }}
         </h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
@@ -444,7 +443,7 @@ onMounted(() => {
       </Button>
     </div>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-3">
+    <div class="mt-3 grid gap-2 sm:grid-cols-3">
       <template v-if="loading && !periodo">
         <div v-for="card in 3" :key="card" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5">
           <Skeleton class="h-4 w-28" />
@@ -500,7 +499,7 @@ onMounted(() => {
 
     <section
       v-if="asiento"
-      class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6"
+      class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6"
       aria-labelledby="asiento-contable-title"
     >
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -549,7 +548,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="mt-4 grid gap-4 xl:grid-cols-2">
+      <div class="mt-4 grid gap-2 xl:grid-cols-2">
         <article v-for="bloque in asiento.asientos" :key="bloque.codigo" class="overflow-hidden rounded-lg border border-slate-200">
           <div class="bg-palette-navy px-3 py-2 text-sm font-semibold text-white">
             {{ bloque.codigo }} · {{ bloque.titulo }}
@@ -587,7 +586,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
+    <div class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <h3 class="text-base font-semibold text-palette-navy">Boletas</h3>
       <p class="mt-1 text-sm text-slate-500">
         Seleccione trabajadores para descargar, imprimir o enviar sus boletas PDF. En borrador puede editar días, AFP y conceptos extra.
@@ -791,7 +790,7 @@ onMounted(() => {
 
               <form class="flex min-h-0 flex-1 flex-col px-5 py-5" @submit.prevent="guardarEdicion">
                 <fieldset class="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1" :disabled="saving">
-                  <div class="grid gap-4 sm:grid-cols-3">
+                  <div class="grid gap-2 sm:grid-cols-3">
                     <div>
                       <label class="text-sm font-medium text-slate-700" for="boleta-dias">Días trabajados</label>
                       <input

@@ -4,6 +4,7 @@ import { isAuthenticated } from '@/services/auth/authService'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import AsistenciaPage from '@/pages/gestion-humana/AsistenciaPage.vue'
+import AsistenciaPlanillaPage from '@/pages/gestion-humana/AsistenciaPlanillaPage.vue'
 import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
 import FirmasDigitalesPage from '@/pages/gestion-humana/FirmasDigitalesPage.vue'
 import KpisDesempenoDetallePage from '@/pages/gestion-humana/KpisDesempenoDetallePage.vue'
@@ -34,6 +35,12 @@ const router = createRouter({
       path: '/invitar/persona/:token',
       name: 'persona-invitado',
       component: PersonaInvitadoPage,
+    },
+    {
+      path: '/gestion-humana/asistencia/planilla',
+      name: 'gh-asistencia-planilla',
+      component: AsistenciaPlanillaPage,
+      meta: { requiresAuth: true },
     },
     {
       path: '/',

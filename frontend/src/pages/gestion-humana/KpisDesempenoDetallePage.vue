@@ -219,8 +219,7 @@ onUnmounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
           {{ loading && !detalle ? 'Evaluación' : nombreCompleto }}
         </h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
@@ -245,7 +244,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="loading && !detalle" class="mt-6 space-y-3" aria-busy="true">
+    <div v-if="loading && !detalle" class="mt-3 space-y-3" aria-busy="true">
       <span class="sr-only">Cargando evaluación</span>
       <Skeleton class="h-28 w-full" />
       <Skeleton class="h-64 w-full" />
@@ -260,7 +259,7 @@ onUnmounted(() => {
         Hay cambios sin guardar.
       </div>
 
-      <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+      <div class="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <article class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
           <div class="flex items-start gap-3 border-b border-palette-cyan/50 pb-4">
             <span
@@ -362,7 +361,7 @@ onUnmounted(() => {
             </select>
           </div>
 
-          <div class="mt-6 flex justify-end">
+          <div class="mt-3 flex justify-end">
             <Button
               class="h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
               type="button"

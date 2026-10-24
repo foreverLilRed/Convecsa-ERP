@@ -255,26 +255,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="min-w-0 space-y-6 overflow-x-hidden pb-10">
-    <header class="overflow-hidden rounded-2xl bg-gradient-to-r from-palette-navy via-blue-700 to-sky-600 px-5 py-6 text-white shadow-sm sm:px-7">
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-100">
-            <CalendarDaysIcon class="size-4" /> Gestión Humana
-          </div>
-          <h2 class="mt-2 text-2xl font-bold sm:text-3xl">Gestión de vacaciones</h2>
-          <p class="mt-2 max-w-3xl text-sm leading-relaxed text-blue-50">
-            Registra días calendario, controla saldos por periodo y sincroniza cada solicitud aprobada con el tareo y la nómina mensual.
-          </p>
-        </div>
-        <div class="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm backdrop-blur">
-          <p class="font-semibold">D. L. 1405 · D. S. 002-2019-TR</p>
-          <p class="mt-1 text-xs text-blue-100">El adelanto requiere acuerdo escrito entre las partes.</p>
-        </div>
-      </div>
-    </header>
-
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <section class="min-w-0 space-y-3 overflow-x-hidden pb-10">
+    <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
       <article v-for="card in [
         { label: 'Solicitudes', value: resumen?.totalSolicitudes ?? 0, icon: CalendarDaysIcon, color: 'text-palette-royal bg-palette-ice' },
         { label: 'Pendientes', value: resumen?.pendientes ?? 0, icon: Clock3Icon, color: 'text-amber-700 bg-amber-50' },

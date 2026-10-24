@@ -102,14 +102,13 @@ watch([periodo, page, q], () => {
 <template>
   <section>
     <div>
-      <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-      <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">KPIs y desempeño</h2>
+      <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">KPIs y desempeño</h2>
       <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
         Evaluación de competencias y cumplimiento de objetivos por trimestre. El puntaje de cada persona es el promedio de las cinco competencias.
       </p>
     </div>
 
-    <div class="mt-6 flex flex-col gap-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+    <div class="mt-3 flex flex-col gap-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
       <div class="flex flex-wrap items-end gap-3">
         <div>
           <label class="text-sm font-medium text-slate-700" for="desempeno-anio">Año</label>

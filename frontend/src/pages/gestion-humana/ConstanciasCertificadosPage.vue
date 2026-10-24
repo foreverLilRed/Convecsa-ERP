@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon, PrinterIcon } from '@lucide/vue'
+import { ChevronLeftIcon, ChevronRightIcon, PrinterIcon } from '@lucide/vue'
 import { computed, onMounted, ref } from 'vue'
 import { toast } from 'vue-sonner'
 
@@ -64,12 +64,9 @@ onMounted(() => void cargar())
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-3">
     <div class="rounded-2xl bg-gradient-to-r from-palette-navy to-palette-royal p-6 text-white shadow-sm sm:p-8">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-sky-100">
-        <FileTextIcon class="size-4" /> Gestión Humana
-      </div>
-      <h2 class="mt-2 text-2xl font-bold sm:text-3xl">Constancias y certificados</h2>
+      <h2 class="text-2xl font-bold sm:text-3xl">Constancias y certificados</h2>
       <p class="mt-2 max-w-2xl text-sm text-blue-50">Genera una constancia de trabajo con los datos de la persona y su contrato. El cargo, proyecto y período se completan automáticamente.</p>
     </div>
 

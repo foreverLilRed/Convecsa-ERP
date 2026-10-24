@@ -353,8 +353,7 @@ onUnmounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
           Onboarding y Offboarding
         </h2>
         <p id="onboarding-ayuda" class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
@@ -363,7 +362,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <Tabs default-value="onboarding" class="mt-6">
+    <Tabs default-value="onboarding" class="mt-3">
       <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
         <TabsTrigger
           value="onboarding"
@@ -406,7 +405,7 @@ onUnmounted(() => {
 
     <p id="onboarding-estado" class="sr-only" aria-live="polite">{{ estadoSeleccion }}</p>
 
-    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+    <div class="mt-3 grid gap-2 lg:grid-cols-2">
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
         <h3 id="onboarding-persona-titulo" class="text-sm font-semibold text-palette-navy">1. Persona</h3>
         <p id="onboarding-persona-ayuda" class="mt-1 text-xs text-slate-500">

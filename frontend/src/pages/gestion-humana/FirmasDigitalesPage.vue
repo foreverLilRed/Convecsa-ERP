@@ -83,15 +83,14 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="p-4 sm:p-6 lg:p-8">
-    <div class="max-w-5xl">
-      <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-      <h1 class="mt-1 text-2xl font-bold text-palette-navy">Datos corporativos de boletas</h1>
+  <section class="w-full min-w-0">
+    <div class="w-full min-w-0">
+      <h1 class="text-2xl font-bold text-palette-navy">Datos corporativos de boletas</h1>
       <p class="mt-2 max-w-3xl text-sm text-slate-500">
         Estos datos, el logo y la firma se incorporan automáticamente en cada boleta PDF.
       </p>
 
-      <div v-if="loading" class="mt-6 space-y-4 rounded-xl border border-palette-cyan/70 bg-white p-6">
+      <div v-if="loading" class="mt-3 space-y-4 rounded-xl border border-palette-cyan/70 bg-white p-6">
         <Skeleton class="h-10 w-full" />
         <Skeleton class="h-10 w-full" />
         <Skeleton class="h-44 w-full" />
@@ -99,11 +98,11 @@ onMounted(load)
 
       <form
         v-else
-        class="mt-6 rounded-xl border border-palette-cyan/70 bg-white p-5 sm:p-6"
+        class="mt-3 rounded-xl border border-palette-cyan/70 bg-white p-5 sm:p-6"
         @submit.prevent="save"
       >
-        <fieldset :disabled="saving" class="space-y-5">
-          <div class="grid gap-4 sm:grid-cols-2">
+        <fieldset :disabled="saving" class="space-y-2.5">
+          <div class="grid gap-2 sm:grid-cols-2">
             <div>
               <label for="corp-razon" class="text-sm font-medium text-slate-700">Razón social</label>
               <input id="corp-razon" v-model.trim="form.razonSocial" required maxlength="200" :class="inputClass" />
@@ -122,7 +121,7 @@ onMounted(load)
             <input id="corp-representante" v-model.trim="form.representante" maxlength="200" :class="inputClass" />
           </div>
 
-          <div class="grid gap-5 border-t border-slate-100 pt-5 sm:grid-cols-2">
+          <div class="grid gap-2.5 border-t border-slate-100 pt-5 sm:grid-cols-2">
             <article>
               <h2 class="text-sm font-semibold text-palette-navy">Logo de la empresa</h2>
               <p class="mt-1 text-xs text-slate-500">PNG o JPG, máximo 2 MB.</p>
@@ -157,7 +156,7 @@ onMounted(load)
           </div>
         </fieldset>
 
-        <div class="mt-6 flex justify-end border-t border-slate-100 pt-5">
+        <div class="mt-3 flex justify-end border-t border-slate-100 pt-5">
           <Button class="h-10 bg-palette-navy px-5 text-white hover:bg-palette-royal" type="submit" :disabled="saving">
             {{ saving ? 'Guardando…' : 'Guardar configuración' }}
           </Button>
