@@ -54,7 +54,14 @@ export const navItems: NavItem[] = [
     id: 'proyectos',
     label: 'Proyectos',
     icon: 'folder',
-    children: [],
+    children: [
+      { name: 'proy-obras', label: 'Obras', path: '/proyectos/obras' },
+      { name: 'proy-asignaciones', label: 'Asignaciones', path: '/proyectos/asignaciones' },
+      { name: 'proy-avances', label: 'Avances', path: '/proyectos/avances' },
+      { name: 'proy-presupuesto', label: 'Presupuesto', path: '/proyectos/presupuesto' },
+      { name: 'proy-valorizaciones', label: 'Valorizaciones', path: '/proyectos/valorizaciones' },
+      { name: 'proy-bitacora', label: 'Bitácora', path: '/proyectos/bitacora' },
+    ],
   },
   {
     kind: 'group',

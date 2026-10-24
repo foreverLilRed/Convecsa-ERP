@@ -21,6 +21,7 @@ import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 import VacacionesPage from '@/pages/gestion-humana/VacacionesPage.vue'
 import ConstanciasCertificadosPage from '@/pages/gestion-humana/ConstanciasCertificadosPage.vue'
+import ProyectosPlaceholderPage from '@/pages/proyectos/PlaceholderPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -132,6 +133,66 @@ const router = createRouter({
           path: 'gestion-humana/manuales-mof',
           name: 'gh-manuales-mof',
           component: ManualesMofPage,
+        },
+        {
+          path: 'proyectos/obras',
+          name: 'proy-obras',
+          component: ProyectosPlaceholderPage,
+          meta: {
+            title: 'Obras',
+            description:
+              'Catálogo de obras: código, cliente, ubicación, fechas, estado y responsable de proyecto.',
+          },
+        },
+        {
+          path: 'proyectos/asignaciones',
+          name: 'proy-asignaciones',
+          component: ProyectosPlaceholderPage,
+          meta: {
+            title: 'Asignaciones',
+            description:
+              'Asigne personal a obras con rol, fechas de ingreso y salida. Se vincula con contratos y tareo.',
+          },
+        },
+        {
+          path: 'proyectos/avances',
+          name: 'proy-avances',
+          component: ProyectosPlaceholderPage,
+          meta: {
+            title: 'Avances',
+            description:
+              'Registre avance físico por partida o frente: metrados, porcentajes y cortes de control.',
+          },
+        },
+        {
+          path: 'proyectos/presupuesto',
+          name: 'proy-presupuesto',
+          component: ProyectosPlaceholderPage,
+          meta: {
+            title: 'Presupuesto',
+            description:
+              'Presupuesto de obra por partidas: metrado, precios unitarios y totales contractuales o internos.',
+          },
+        },
+        {
+          path: 'proyectos/valorizaciones',
+          name: 'proy-valorizaciones',
+          component: ProyectosPlaceholderPage,
+          meta: {
+            title: 'Valorizaciones',
+            description:
+              'Cortes de valorización del avance físico frente al presupuesto y al cliente.',
+          },
+        },
+        {
+          path: 'proyectos/bitacora',
+          name: 'proy-bitacora',
+          component: ProyectosPlaceholderPage,
+          meta: {
+            title: 'Bitácora',
+            description:
+              'Diario de obra: novedades, clima, visitas, incidencias y evidencias del día.',
+          },
         },
         {
           path: 'personal/:legacy(.*)*',
