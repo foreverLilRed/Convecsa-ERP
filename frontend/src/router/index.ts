@@ -21,6 +21,7 @@ import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 import VacacionesPage from '@/pages/gestion-humana/VacacionesPage.vue'
 import ConstanciasCertificadosPage from '@/pages/gestion-humana/ConstanciasCertificadosPage.vue'
+import ObrasPage from '@/pages/proyectos/ObrasPage.vue'
 import ProyectosPlaceholderPage from '@/pages/proyectos/PlaceholderPage.vue'
 
 const router = createRouter({
@@ -137,12 +138,7 @@ const router = createRouter({
         {
           path: 'proyectos/obras',
           name: 'proy-obras',
-          component: ProyectosPlaceholderPage,
-          meta: {
-            title: 'Obras',
-            description:
-              'Catálogo de obras: código, cliente, ubicación, fechas, estado y responsable de proyecto.',
-          },
+          component: ObrasPage,
         },
         {
           path: 'proyectos/asignaciones',
