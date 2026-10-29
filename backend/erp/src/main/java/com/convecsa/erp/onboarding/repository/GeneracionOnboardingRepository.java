@@ -12,6 +12,6 @@ public interface GeneracionOnboardingRepository extends JpaRepository<Generacion
     @EntityGraph(attributePaths = {"persona"})
     Page<GeneracionOnboarding> findByCeseIsNullOrderByCreatedAtDesc(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"persona", "contrato", "contrato.tipoPlantilla", "contrato.categoriaContrato", "cese"})
+    @EntityGraph(attributePaths = {"persona", "contrato", "contrato.tipoPlantilla", "contrato.categoriaContrato", "contrato.categoriaContrato.regimenLaboral", "cese"})
     Optional<GeneracionOnboarding> findById(Long id);
 }

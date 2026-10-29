@@ -17,11 +17,12 @@ import {
 } from '@/components/ui/combobox'
 import { crearContrato, obtenerContratosCatalogos } from '@/services/contrato/contratoService'
 import { listarPersonas } from '@/services/persona/personaService'
-import type { CatalogoItem, ContratosCatalogos, PlantillaCampo, PlantillaContrato } from '@/types/contrato'
+import type { CatalogoItem, ContratosCatalogos, ModalidadContrato, PlantillaCampo, PlantillaContrato } from '@/types/contrato'
 import type { PersonaResumenDTO } from '@/types/persona'
 
 type ContratoForm = {
   titulo: string
+  regimenLaboralId: string
   categoriaContratoId: string
   personaId: number | null
   tipoPlantillaId: string
@@ -45,6 +46,7 @@ const emit = defineEmits<{
 function emptyForm(): ContratoForm {
   return {
     titulo: '',
+    regimenLaboralId: '',
     categoriaContratoId: '',
     personaId: null,
     tipoPlantillaId: '',
@@ -73,6 +75,43 @@ const inputClass =
 const plantillasContrato = computed(() =>
   (catalogos.value?.plantillas ?? []).filter((item) => (item.uso ?? 'CONTRATO') === 'CONTRATO'),
 )
+
+const modalidadesFiltradas = computed<ModalidadContrato[]>(() => {
+  const regimenId = Number(form.regimenLaboralId)
+  if (!form.regimenLaboralId || !Number.isFinite(regimenId)) {
+    return []
+  }
+  return (catalogos.value?.modalidadesContrato ?? []).filter((item) => item.regimenLaboralId === regimenId)
+})
+
+const modalidadSeleccionada = computed<ModalidadContrato | null>(() => {
+  const id = Number(form.categoriaContratoId)
+  if (!form.categoriaContratoId || !Number.isFinite(id)) {
+    return null
+  }
+  return modalidadesFiltradas.value.find((item) => item.id === id) ?? null
+})
+
+const fechaFinRequerida = computed(() => Boolean(modalidadSeleccionada.value?.requiereFechaFin))
+
+const regimenSeleccionado = computed(() => {
+  const id = Number(form.regimenLaboralId)
+  if (!form.regimenLaboralId || !Number.isFinite(id)) {
+    return null
+  }
+  return (catalogos.value?.regimenesLaborales ?? []).find((item) => item.id === id) ?? null
+})
+
+const etiquetaSueldo = computed(() => {
+  const codigo = regimenSeleccionado.value?.codigo
+  if (codigo === 'CONSTRUCCION_CIVIL') {
+    return 'Jornal Diario Básico'
+  }
+  if (codigo === 'LOCACION_SERVICIOS') {
+    return 'Honorario Mensual / Total'
+  }
+  return 'Sueldo Mensual'
+})
 
 const plantillaSeleccionada = computed<PlantillaContrato | null>(() => {
   const id = Number(form.tipoPlantillaId)
@@ -188,6 +227,22 @@ watch(
   },
 )
 
+watch(
+  () => form.regimenLaboralId,
+  () => {
+    form.categoriaContratoId = ''
+  },
+)
+
+watch(
+  () => form.categoriaContratoId,
+  () => {
+    if (!fechaFinRequerida.value) {
+      form.fechaFin = ''
+    }
+  },
+)
+
 watch(personaSearch, (query) => {
   if (!props.open) {
     return
@@ -214,8 +269,10 @@ function onPersonaChange(value: unknown) {
 function validate(): string | null {
   if (!form.personaId) return 'Seleccione una persona del listado.'
   if (!form.titulo.trim()) return 'Ingrese el título del contrato.'
-  if (!form.categoriaContratoId) return 'Seleccione la categoría del contrato.'
+  if (!form.regimenLaboralId) return 'Seleccione el régimen laboral.'
+  if (!form.categoriaContratoId) return 'Seleccione el tipo de contrato / modalidad.'
   if (!form.tipoPlantillaId) return 'Seleccione el tipo de plantilla.'
+  if (fechaFinRequerida.value && !form.fechaFin) return 'Ingrese la fecha de fin.'
   if (form.fechaInicio && form.fechaFin && form.fechaFin < form.fechaInicio) return 'La fecha de fin no puede ser menor que la de inicio.'
   const sueldo = Number(form.sueldo)
   if (!Number.isFinite(sueldo) || sueldo <= 0) return 'Ingrese un sueldo mayor a cero.'
@@ -252,7 +309,7 @@ async function onSubmit() {
       personaId: form.personaId as number,
       tipoPlantillaId: Number(form.tipoPlantillaId),
       fechaInicio: form.fechaInicio || null,
-      fechaFin: form.fechaFin || null,
+      fechaFin: fechaFinRequerida.value ? form.fechaFin || null : null,
       sueldo: Number(form.sueldo),
       activo: form.activo,
       fechaCorte: form.fechaCorte || null,
@@ -352,11 +409,11 @@ onUnmounted(() => {
                 </div>
 
                 <div class="min-w-0">
-                  <label class="text-sm font-medium text-slate-700" for="contrato-categoria">Categoría</label>
-                  <select id="contrato-categoria" v-model="form.categoriaContratoId" :class="inputClass">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-regimen">Régimen laboral / vínculo jurídico</label>
+                  <select id="contrato-regimen" v-model="form.regimenLaboralId" :class="inputClass">
                     <option value="">Seleccione</option>
                     <option
-                      v-for="item in catalogos?.categoriasContrato ?? []"
+                      v-for="item in catalogos?.regimenesLaborales ?? []"
                       :key="item.id"
                       :value="String(item.id)"
                     >
@@ -366,6 +423,25 @@ onUnmounted(() => {
                 </div>
 
                 <div class="min-w-0">
+                  <label class="text-sm font-medium text-slate-700" for="contrato-modalidad">Tipo de contrato / modalidad</label>
+                  <select
+                    id="contrato-modalidad"
+                    v-model="form.categoriaContratoId"
+                    :class="inputClass"
+                    :disabled="!form.regimenLaboralId"
+                  >
+                    <option value="">{{ form.regimenLaboralId ? 'Seleccione' : 'Seleccione primero el régimen' }}</option>
+                    <option
+                      v-for="item in modalidadesFiltradas"
+                      :key="item.id"
+                      :value="String(item.id)"
+                    >
+                      {{ item.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="min-w-0 md:col-span-2">
                   <label class="text-sm font-medium text-slate-700" for="contrato-plantilla">Tipo de plantilla</label>
                   <select id="contrato-plantilla" v-model="form.tipoPlantillaId" :class="inputClass">
                     <option value="">Seleccione</option>
@@ -435,12 +511,21 @@ onUnmounted(() => {
                   </div>
                   <div class="min-w-0">
                     <label class="text-sm font-medium text-slate-700" for="contrato-fin">Fecha de fin</label>
-                    <input id="contrato-fin" v-model="form.fechaFin" type="date" :class="inputClass" />
+                    <input
+                      id="contrato-fin"
+                      v-model="form.fechaFin"
+                      type="date"
+                      :class="inputClass"
+                      :disabled="Boolean(form.categoriaContratoId) && !fechaFinRequerida"
+                    />
+                    <p v-if="form.categoriaContratoId && !fechaFinRequerida" class="mt-1 text-xs text-slate-500">
+                      Opcional en contratos a plazo indeterminado.
+                    </p>
                   </div>
                 </div>
 
                 <div class="min-w-0">
-                  <label class="text-sm font-medium text-slate-700" for="contrato-sueldo">Sueldo</label>
+                  <label class="text-sm font-medium text-slate-700" for="contrato-sueldo">{{ etiquetaSueldo }}</label>
                   <input
                     id="contrato-sueldo"
                     v-model="form.sueldo"

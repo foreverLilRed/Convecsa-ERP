@@ -45,8 +45,14 @@ export type PlantillaContratoUpdateRequest = {
   pin: string
 }
 
+export type ModalidadContrato = CatalogoItem & {
+  regimenLaboralId: number
+  requiereFechaFin: boolean
+}
+
 export type ContratosCatalogos = {
-  categoriasContrato: CatalogoItem[]
+  regimenesLaborales: CatalogoItem[]
+  modalidadesContrato: ModalidadContrato[]
   jornadas: CatalogoItem[]
   causasObjetivas: CatalogoItem[]
   metodosPago: CatalogoItem[]
@@ -74,6 +80,9 @@ export type ContratoDTO = {
   categoriaContratoId: number
   categoriaContratoCodigo: string
   categoriaContratoNombre: string
+  regimenLaboralId: number | null
+  regimenLaboralCodigo: string | null
+  regimenLaboralNombre: string | null
   personaId: number
   personaNombreCompleto: string
   personaNumeroDocumento: string

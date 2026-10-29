@@ -1,6 +1,8 @@
 package com.convecsa.erp.contrato.support;
 
+import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
+import com.convecsa.erp.contrato.catalogo.RegimenLaboral;
 import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
@@ -76,6 +78,9 @@ public class ContratoPlantillaService {
             "titulo",
             "categoria_contrato",
             "categoria_contrato_codigo",
+            "regimen_laboral",
+            "regimen_laboral_codigo",
+            "modalidad_contrato",
             "plantilla_nombre",
             "plantilla_codigo",
             "activo",
@@ -245,8 +250,13 @@ public class ContratoPlantillaService {
         Persona persona = contrato.getPersona();
         Map<String, String> valores = tokensPersona(persona);
         valores.put("titulo", text(contrato.getTitulo()));
-        valores.put("categoria_contrato", contrato.getCategoriaContrato() == null ? "" : contrato.getCategoriaContrato().getLabel());
-        valores.put("categoria_contrato_codigo", contrato.getCategoriaContrato() == null ? "" : contrato.getCategoriaContrato().getCodigo());
+        CategoriaContrato categoria = contrato.getCategoriaContrato();
+        RegimenLaboral regimen = categoria == null ? null : categoria.getRegimenLaboral();
+        valores.put("categoria_contrato", categoria == null ? "" : categoria.getLabel());
+        valores.put("categoria_contrato_codigo", categoria == null ? "" : categoria.getCodigo());
+        valores.put("modalidad_contrato", categoria == null ? "" : categoria.getLabel());
+        valores.put("regimen_laboral", regimen == null ? "" : regimen.getLabel());
+        valores.put("regimen_laboral_codigo", regimen == null ? "" : regimen.getCodigo());
         valores.put("contrato_id", contrato.getId() == null ? "" : contrato.getId().toString());
         valores.put("plantilla_nombre", contrato.getTipoPlantilla() == null ? "" : text(contrato.getTipoPlantilla().getNombre()));
         valores.put("plantilla_codigo", contrato.getTipoPlantilla() == null ? "" : text(contrato.getTipoPlantilla().getCodigo()));
@@ -320,6 +330,9 @@ public class ContratoPlantillaService {
         valores.put("titulo", "");
         valores.put("categoria_contrato", "");
         valores.put("categoria_contrato_codigo", "");
+        valores.put("regimen_laboral", "");
+        valores.put("regimen_laboral_codigo", "");
+        valores.put("modalidad_contrato", "");
         valores.put("plantilla_nombre", "");
         valores.put("plantilla_codigo", "");
         valores.put("activo", "");

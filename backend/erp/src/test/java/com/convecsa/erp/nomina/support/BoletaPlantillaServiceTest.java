@@ -1,8 +1,11 @@
 package com.convecsa.erp.nomina.support;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
+import com.convecsa.erp.contrato.catalogo.RegimenLaboral;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.nomina.catalogo.Afp;
 import com.convecsa.erp.nomina.domain.CategoriaConcepto;
@@ -44,6 +47,19 @@ class BoletaPlantillaServiceTest {
         assertTrue(html.contains("1,305.00"));
         assertFalse(html.contains("{{tabla_haberes}}"));
         assertFalse(html.contains("{{neto}}"));
+    }
+
+    @Test
+    void regimenUsaElDelContrato() {
+        BoletaPago boleta = boletaBase();
+        RegimenLaboral regimen = new RegimenLaboral();
+        regimen.setCodigo("REGIMEN_GENERAL");
+        regimen.setLabel("Régimen General (D.L. 728)");
+        CategoriaContrato categoria = new CategoriaContrato();
+        categoria.setRegimenLaboral(regimen);
+        boleta.getContrato().setCategoriaContrato(categoria);
+
+        assertEquals("Régimen General (D.L. 728)", plantillaService.tokens(boleta).get("regimen"));
     }
 
     @Test

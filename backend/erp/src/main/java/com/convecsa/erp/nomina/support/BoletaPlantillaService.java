@@ -1,5 +1,8 @@
 package com.convecsa.erp.nomina.support;
 
+import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
+import com.convecsa.erp.contrato.catalogo.RegimenLaboral;
+import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.support.SueldoEnLetras;
 import com.convecsa.erp.nomina.domain.CategoriaConcepto;
 import com.convecsa.erp.nomina.entity.BoletaConcepto;
@@ -71,7 +74,7 @@ public class BoletaPlantillaService {
         valores.put("periodo_anio", boleta.getPeriodo() == null ? "" : String.valueOf(boleta.getPeriodo().getAnio()));
         valores.put("dias_trabajados", String.valueOf(boleta.getDiasTrabajados()));
         valores.put("afp_nombre", boleta.getAfp() == null ? "" : text(boleta.getAfp().getLabel()));
-        valores.put("regimen", "Pequeña Empresa - REMYPE");
+        valores.put("regimen", regimenDelContrato(boleta.getContrato()));
         valores.put("tabla_haberes", filas(boleta, CategoriaConcepto.HABER));
         valores.put("tabla_descuentos", filas(boleta, CategoriaConcepto.DESCUENTO));
         valores.put("tabla_aportes", filas(boleta, CategoriaConcepto.APORTE_EMPLEADOR));
@@ -129,6 +132,15 @@ public class BoletaPlantillaService {
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;");
+    }
+
+    private static String regimenDelContrato(Contrato contrato) {
+        if (contrato == null || contrato.getCategoriaContrato() == null) {
+            return "";
+        }
+        CategoriaContrato categoria = contrato.getCategoriaContrato();
+        RegimenLaboral regimen = categoria.getRegimenLaboral();
+        return regimen == null ? "" : text(regimen.getLabel());
     }
 
     private static String text(String value) {

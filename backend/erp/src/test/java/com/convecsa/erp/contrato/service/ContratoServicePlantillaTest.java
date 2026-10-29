@@ -14,10 +14,12 @@ import com.convecsa.erp.contrato.dto.PlantillaContratoDetalleDTO;
 import com.convecsa.erp.contrato.dto.PlantillaContratoUpdateRequest;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
 import com.convecsa.erp.contrato.repository.CausaObjetivaRepository;
+import com.convecsa.erp.contrato.repository.CategoriaContratoRepository;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.JornadaRepository;
 import com.convecsa.erp.contrato.repository.MetodoPagoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
+import com.convecsa.erp.contrato.repository.RegimenLaboralRepository;
 import com.convecsa.erp.contrato.service.impl.ContratoServiceImpl;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
 import com.convecsa.erp.nomina.repository.AfpRepository;
@@ -40,6 +42,12 @@ class ContratoServicePlantillaTest {
 
     @Mock
     private PersonaRepository personaRepository;
+
+    @Mock
+    private CategoriaContratoRepository categoriaContratoRepository;
+
+    @Mock
+    private RegimenLaboralRepository regimenLaboralRepository;
 
     @Mock
     private JornadaRepository jornadaRepository;

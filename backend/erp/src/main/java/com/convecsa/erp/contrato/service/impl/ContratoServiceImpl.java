@@ -10,12 +10,14 @@ import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
 import com.convecsa.erp.contrato.catalogo.Jornada;
 import com.convecsa.erp.contrato.catalogo.MetodoPago;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
+import com.convecsa.erp.contrato.catalogo.RegimenLaboral;
 import com.convecsa.erp.contrato.domain.UsoPlantilla;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.dto.ContratoDTO;
 import com.convecsa.erp.contrato.dto.ContratoRequest;
 import com.convecsa.erp.contrato.dto.ContratosCatalogosDTO;
 import com.convecsa.erp.contrato.dto.ContratosResumeDTO;
+import com.convecsa.erp.contrato.dto.ModalidadContratoDTO;
 import com.convecsa.erp.contrato.dto.PlantillaCampoDTO;
 import com.convecsa.erp.contrato.dto.PlantillaContratoDTO;
 import com.convecsa.erp.contrato.dto.PlantillaContratoDetalleDTO;
@@ -30,6 +32,7 @@ import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.JornadaRepository;
 import com.convecsa.erp.contrato.repository.MetodoPagoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
+import com.convecsa.erp.contrato.repository.RegimenLaboralRepository;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
 import com.convecsa.erp.nomina.repository.AfpRepository;
@@ -52,6 +55,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
     private final ContratoRepository contratoRepository;
     private final PersonaRepository personaRepository;
     private final CategoriaContratoRepository categoriaContratoRepository;
+    private final RegimenLaboralRepository regimenLaboralRepository;
     private final JornadaRepository jornadaRepository;
     private final CausaObjetivaRepository causaObjetivaRepository;
     private final MetodoPagoRepository metodoPagoRepository;
@@ -75,8 +79,16 @@ public class ContratoServiceImpl implements InterfazContratoService {
     @Transactional(readOnly = true)
     public ContratosCatalogosDTO catalogos() {
         return new ContratosCatalogosDTO(
-                categoriaContratoRepository.findByActivoTrueOrderByIdAsc().stream()
+                regimenLaboralRepository.findByActivoTrueOrderByIdAsc().stream()
                         .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
+                        .toList(),
+                categoriaContratoRepository.findByActivoTrueOrderByIdAsc().stream()
+                        .map(item -> new ModalidadContratoDTO(
+                                item.getId(),
+                                item.getCodigo(),
+                                item.getLabel(),
+                                item.getRegimenLaboral().getId(),
+                                item.isRequiereFechaFin()))
                         .toList(),
                 jornadaRepository.findByActivoTrueOrderByIdAsc().stream()
                         .map(item -> new CatalogoItemDTO(item.getId(), item.getCodigo(), item.getLabel()))
@@ -119,6 +131,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .filter(PlantillaContrato::isActivo)
                 .filter(item -> item.getUso() == UsoPlantilla.CONTRATO)
                 .orElseThrow(() -> new IllegalArgumentException("Plantilla inválida"));
+        if (categoria.isRequiereFechaFin() && request.getFechaFin() == null) {
+            throw new IllegalArgumentException("La fecha de fin es obligatoria para esta modalidad");
+        }
 
         Contrato contrato = new Contrato();
         contrato.setTitulo(request.getTitulo().trim());
@@ -127,7 +142,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
         contrato.setActivo(request.getActivo() == null || request.getActivo());
         contrato.setTipoPlantilla(plantilla);
         contrato.setFechaInicio(request.getFechaInicio());
-        contrato.setFechaFin(request.getFechaFin());
+        contrato.setFechaFin(categoria.isRequiereFechaFin() ? request.getFechaFin() : null);
         contrato.setSueldo(request.getSueldo());
         contrato.setFechaCorte(request.getFechaCorte());
         contrato.setObservaciones(blankToNull(request.getObservaciones()));
@@ -144,6 +159,9 @@ public class ContratoServiceImpl implements InterfazContratoService {
         contrato.getPersona().getNombres();
         if (contrato.getTipoPlantilla() != null) {
             contrato.getTipoPlantilla().getPlantilla();
+        }
+        if (contrato.getCategoriaContrato() != null && contrato.getCategoriaContrato().getRegimenLaboral() != null) {
+            contrato.getCategoriaContrato().getRegimenLaboral().getLabel();
         }
         return contratoPlantillaService.render(contrato);
     }
@@ -318,12 +336,16 @@ public class ContratoServiceImpl implements InterfazContratoService {
         Persona persona = contrato.getPersona();
         PlantillaContrato plantilla = contrato.getTipoPlantilla();
         CategoriaContrato categoria = contrato.getCategoriaContrato();
+        RegimenLaboral regimen = categoria.getRegimenLaboral();
         return ContratoDTO.builder()
                 .id(contrato.getId())
                 .titulo(contrato.getTitulo())
                 .categoriaContratoId(categoria.getId())
                 .categoriaContratoCodigo(categoria.getCodigo())
                 .categoriaContratoNombre(categoria.getLabel())
+                .regimenLaboralId(regimen == null ? null : regimen.getId())
+                .regimenLaboralCodigo(regimen == null ? null : regimen.getCodigo())
+                .regimenLaboralNombre(regimen == null ? null : regimen.getLabel())
                 .personaId(persona.getId())
                 .personaNombreCompleto(persona.getApellidos() + ", " + persona.getNombres())
                 .personaNumeroDocumento(persona.getNumeroDocumento())

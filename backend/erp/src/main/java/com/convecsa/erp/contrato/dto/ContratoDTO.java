@@ -15,6 +15,9 @@ public class ContratoDTO {
     private final Long categoriaContratoId;
     private final String categoriaContratoCodigo;
     private final String categoriaContratoNombre;
+    private final Long regimenLaboralId;
+    private final String regimenLaboralCodigo;
+    private final String regimenLaboralNombre;
     private final Long personaId;
     private final String personaNombreCompleto;
     private final String personaNumeroDocumento;

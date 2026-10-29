@@ -263,7 +263,13 @@ onMounted(() => {
                 <TableRow v-for="contrato in data?.content ?? []" :key="contrato.id">
                   <TableCell class="max-w-64 px-3 py-3">
                     <span class="block truncate font-medium" :title="contrato.titulo">{{ contrato.titulo }}</span>
-                    <span class="block truncate text-xs text-slate-500">{{ contrato.categoriaContratoNombre }}</span>
+                    <span class="block truncate text-xs text-slate-500">
+                      {{
+                        contrato.regimenLaboralNombre
+                          ? `${contrato.regimenLaboralNombre} · ${contrato.categoriaContratoNombre}`
+                          : contrato.categoriaContratoNombre
+                      }}
+                    </span>
                   </TableCell>
                   <TableCell class="max-w-56 px-3 py-3">
                     <span class="block truncate font-medium" :title="contrato.personaNombreCompleto">

@@ -43,13 +43,13 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
 
     long countDistinctPersonaIdByActivoTrue();
 
-    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato"})
+    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato", "categoriaContrato.regimenLaboral"})
     Page<Contrato> findAllByOrderByIdDesc(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato"})
+    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato", "categoriaContrato.regimenLaboral"})
     Page<Contrato> findByActivoOrderByIdDesc(boolean activo, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato"})
+    @EntityGraph(attributePaths = {"persona", "tipoPlantilla", "categoriaContrato", "categoriaContrato.regimenLaboral"})
     Optional<Contrato> findFirstByPersonaIdAndActivoTrueOrderByIdDesc(Long personaId);
 
     default Optional<Contrato> findUltimoContratoActivoPorPersonaId(Long personaId) {
@@ -58,7 +58,7 @@ public interface ContratoRepository extends JpaRepository<Contrato, Long> {
 
     List<Contrato> findByPersonaIdInAndActivoTrueOrderByIdDesc(Collection<Long> personaIds);
 
-    @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "tipoPlantilla", "categoriaContrato"})
+    @EntityGraph(attributePaths = {"persona", "persona.cuentasBancarias", "tipoPlantilla", "categoriaContrato", "categoriaContrato.regimenLaboral"})
     @Query("""
             SELECT c FROM Contrato c
             WHERE c.activo = true

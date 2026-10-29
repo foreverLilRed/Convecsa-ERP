@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
 import com.convecsa.erp.contrato.catalogo.PlantillaCampoEsquema;
+import com.convecsa.erp.contrato.catalogo.RegimenLaboral;
 import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
@@ -69,8 +70,12 @@ class ContratoPlantillaServiceTest {
         contrato.getPersona().setCuspp("123456789012");
 
         CategoriaContrato categoria = new CategoriaContrato();
-        categoria.setCodigo("PLAZO_FIJO");
-        categoria.setLabel("Plazo fijo");
+        categoria.setCodigo("RG_PLAZO_FIJO_OBRA");
+        categoria.setLabel("Plazo Fijo - Por Obra Determinada o Servicio Específico");
+        RegimenLaboral regimen = new RegimenLaboral();
+        regimen.setCodigo("REGIMEN_GENERAL");
+        regimen.setLabel("Régimen General (D.L. 728)");
+        categoria.setRegimenLaboral(regimen);
         contrato.setCategoriaContrato(categoria);
 
         PlantillaContrato plantilla = new PlantillaContrato();
@@ -79,13 +84,16 @@ class ContratoPlantillaServiceTest {
         contrato.setTipoPlantilla(plantilla);
 
         String html = new ContratoPlantillaService().apply(
-                "{{titulo}}|{{categoria_contrato}}|{{categoria_contrato_codigo}}|{{plantilla_nombre}}|"
+                "{{titulo}}|{{categoria_contrato}}|{{categoria_contrato_codigo}}|{{regimen_laboral}}|"
+                        + "{{regimen_laboral_codigo}}|{{modalidad_contrato}}|{{plantilla_nombre}}|"
                         + "{{trabajador_nombre_completo}}|{{trabajador_correo}}|{{trabajador_distrito}}|"
                         + "{{trabajador_pension}}|{{trabajador_cuspp}}|{{fecha_corte}}|{{activo}}|{{observaciones}}",
                 contrato);
 
         assertEquals(
-                "Contrato de supervisión|Plazo fijo|PLAZO_FIJO|Contrato base|PEDRO QUISPE HUAMAN|"
+                "Contrato de supervisión|Plazo Fijo - Por Obra Determinada o Servicio Específico|RG_PLAZO_FIJO_OBRA|"
+                        + "Régimen General (D.L. 728)|REGIMEN_GENERAL|"
+                        + "Plazo Fijo - Por Obra Determinada o Servicio Específico|Contrato base|PEDRO QUISPE HUAMAN|"
                         + "pedro@convecsa.pe|San Borja|AFP Integra|123456789012|30 de junio de 2026|Sí|"
                         + "Renovable por acuerdo de las partes",
                 html);
