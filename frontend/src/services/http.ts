@@ -112,6 +112,39 @@ export async function openAuthenticatedDocument(url: string): Promise<void> {
   window.open(objectUrl, '_blank', 'noopener,noreferrer')
 }
 
+function filenameFromContentDisposition(header: string | null, fallback: string): string {
+  if (!header) {
+    return fallback
+  }
+  const utf8 = /filename\*\s*=\s*(?:UTF-8''|)([^;]+)/i.exec(header)
+  if (utf8?.[1]) {
+    const raw = utf8[1].trim().replace(/^["']|["']$/g, '')
+    try {
+      return decodeURIComponent(raw)
+    } catch {
+      return raw
+    }
+  }
+  const quoted = /filename\s*=\s*"([^"]+)"/i.exec(header)
+  if (quoted?.[1]) {
+    return quoted[1]
+  }
+  const plain = /filename\s*=\s*([^;]+)/i.exec(header)
+  if (plain?.[1]) {
+    return plain[1].trim().replace(/^["']|["']$/g, '')
+  }
+  return fallback
+}
+
+function triggerDownload(blob: Blob, filename: string): void {
+  const objectUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = objectUrl
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(objectUrl)
+}
+
 export async function downloadAuthenticatedFile(path: string, filename: string): Promise<void> {
   const session = getSession()
   const headers: Record<string, string> = {}
@@ -134,15 +167,10 @@ export async function downloadAuthenticatedFile(path: string, filename: string):
   }
 
   const blob = await response.blob()
-  const objectUrl = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = objectUrl
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(objectUrl)
+  triggerDownload(blob, filenameFromContentDisposition(response.headers.get('Content-Disposition'), filename))
 }
 
-async function authenticatedBlob(path: string, init?: RequestInit): Promise<Blob> {
+async function authenticatedResponse(path: string, init?: RequestInit): Promise<Response> {
   const session = getSession()
   const headers: Record<string, string> = {
     ...authHeaders(path),
@@ -170,6 +198,11 @@ async function authenticatedBlob(path: string, init?: RequestInit): Promise<Blob
     }
     throw new ApiError(message, response.status)
   }
+  return response
+}
+
+async function authenticatedBlob(path: string, init?: RequestInit): Promise<Blob> {
+  const response = await authenticatedResponse(path, init)
   return response.blob()
 }
 
@@ -178,13 +211,9 @@ export async function downloadAuthenticatedRequest(
   filename: string,
   init?: RequestInit,
 ): Promise<void> {
-  const blob = await authenticatedBlob(path, init)
-  const objectUrl = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = objectUrl
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(objectUrl)
+  const response = await authenticatedResponse(path, init)
+  const blob = await response.blob()
+  triggerDownload(blob, filenameFromContentDisposition(response.headers.get('Content-Disposition'), filename))
 }
 
 export async function openAuthenticatedRequest(path: string, init?: RequestInit): Promise<void> {

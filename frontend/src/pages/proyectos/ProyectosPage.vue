@@ -15,15 +15,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { crearProyecto, listarProyectos } from '@/services/construccion/construccionService'
-import type { Proyecto } from '@/types/construccion'
+import {
+  crearProyecto,
+  listarProyectos,
+  obtenerCatalogosConstruccion,
+} from '@/services/construccion/construccionService'
+import type { ConstruccionCatalogos, Proyecto } from '@/types/construccion'
 
 const inputClass =
   'mt-1.5 block h-10 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-0 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
 
+const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const router = useRouter()
 const loading = ref(true)
 const proyectos = ref<Proyecto[]>([])
+const catalogos = ref<ConstruccionCatalogos | null>(null)
 const modalOpen = ref(false)
 const submitting = ref(false)
 const formError = ref('')
@@ -32,19 +38,33 @@ const form = reactive({
   nombre: '',
   ubicacion: '',
   centroCosto: '',
+  valorObra: '',
 })
 
 const activos = computed(() => proyectos.value.filter((item) => item.activo).length)
+const hayAlertaUit = computed(() => proyectos.value.some((item) => item.alertaUit))
+const umbralUit = computed(() => catalogos.value?.umbralUit ?? 275000)
+const uitAnio = computed(() => catalogos.value?.uitAnio ?? proyectos.value[0]?.uitAnio ?? new Date().getFullYear())
+const formAlertaUit = computed(() => {
+  const valor = Number(form.valorObra.replace(',', '.'))
+  return form.valorObra.trim() !== '' && Number.isFinite(valor) && valor > umbralUit.value
+})
 
 async function load() {
   loading.value = true
   try {
-    proyectos.value = await listarProyectos()
+    const [lista, cats] = await Promise.all([listarProyectos(), obtenerCatalogosConstruccion()])
+    proyectos.value = lista
+    catalogos.value = cats
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudieron cargar las obras.')
   } finally {
     loading.value = false
   }
+}
+
+function formatValor(valor: number | null): string {
+  return valor == null ? '—' : money.format(valor)
 }
 
 function lockBodyScroll() {
@@ -70,6 +90,7 @@ watch(modalOpen, (isOpen) => {
     form.nombre = ''
     form.ubicacion = ''
     form.centroCosto = ''
+    form.valorObra = ''
     formError.value = ''
     submitting.value = false
     lockBodyScroll()
@@ -95,15 +116,32 @@ async function onCrear() {
     toast.error(formError.value)
     return
   }
+  const valorTexto = form.valorObra.trim().replace(',', '.')
+  let valorObra: number | null = null
+  if (valorTexto) {
+    valorObra = Number(valorTexto)
+    if (!Number.isFinite(valorObra) || valorObra < 0) {
+      formError.value = 'El valor de obra debe ser un monto válido.'
+      toast.error(formError.value)
+      return
+    }
+  }
   submitting.value = true
   try {
-    await crearProyecto({
+    const creado = await crearProyecto({
       codigo: form.codigo.trim(),
       nombre: form.nombre.trim(),
       ubicacion: form.ubicacion.trim() || null,
       centroCosto: form.centroCosto.trim() || null,
+      valorObra,
     })
-    toast.success('Obra registrada.')
+    if (creado.alertaUit) {
+      toast.warning(
+        `Obra registrada. El valor supera 50 UIT (${creado.uitAnio}); es una alerta, no un bloqueo.`,
+      )
+    } else {
+      toast.success('Obra registrada.')
+    }
     modalOpen.value = false
     await load()
   } catch (err) {
@@ -124,6 +162,14 @@ async function onCrear() {
       Obras de construcción civil para tareo semanal y liquidación de planilla RCC. El personal se
       asigna al registrar un contrato del régimen Construcción Civil.
     </p>
+
+    <div
+      v-if="hayAlertaUit"
+      class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+    >
+      Hay obras cuyo valor supera 50 UIT ({{ uitAnio }}). Es una alerta informativa: no bloquea el
+      tareo ni la liquidación.
+    </div>
 
     <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -147,22 +193,31 @@ async function onCrear() {
             <TableHead>Nombre</TableHead>
             <TableHead>Ubicación</TableHead>
             <TableHead>Centro de costo</TableHead>
+            <TableHead>Valor de obra</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead class="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading">
-            <TableCell colspan="6"><Skeleton class="h-8 w-full" /></TableCell>
+            <TableCell colspan="7"><Skeleton class="h-8 w-full" /></TableCell>
           </TableRow>
-          <TableEmpty v-else-if="proyectos.length === 0" :colspan="6">
+          <TableEmpty v-else-if="proyectos.length === 0" :colspan="7">
             No hay obras registradas.
           </TableEmpty>
           <TableRow v-for="proyecto in proyectos" v-else :key="proyecto.id">
             <TableCell class="font-medium">{{ proyecto.codigo }}</TableCell>
             <TableCell>{{ proyecto.nombre }}</TableCell>
             <TableCell>{{ proyecto.ubicacion || '—' }}</TableCell>
-            <TableCell>{{ proyecto.centroCosto || '—' }}</TableCell>
+            <TableCell>
+              {{ formatValor(proyecto.valorObra) }}
+              <span
+                v-if="proyecto.alertaUit"
+                class="ml-2 inline-flex rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800"
+              >
+                UIT &gt; 50
+              </span>
+            </TableCell>
             <TableCell>{{ proyecto.activo ? 'Activa' : 'Inactiva' }}</TableCell>
             <TableCell class="text-right">
               <div class="flex justify-end gap-2">
@@ -222,6 +277,20 @@ async function onCrear() {
                 <div>
                   <label class="text-sm font-medium text-slate-700" for="obra-cc">Centro de costo</label>
                   <input id="obra-cc" v-model="form.centroCosto" maxlength="40" :class="inputClass" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="obra-valor">Valor de obra (S/)</label>
+                  <input
+                    id="obra-valor"
+                    v-model="form.valorObra"
+                    inputmode="decimal"
+                    placeholder="Opcional"
+                    :class="inputClass"
+                  />
+                  <p v-if="formAlertaUit" class="mt-1.5 text-xs text-amber-800">
+                    El valor supera 50 UIT ({{ money.format(umbralUit) }} en {{ uitAnio }}). Se puede
+                    guardar: es una alerta, no un bloqueo.
+                  </p>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                   <Button variant="outline" type="button" :disabled="submitting" @click="modalOpen = false">

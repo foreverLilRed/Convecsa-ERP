@@ -42,6 +42,8 @@ import com.convecsa.erp.construccion.support.CalculoNominaCcService;
 import com.convecsa.erp.construccion.support.CcLiquidacionInput;
 import com.convecsa.erp.construccion.support.CcLiquidacionResult;
 import com.convecsa.erp.construccion.support.CcParametros;
+import com.convecsa.erp.construccion.support.RentaQuintaProyeccionService;
+import com.convecsa.erp.construccion.support.UitObraAlerta;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.nomina.catalogo.Afp;
@@ -84,6 +86,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private final TareoCcDiaRepository tareoCcDiaRepository;
     private final BoletaCcRepository boletaCcRepository;
     private final CalculoNominaCcService calculoNominaCcService;
+    private final RentaQuintaProyeccionService rentaQuintaProyeccionService;
     private final BoletaCcPlantillaService boletaCcPlantillaService;
     private final BoletaPdfService boletaPdfService;
     private final AfpRepository afpRepository;
@@ -107,7 +110,10 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 categorias,
                 especialidades,
                 listarProyectos(true),
-                parametros.getAnio());
+                parametros.getAnio(),
+                parametros.getAnio(),
+                parametros.getUit(),
+                UitObraAlerta.umbral(parametros.getUit()));
     }
 
     @Override
@@ -116,13 +122,14 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         List<Proyecto> proyectos = Boolean.TRUE.equals(activo)
                 ? proyectoRepository.findByActivoTrueOrderByCodigoAsc()
                 : proyectoRepository.findAllByOrderByCodigoAsc();
-        return proyectos.stream().map(ConstruccionServiceImpl::toProyectoDto).toList();
+        CcParametroAnual parametros = parametrosVigentes(LocalDate.now().getYear());
+        return proyectos.stream().map(item -> toProyectoDto(item, parametros)).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public ProyectoDTO obtenerProyecto(Long id) {
-        return toProyectoDto(buscarProyecto(id));
+        return toProyectoDto(buscarProyecto(id), parametrosVigentes(LocalDate.now().getYear()));
     }
 
     @Override
@@ -137,8 +144,9 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         proyecto.setNombre(request.getNombre().trim());
         proyecto.setUbicacion(blankToNull(request.getUbicacion()));
         proyecto.setCentroCosto(blankToNull(request.getCentroCosto()));
+        proyecto.setValorObra(request.getValorObra());
         proyecto.setActivo(request.getActivo() == null || request.getActivo());
-        return toProyectoDto(proyectoRepository.save(proyecto));
+        return toProyectoDto(proyectoRepository.save(proyecto), parametrosVigentes(LocalDate.now().getYear()));
     }
 
     @Override
@@ -262,7 +270,14 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             }
             ContratoCc contratoCc = entry.getValue();
             CcLiquidacionInput input = agregarTareo(dias, contratoCc, periodo);
-            CcLiquidacionResult resultado = calculoNominaCcService.calcular(input, parametros);
+            CcLiquidacionResult preliminar = calculoNominaCcService.calcular(input, parametros);
+            BigDecimal rentaQuinta = rentaQuintaProyeccionService.proyectar(
+                    contratoCc.getContrato().getPersona().getNumeroDocumento(),
+                    periodo.getFechaHasta(),
+                    preliminar.getTotalAfecto());
+            CcLiquidacionResult resultado = rentaQuinta.compareTo(BigDecimal.ZERO) == 0
+                    ? preliminar
+                    : calculoNominaCcService.calcular(input.toBuilder().rentaQuinta(rentaQuinta).build(), parametros);
             BoletaCc boleta = boletaCcRepository.findByPeriodoIdAndPersonaId(periodoId, entry.getKey())
                     .orElseGet(BoletaCc::new);
             boleta.setPeriodo(periodo);
@@ -273,6 +288,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             boleta.setTotalAportesEmpleador(resultado.getTotalAportes());
             boleta.setTotalAfecto(resultado.getTotalAfecto());
             boleta.setNeto(resultado.getNeto());
+            boleta.setTarifaDia(resultado.getTarifaDia());
+            boleta.setTarifaHora(resultado.getTarifaHora());
             List<BoletaCcConcepto> conceptos = new ArrayList<>();
             resultado.getConceptos().forEach(item -> {
                 BoletaCcConcepto concepto = new BoletaCcConcepto();
@@ -310,11 +327,15 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         BoletaCc boleta = buscarBoleta(proyectoId, periodoId, boletaId);
         boleta.getPeriodo().getProyecto().getNombre();
         boleta.getPersona().getNombres();
+        boleta.getContrato().getId();
         boleta.getConceptos().size();
         NominaDocumentoConfiguracion configuracion = documentoConfiguracionRepository
                 .findById(NominaDocumentoConfiguracion.ID_UNICO)
                 .orElse(null);
-        return boletaCcPlantillaService.render(boleta, configuracion);
+        List<TareoCcDia> dias = tareoCcDiaRepository.findByPeriodoIdAndPersonaIdOrderByFechaAsc(
+                periodoId, boleta.getPersona().getId());
+        BigDecimal[] tarifas = tarifasDe(boleta);
+        return boletaCcPlantillaService.render(boleta, configuracion, dias, tarifas[0], tarifas[1]);
     }
 
     @Override
@@ -658,14 +679,38 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         return personaId + "|" + fecha;
     }
 
-    private static ProyectoDTO toProyectoDto(Proyecto proyecto) {
+    private BigDecimal[] tarifasDe(BoletaCc boleta) {
+        BigDecimal tarifaDia = nz(boleta.getTarifaDia());
+        BigDecimal tarifaHora = nz(boleta.getTarifaHora());
+        if (tarifaDia.signum() > 0 && tarifaHora.signum() > 0) {
+            return new BigDecimal[] {tarifaDia, tarifaHora};
+        }
+        CcParametros parametros = toParametros(parametrosVigentes(boleta.getPeriodo().getFechaHasta().getYear()));
+        CategoriaObrera categoria = contratoCcRepository.findByContratoId(boleta.getContrato().getId())
+                .map(ContratoCc::getCategoria)
+                .orElse(CategoriaObrera.OPERARIO);
+        BigDecimal jornal = parametros.getJornales().getOrDefault(categoria, BigDecimal.ZERO);
+        BigDecimal horasDia = parametros.getHorasDia() == null || parametros.getHorasDia().signum() == 0
+                ? new BigDecimal("8")
+                : parametros.getHorasDia();
+        BigDecimal hora = jornal.divide(horasDia, 4, RoundingMode.HALF_UP);
+        return new BigDecimal[] {
+                tarifaDia.signum() > 0 ? tarifaDia : jornal,
+                tarifaHora.signum() > 0 ? tarifaHora : hora
+        };
+    }
+
+    private static ProyectoDTO toProyectoDto(Proyecto proyecto, CcParametroAnual parametros) {
         return ProyectoDTO.builder()
                 .id(proyecto.getId())
                 .codigo(proyecto.getCodigo())
                 .nombre(proyecto.getNombre())
                 .ubicacion(proyecto.getUbicacion())
                 .centroCosto(proyecto.getCentroCosto())
+                .valorObra(proyecto.getValorObra())
                 .activo(proyecto.isActivo())
+                .alertaUit(UitObraAlerta.supera(proyecto.getValorObra(), parametros.getUit()))
+                .uitAnio(parametros.getAnio())
                 .build();
     }
 
@@ -753,6 +798,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .totalAportesEmpleador(boleta.getTotalAportesEmpleador())
                 .totalAfecto(boleta.getTotalAfecto())
                 .neto(boleta.getNeto())
+                .tarifaDia(boleta.getTarifaDia())
+                .tarifaHora(boleta.getTarifaHora())
                 .createdAt(boleta.getCreatedAt())
                 .conceptos(boleta.getConceptos().stream()
                         .map(item -> new BoletaCcConceptoDTO(

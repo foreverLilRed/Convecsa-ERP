@@ -3,6 +3,7 @@ package com.convecsa.erp.construccion.support;
 import com.convecsa.erp.construccion.entity.BoletaCc;
 import com.convecsa.erp.construccion.entity.BoletaCcConcepto;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
+import com.convecsa.erp.construccion.entity.TareoCcDia;
 import com.convecsa.erp.contrato.support.SueldoEnLetras;
 import com.convecsa.erp.nomina.domain.CategoriaConcepto;
 import com.convecsa.erp.nomina.entity.NominaDocumentoConfiguracion;
@@ -11,6 +12,7 @@ import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Locale;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +22,12 @@ public class BoletaCcPlantillaService {
     private static final Locale ES_PE = Locale.forLanguageTag("es-PE");
     private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public String render(BoletaCc boleta, NominaDocumentoConfiguracion configuracion) {
+    public String render(
+            BoletaCc boleta,
+            NominaDocumentoConfiguracion configuracion,
+            List<TareoCcDia> dias,
+            BigDecimal tarifaDia,
+            BigDecimal tarifaHora) {
         Persona persona = boleta.getPersona();
         PeriodoCc periodo = boleta.getPeriodo();
         String razon = text(configuracion == null ? "CONVECSA S.A.C." : configuracion.getRazonSocial());
@@ -57,9 +64,22 @@ public class BoletaCcPlantillaService {
                     </div>
                     <div>
                       <p><strong>Periodo:</strong> %s al %s<br/>
-                      <strong>Obra:</strong> %s — %s</p>
+                      <strong>Obra:</strong> %s — %s<br/>
+                      <strong>Tarifa día:</strong> %s &nbsp; <strong>Tarifa hora:</strong> %s</p>
                     </div>
                   </div>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Código</th>
+                        <th class="num">Horas ord.</th>
+                        <th class="num">HE 60%%</th>
+                        <th class="num">HE 100%%</th>
+                      </tr>
+                    </thead>
+                    <tbody>%s</tbody>
+                  </table>
                   <table>
                     <thead><tr><th>Haberes</th><th class="num">Monto (S/)</th></tr></thead>
                     <tbody>%s</tbody>
@@ -93,6 +113,9 @@ public class BoletaCcPlantillaService {
                 periodo == null ? "" : periodo.getFechaHasta().format(FECHA),
                 periodo == null || periodo.getProyecto() == null ? "" : escape(periodo.getProyecto().getCodigo()),
                 periodo == null || periodo.getProyecto() == null ? "" : escape(periodo.getProyecto().getNombre()),
+                dinero(tarifaDia),
+                dinero(tarifaHora),
+                filasTareo(dias),
                 filas(boleta, CategoriaConcepto.HABER),
                 filas(boleta, CategoriaConcepto.DESCUENTO),
                 filas(boleta, CategoriaConcepto.APORTE_EMPLEADOR),
@@ -100,6 +123,27 @@ public class BoletaCcPlantillaService {
                 dinero(boleta.getTotalDescuentos()),
                 dinero(boleta.getNeto()),
                 escape(SueldoEnLetras.de(boleta.getNeto())));
+    }
+
+    private static String filasTareo(List<TareoCcDia> dias) {
+        if (dias == null || dias.isEmpty()) {
+            return "<tr><td colspan=\"5\">Sin tareo en el periodo</td></tr>";
+        }
+        StringBuilder filas = new StringBuilder();
+        for (TareoCcDia dia : dias) {
+            filas.append("<tr><td>")
+                    .append(dia.getFecha() == null ? "" : dia.getFecha().format(FECHA))
+                    .append("</td><td>")
+                    .append(escape(dia.getCodigo() == null ? "" : dia.getCodigo().name()))
+                    .append("</td><td class=\"num\">")
+                    .append(horas(dia.getHorasOrd()))
+                    .append("</td><td class=\"num\">")
+                    .append(horas(dia.getHe60()))
+                    .append("</td><td class=\"num\">")
+                    .append(horas(dia.getHe100()))
+                    .append("</td></tr>");
+        }
+        return filas.toString();
     }
 
     private static String filas(BoletaCc boleta, CategoriaConcepto categoria) {
@@ -128,6 +172,15 @@ public class BoletaCcPlantillaService {
         symbols.setGroupingSeparator(',');
         symbols.setDecimalSeparator('.');
         return new DecimalFormat("#,##0.00", symbols).format(monto);
+    }
+
+    private static String horas(BigDecimal valor) {
+        if (valor == null) {
+            return "0.00";
+        }
+        DecimalFormatSymbols symbols = new DecimalFormatSymbols(ES_PE);
+        symbols.setDecimalSeparator('.');
+        return new DecimalFormat("0.##", symbols).format(valor);
     }
 
     private static String escape(String value) {

@@ -1,0 +1,6 @@
+ALTER TABLE proyecto
+    ADD COLUMN valor_obra NUMERIC(14, 2);
+
+ALTER TABLE boleta_cc
+    ADD COLUMN tarifa_dia NUMERIC(12, 2) NOT NULL DEFAULT 0,
+    ADD COLUMN tarifa_hora NUMERIC(12, 4) NOT NULL DEFAULT 0;

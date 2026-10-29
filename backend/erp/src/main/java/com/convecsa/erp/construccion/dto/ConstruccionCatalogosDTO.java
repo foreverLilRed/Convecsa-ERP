@@ -1,6 +1,7 @@
 package com.convecsa.erp.construccion.dto;
 
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
+import java.math.BigDecimal;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -13,4 +14,7 @@ public class ConstruccionCatalogosDTO {
     private final List<CatalogoItemDTO> especialidadesBae;
     private final List<ProyectoDTO> proyectos;
     private final int anioParametros;
+    private final int uitAnio;
+    private final BigDecimal uit;
+    private final BigDecimal umbralUit;
 }

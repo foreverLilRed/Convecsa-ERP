@@ -61,6 +61,12 @@ public class BoletaCc {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal neto = BigDecimal.ZERO;
 
+    @Column(name = "tarifa_dia", nullable = false, precision = 12, scale = 2)
+    private BigDecimal tarifaDia = BigDecimal.ZERO;
+
+    @Column(name = "tarifa_hora", nullable = false, precision = 12, scale = 4)
+    private BigDecimal tarifaHora = BigDecimal.ZERO;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 

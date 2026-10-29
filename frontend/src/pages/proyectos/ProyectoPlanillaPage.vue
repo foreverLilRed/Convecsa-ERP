@@ -163,6 +163,13 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
     <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
       Liquide la semana a partir del tareo y emita la boleta de construcción civil.
     </p>
+    <div
+      v-if="proyecto?.alertaUit"
+      class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+    >
+      El valor de esta obra supera 50 UIT ({{ proyecto.uitAnio }}). Es una alerta informativa: no
+      bloquea el tareo ni la liquidación.
+    </div>
 
     <div class="mt-5 flex flex-wrap gap-2">
       <Button variant="outline" type="button" @click="router.push({ name: 'proyectos' })">Obras</Button>
@@ -257,7 +264,13 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
           <h3 class="text-base font-semibold text-palette-navy">
             {{ detalle.personaApellidos }}, {{ detalle.personaNombres }}
           </h3>
-          <p class="text-sm text-slate-500">{{ detalle.numeroDocumento }} · Neto {{ money.format(detalle.neto) }}</p>
+          <p class="text-sm text-slate-500">
+            {{ detalle.numeroDocumento }} · Neto {{ money.format(detalle.neto) }}
+            <span v-if="detalle.tarifaDia">
+              · Tarifa día {{ money.format(detalle.tarifaDia) }} · Tarifa hora
+              {{ money.format(detalle.tarifaHora) }}
+            </span>
+          </p>
         </div>
         <Button variant="outline" type="button" @click="detalle = null">Cerrar</Button>
       </div>

@@ -8,6 +8,7 @@ import java.util.Locale;
 
 public final class PlameFormato {
 
+    public static final String RUC_FALLBACK = "20601414067";
     private static final Locale US = Locale.US;
 
     private PlameFormato() {}
@@ -46,11 +47,11 @@ public final class PlameFormato {
     }
 
     public static String rucArchivo(String ruc) {
-        if (ruc == null) {
-            return "00000000000";
+        String digits = ruc == null ? "" : ruc.replaceAll("\\D", "");
+        if (digits.isBlank()) {
+            return RUC_FALLBACK;
         }
-        String digits = ruc.replaceAll("\\D", "");
-        return digits.isBlank() ? "00000000000" : digits;
+        return digits.length() > 11 ? digits.substring(0, 11) : digits;
     }
 
     public static String periodo(int anio, int mes) {

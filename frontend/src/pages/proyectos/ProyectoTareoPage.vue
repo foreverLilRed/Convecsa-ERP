@@ -204,6 +204,13 @@ async function onGuardar() {
       Marque horas y códigos por día para el personal RCC asignado a esta obra. El domingo se liquida
       como promedio de lunes a sábado.
     </p>
+    <div
+      v-if="proyecto?.alertaUit"
+      class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+    >
+      El valor de esta obra supera 50 UIT ({{ proyecto.uitAnio }}). Es una alerta informativa: no
+      bloquea el tareo ni la liquidación.
+    </div>
 
     <div class="mt-5 flex flex-wrap gap-2">
       <Button variant="outline" type="button" @click="router.push({ name: 'proyectos' })">Obras</Button>

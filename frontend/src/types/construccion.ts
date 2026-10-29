@@ -4,7 +4,10 @@ export type Proyecto = {
   nombre: string
   ubicacion: string | null
   centroCosto: string | null
+  valorObra: number | null
   activo: boolean
+  alertaUit: boolean
+  uitAnio: number
 }
 
 export type ProyectoRequest = {
@@ -12,6 +15,7 @@ export type ProyectoRequest = {
   nombre: string
   ubicacion?: string | null
   centroCosto?: string | null
+  valorObra?: number | null
   activo?: boolean
 }
 
@@ -20,6 +24,9 @@ export type ConstruccionCatalogos = {
   especialidadesBae: { id: number; codigo: string; label: string }[]
   proyectos: Proyecto[]
   anioParametros: number
+  uitAnio: number
+  uit: number
+  umbralUit: number
 }
 
 export type PersonalObra = {
@@ -116,6 +123,8 @@ export type BoletaCc = {
   totalAportesEmpleador: number
   totalAfecto: number
   neto: number
+  tarifaDia: number
+  tarifaHora: number
   createdAt: string
   conceptos: BoletaCcConcepto[]
 }

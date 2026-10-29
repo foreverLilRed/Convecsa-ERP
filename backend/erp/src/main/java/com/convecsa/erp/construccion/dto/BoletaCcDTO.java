@@ -23,6 +23,8 @@ public class BoletaCcDTO {
     private final BigDecimal totalAportesEmpleador;
     private final BigDecimal totalAfecto;
     private final BigDecimal neto;
+    private final BigDecimal tarifaDia;
+    private final BigDecimal tarifaHora;
     private final Instant createdAt;
     private final List<BoletaCcConceptoDTO> conceptos;
 }

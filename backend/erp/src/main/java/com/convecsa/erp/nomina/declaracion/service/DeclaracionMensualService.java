@@ -344,7 +344,7 @@ public class DeclaracionMensualService {
         NominaDocumentoConfiguracion empresa = documentoConfiguracionRepository
                 .findById(NominaDocumentoConfiguracion.ID_UNICO)
                 .orElse(null);
-        String ruc = empresa == null ? "00000000000" : PlameFormato.rucArchivo(empresa.getRuc());
+        String ruc = PlameFormato.rucArchivo(empresa == null ? null : empresa.getRuc());
         return ruc + PlameFormato.periodo(declaracion.getAnio(), declaracion.getMes());
     }
 

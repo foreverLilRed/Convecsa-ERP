@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -32,6 +33,9 @@ public class Proyecto {
 
     @Column(name = "centro_costo", length = 40)
     private String centroCosto;
+
+    @Column(name = "valor_obra", precision = 14, scale = 2)
+    private BigDecimal valorObra;
 
     @Column(nullable = false)
     private boolean activo = true;
