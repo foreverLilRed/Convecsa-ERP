@@ -150,8 +150,7 @@ onMounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
           Manual de Organización y Funciones
         </h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
@@ -159,7 +158,7 @@ onMounted(() => {
         </p>
       </div>
       <Button
-        class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:mt-7 sm:w-auto"
+        class="h-10 w-full shrink-0 bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
         type="button"
         @click="descargarCompleto"
       >
@@ -168,8 +167,8 @@ onMounted(() => {
       </Button>
     </div>
 
-    <div class="mt-6 overflow-hidden rounded-lg border border-palette-cyan/70 bg-white lg:grid lg:grid-cols-12">
-      <aside class="border-b border-palette-cyan/60 bg-slate-50 lg:col-span-4 lg:border-r lg:border-b-0">
+    <div class="mt-3 grid w-full min-w-0 grid-cols-1 overflow-hidden rounded-lg border border-palette-cyan/70 bg-white md:grid-cols-[minmax(15rem,20rem)_minmax(0,1fr)]">
+      <aside class="min-w-0 border-b border-palette-cyan/60 bg-slate-50 md:border-r md:border-b-0">
         <div class="border-b border-slate-200 bg-white p-3">
           <label class="sr-only" for="mof-buscar">Buscar cargo</label>
           <div class="relative">
@@ -182,7 +181,7 @@ onMounted(() => {
             />
           </div>
         </div>
-        <div class="max-h-[36rem] space-y-3 overflow-y-auto p-3">
+        <div class="max-h-[20rem] space-y-3 overflow-y-auto p-3 md:max-h-[min(70vh,42rem)]">
           <template v-if="loading">
             <Skeleton v-for="row in 8" :key="row" class="h-10 w-full" />
           </template>
@@ -203,7 +202,7 @@ onMounted(() => {
                 : 'text-slate-700 hover:bg-slate-200/80'"
               @click="selectedId = item.id"
             >
-              <span class="truncate">{{ item.cargo }}</span>
+              <span class="min-w-0 truncate">{{ item.cargo }}</span>
               <span
                 class="shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold"
                 :class="item.id === selectedId ? 'bg-white/15 text-white' : 'bg-slate-200 text-slate-500'"
@@ -215,13 +214,13 @@ onMounted(() => {
         </div>
       </aside>
 
-      <div class="lg:col-span-8">
+      <div class="min-w-0">
         <div v-if="loadingDetalle && !detalle" class="space-y-4 p-6">
           <Skeleton class="h-16 w-full" />
           <Skeleton class="h-28 w-full" />
           <Skeleton class="h-40 w-full" />
         </div>
-        <div v-else-if="detalle" class="space-y-6 p-5 sm:p-6">
+        <div v-else-if="detalle" class="space-y-3 p-5 sm:p-6">
           <div class="overflow-hidden rounded-lg border-2 border-slate-800">
             <div class="grid divide-y divide-slate-300 md:grid-cols-12 md:divide-x md:divide-y-0">
               <div class="flex items-center justify-center bg-white p-3 md:col-span-3">
@@ -274,7 +273,7 @@ onMounted(() => {
             <Textarea id="mof-proposito" v-model="proposito" class="min-h-24 bg-white" :disabled="saving" />
           </div>
 
-          <div class="grid gap-4 md:grid-cols-2">
+          <div class="grid gap-2 md:grid-cols-2">
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3.5">
               <p class="text-[10px] font-bold text-slate-500 uppercase">Superior jerárquico</p>
               <p class="mt-1 text-sm font-semibold text-slate-800">{{ detalle.superior }}</p>
@@ -317,7 +316,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="grid gap-4 pt-1 md:grid-cols-3">
+          <div class="grid gap-2 pt-1 md:grid-cols-3">
             <div class="rounded-lg border border-sky-200 bg-sky-50/70 p-3.5">
               <p class="border-b border-sky-200 pb-1 text-[11px] font-bold tracking-wide text-sky-800 uppercase">Educación</p>
               <ul class="mt-2 space-y-1.5 text-xs text-slate-700">

@@ -65,7 +65,7 @@ watch(sidebarCollapsed, (collapsed) => {
         <h1 class="text-sm font-semibold tracking-wide text-palette-navy">{{ pageTitle }}</h1>
       </header>
 
-      <main class="px-4 py-6 lg:px-8 lg:py-8">
+      <main class="px-3 py-3 lg:px-4 lg:py-4">
         <RouterView />
       </main>
     </div>

@@ -155,8 +155,7 @@ onMounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Contratos</h2>
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Contratos</h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
           Contratos de trabajo y adendas de prórroga asociadas a cada registro.
         </p>
@@ -171,7 +170,7 @@ onMounted(() => {
       </Button>
     </div>
 
-    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+    <div class="mt-3 grid gap-2 sm:grid-cols-2">
       <template v-if="loading && !resume">
         <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5">
           <Skeleton class="h-4 w-32" />
@@ -202,7 +201,7 @@ onMounted(() => {
       </template>
     </div>
 
-    <Tabs v-model="tab" class="mt-6">
+    <Tabs v-model="tab" class="mt-3">
       <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
         <TabsTrigger
           value="contratos"

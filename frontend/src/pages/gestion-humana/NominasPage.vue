@@ -171,8 +171,7 @@ onMounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Nóminas</h2>
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Nóminas</h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
           Periodos mensuales REMYPE: genere boletas, ajuste conceptos y descargue o imprima el documento.
         </p>
@@ -197,7 +196,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
+    <div class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <h3 class="text-base font-semibold text-palette-navy">Periodos</h3>
       <p class="mt-1 text-sm text-slate-500">
         Cada periodo agrupa las boletas del mes. Cierre cuando la planilla esté lista.
@@ -353,7 +352,7 @@ onMounted(() => {
               </header>
               <form class="flex flex-col px-5 py-5" @submit.prevent="onCrearPeriodo">
                 <fieldset class="space-y-4" :disabled="submitting">
-                  <div class="grid gap-4 sm:grid-cols-2">
+                  <div class="grid gap-2 sm:grid-cols-2">
                     <div>
                       <label class="text-sm font-medium text-slate-700" for="nomina-mes">Mes</label>
                       <select id="nomina-mes" v-model="form.mes" :class="inputClass">

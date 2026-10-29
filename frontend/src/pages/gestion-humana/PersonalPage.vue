@@ -43,13 +43,12 @@ function onPersonaSaved() {
 
 <template>
   <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-    <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Personal</h2>
+    <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Personal</h2>
     <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
       Consulte el padrón de personal y registre nuevas personas.
     </p>
 
-    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
+    <div class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <PersonaListado :reload-key="listadoKey" @edit="onEdit">
         <template #actions>
           <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">

@@ -4,7 +4,7 @@ Backend Spring Boot en `backend/erp` (Java 17, Maven, PostgreSQL + Flyway).
 
 ## Docker
 
-La imagen del backend es solo Java. Localmente se usa el PostgreSQL del host (pgAdmin fuera de Docker). En producción Compose levanta también `postgres:16-alpine`.
+La imagen del backend es solo Java. En local y en producción Compose levanta `postgres:16-alpine` (Flyway crea el esquema al arrancar el backend). En local, Postgres expone `localhost:5432` por si quieres conectar pgAdmin o DBeaver.
 
 Copiar las variables de ejemplo antes de levantar:
 
@@ -24,13 +24,13 @@ El logo, la firma y los datos legales se administran dentro del ERP en **Gestió
 
 ### Local
 
-Requiere PostgreSQL y la base `convecsa` en el host (`localhost:5432`).
+No hace falta instalar PostgreSQL en el PC: Compose levanta Postgres y el backend.
 
 ```powershell
 docker compose --env-file .env.local -f docker-compose.local.yml up --build
 ```
 
-El contenedor entra a la BD del host por `host.docker.internal:5432`. Validar:
+API en `http://localhost:8080`. Base de datos en `localhost:5432` (usuario/contraseña por defecto en `.env.local.example`). Validar:
 
 ```powershell
 curl http://localhost:8080/api/gestion-humana/personas?page=0&size=1

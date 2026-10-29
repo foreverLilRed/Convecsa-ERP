@@ -311,8 +311,8 @@ async function onSubmit() {
       </form>
     </div>
 
-    <form v-else class="mt-6 space-y-5" @submit.prevent="onSubmit">
-      <fieldset class="space-y-5" :disabled="submitting">
+    <form v-else class="mt-3 space-y-2.5" @submit.prevent="onSubmit">
+      <fieldset class="space-y-2.5" :disabled="submitting">
         <div class="rounded-2xl border border-palette-cyan/70 bg-white p-4 shadow-sm sm:p-6">
           <div class="flex items-center gap-3">
             <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-palette-royal">
@@ -324,7 +324,7 @@ async function onSubmit() {
             </div>
           </div>
 
-          <div class="mt-5 grid gap-4 lg:grid-cols-3">
+          <div class="mt-5 grid gap-2 lg:grid-cols-3">
             <div>
               <label class="text-sm font-medium text-slate-700" for="plantilla-editor-codigo">Código</label>
               <input
@@ -367,7 +367,7 @@ async function onSubmit() {
             </p>
           </div>
 
-          <div class="mt-5 grid gap-4 xl:grid-cols-3">
+          <div class="mt-5 grid gap-2 xl:grid-cols-3">
             <details class="group rounded-xl border border-slate-200 bg-slate-50/60 p-4" open>
               <summary class="cursor-pointer list-none font-semibold text-palette-navy">
                 Datos de la persona
@@ -439,7 +439,7 @@ async function onSubmit() {
           </div>
 
           <div class="mt-4 rounded-xl border border-dashed border-sky-200 bg-sky-50/50 p-4">
-            <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div class="grid gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div>
                 <label class="text-sm font-semibold text-palette-navy" for="plantilla-meta-clave">
                   Campo personalizado (metadata)

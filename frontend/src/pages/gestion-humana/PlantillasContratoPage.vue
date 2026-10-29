@@ -66,8 +66,7 @@ onUnmounted(() => {
   <section>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
           Plantillas de Contrato
         </h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
@@ -84,7 +83,7 @@ onUnmounted(() => {
       </Button>
     </div>
 
-    <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
+    <div class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
       <div
         v-if="loading"
         class="overflow-hidden rounded-lg border border-palette-cyan/60"

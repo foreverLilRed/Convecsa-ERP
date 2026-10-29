@@ -1,32 +1,18 @@
 <script setup lang="ts">
-import { CalendarDaysIcon, ChevronLeftIcon, ChevronRightIcon, CircleHelpIcon, PlusIcon, XIcon } from '@lucide/vue'
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import {
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogOverlay,
-  DialogPortal,
-  DialogRoot,
-  DialogTitle,
-  DialogTrigger,
-} from 'reka-ui'
+  ArrowUpRightIcon,
+  CalendarDaysIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PlusIcon,
+  XIcon,
+} from '@lucide/vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableEmpty,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  actualizarPlanilla,
   crearFeriado,
   eliminarFeriado,
   generarPlanilla,
@@ -40,32 +26,17 @@ import {
 import { mesesCatalogo, periodoLabel } from '@/types/nomina'
 import {
   DIAS_SEMANA,
-  diaCorto,
-  diaMes,
   fechaLarga,
   type AsistenciaFeriado,
-  type AsistenciaFila,
   type AsistenciaPlanilla,
-  type AsistenciaRegistro,
-  CODIGOS_TAREO,
-  type CodigoTareo,
-  type EstadoAsistencia,
   type AsistenciaConceptoVariable,
   type TipoConceptoVariableTareo,
 } from '@/types/asistencia'
 
-type FilaVista = AsistenciaFila & {
-  porFecha: Record<string, AsistenciaRegistro>
-}
+const router = useRouter()
 
 const inputClass =
   'mt-1.5 block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
-
-const cellInputClass =
-  'h-8 w-full rounded-md border border-slate-300 bg-white px-1.5 text-center text-sm tabular-nums text-slate-900 focus-visible:border-sky-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500'
-
-const cellSelectClass =
-  'h-8 w-full rounded-md border px-1 text-xs font-medium text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/30'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -75,16 +46,7 @@ const anio = ref(hoy.getFullYear())
 const mes = ref(hoy.getMonth() + 1)
 const loading = ref(true)
 const acting = ref(false)
-const saving = ref(false)
 const planilla = ref<AsistenciaPlanilla | null>(null)
-const edits = reactive<Record<number, {
-  horasTrabajadas: string
-  estado: EstadoAsistencia
-  codigo: CodigoTareo
-  minutosExtras25: string
-  minutosExtras35: string
-  minutosTardanza: string
-}>>({})
 const configOpen = ref(false)
 const configSaving = ref(false)
 const configError = ref('')
@@ -104,23 +66,8 @@ const meses = mesesCatalogo()
 const configTriggerWrap = ref<HTMLElement | null>(null)
 const configPanel = ref<HTMLElement | null>(null)
 const estadoVivo = ref('')
-const tutorialOpen = ref(false)
-let skipPeriodoWatch = false
 
-const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`
-
-const dirtyCount = computed(() => Object.keys(edits).length)
 const tituloPeriodo = computed(() => periodoLabel(anio.value, mes.value))
-
-const filasVista = computed<FilaVista[]>(() => {
-  if (!planilla.value) {
-    return []
-  }
-  return planilla.value.filas.map((fila) => ({
-    ...fila,
-    porFecha: Object.fromEntries(fila.registros.map((registro) => [registro.fecha, registro])),
-  }))
-})
 
 const totalHoras = computed(() => {
   if (!planilla.value) {
@@ -129,7 +76,7 @@ const totalHoras = computed(() => {
   let suma = 0
   for (const fila of planilla.value.filas) {
     for (const registro of fila.registros) {
-      suma += horasDe(registro)
+      suma += Number(registro.horasTrabajadas)
     }
   }
   return Math.round(suma * 100) / 100
@@ -142,7 +89,7 @@ const totalFaltas = computed(() => {
   let n = 0
   for (const fila of planilla.value.filas) {
     for (const registro of fila.registros) {
-      if (estadoDe(registro) === 'FALTA') {
+      if (registro.estado === 'FALTA') {
         n += 1
       }
     }
@@ -150,148 +97,21 @@ const totalFaltas = computed(() => {
   return n
 })
 
-function horasDe(registro: AsistenciaRegistro): number {
-  const edit = edits[registro.id]
-  if (edit) {
-    const valor = Number(edit.horasTrabajadas)
-    return Number.isFinite(valor) ? valor : 0
-  }
-  return Number(registro.horasTrabajadas)
-}
-
-function estadoDe(registro: AsistenciaRegistro): EstadoAsistencia {
-  return edits[registro.id]?.estado ?? registro.estado
-}
-
-function codigoDe(registro: AsistenciaRegistro): CodigoTareo {
-  return edits[registro.id]?.codigo ?? registro.codigo
-}
-
-function minutosDe(registro: AsistenciaRegistro, campo: 'minutosExtras25' | 'minutosExtras35' | 'minutosTardanza'): number {
-  const valor = edits[registro.id]?.[campo] ?? String(registro[campo])
-  const numero = Number(valor)
-  return Number.isFinite(numero) ? numero : 0
-}
-
-function horasBloqueadas(codigo: CodigoTareo): boolean {
-  return ['D', 'F', 'DM', 'SIT', 'MAT_PRE', 'MAT_POST', 'VAC', 'VAC_COMP', 'LCG', 'LSG', 'PAT', 'FI'].includes(codigo)
-}
-
-function totalFila(registros: AsistenciaRegistro[]): number {
-  return Math.round(registros.reduce((acc, registro) => acc + horasDe(registro), 0) * 100) / 100
-}
-
-function estadoClase(estado: EstadoAsistencia): string {
-  switch (estado) {
-    case 'ASISTIO':
-      return 'border-l-3 border-l-emerald-700 bg-emerald-100'
-    case 'FALTA':
-      return 'border-l-3 border-l-red-700 bg-red-100'
-    case 'PERMISO':
-      return 'border-l-3 border-l-amber-700 bg-amber-100'
-    default:
-      return 'border-l-3 border-l-slate-500 bg-slate-200'
-  }
-}
-
-function estadoSelectClase(estado: EstadoAsistencia): string {
-  switch (estado) {
-    case 'ASISTIO':
-      return 'border-emerald-400 bg-emerald-50'
-    case 'FALTA':
-      return 'border-red-400 bg-red-50'
-    case 'PERMISO':
-      return 'border-amber-400 bg-amber-50'
-    default:
-      return 'border-slate-400 bg-slate-100'
-  }
-}
-
-function onHoras(registro: AsistenciaRegistro, esperado: number, value: string) {
-  markEdit(registro, value, estadoDe(registro), codigoDe(registro), esperado)
-}
-
-function onCodigo(registro: AsistenciaRegistro, esperado: number, codigo: CodigoTareo) {
-  let horas = String(horasDe(registro))
-  if (['D', 'F', 'DM', 'SIT', 'MAT_PRE', 'MAT_POST', 'VAC', 'VAC_COMP', 'LCG', 'LSG', 'PAT', 'FI'].includes(codigo)) {
-    horas = '0'
-  } else if (codigo === 'A' && Number(horas) === 0) {
-    horas = String(esperado)
-  }
-  markEdit(registro, horas, estadoDe(registro), codigo, esperado)
-}
-
-function markEdit(
-  registro: AsistenciaRegistro,
-  horasTrabajadas: string,
-  estado: EstadoAsistencia,
-  codigo: CodigoTareo,
-  _esperado: number,
-) {
-  const originalHoras = String(Number(registro.horasTrabajadas))
-  const sameHoras = Number(horasTrabajadas) === Number(originalHoras)
-  const sameEstado = estado === registro.estado
-  const sameCodigo = codigo === registro.codigo
-  if (sameHoras && sameEstado && sameCodigo) {
-    delete edits[registro.id]
-    return
-  }
-  const previo = edits[registro.id]
-  edits[registro.id] = {
-    horasTrabajadas,
-    estado,
-    codigo,
-    minutosExtras25: previo?.minutosExtras25 ?? String(registro.minutosExtras25),
-    minutosExtras35: previo?.minutosExtras35 ?? String(registro.minutosExtras35),
-    minutosTardanza: previo?.minutosTardanza ?? String(registro.minutosTardanza),
-  }
-}
-
-function onMinutos(registro: AsistenciaRegistro, campo: 'minutosExtras25' | 'minutosExtras35' | 'minutosTardanza', valor: string) {
-  markEdit(registro, String(horasDe(registro)), estadoDe(registro), codigoDe(registro), 0)
-  edits[registro.id]![campo] = valor
-}
-
-function clearEdits() {
-  for (const key of Object.keys(edits)) {
-    delete edits[Number(key)]
-  }
-}
-
-function onDescartar() {
-  if (dirtyCount.value === 0) {
-    return
-  }
-  if (!window.confirm('¿Descartar los cambios sin guardar?')) {
-    return
-  }
-  clearEdits()
-  estadoVivo.value = 'Cambios descartados'
-}
-
 function cambiarPeriodo(delta: number) {
   const siguiente = new Date(anio.value, mes.value - 1 + delta, 1)
   anio.value = siguiente.getFullYear()
   mes.value = siguiente.getMonth() + 1
 }
 
-function confirmarCambioPeriodo(): boolean {
-  if (dirtyCount.value === 0) {
-    return true
-  }
-  return window.confirm('Hay cambios sin guardar. Si continúa se perderán. ¿Cambiar de mes?')
-}
-
 async function load() {
   loading.value = true
-  estadoVivo.value = 'Cargando planilla de asistencia'
+  estadoVivo.value = 'Cargando asistencia'
   try {
     planilla.value = await obtenerPlanilla(anio.value, mes.value)
     conceptosVariables.value = await listarConceptosVariables(anio.value, mes.value)
     if (!conceptoForm.personaId && planilla.value.filas[0]) {
       conceptoForm.personaId = String(planilla.value.filas[0].personaId)
     }
-    clearEdits()
     estadoVivo.value = planilla.value.generado
       ? `Planilla de ${tituloPeriodo.value} con ${planilla.value.filas.length} personas`
       : `Sin planilla generada para ${tituloPeriodo.value}`
@@ -302,6 +122,19 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function abrirPlanilla() {
+  const route = router.resolve({
+    name: 'gh-asistencia-planilla',
+    query: { anio: String(anio.value), mes: String(mes.value) },
+  })
+  const opened = window.open(route.href, '_blank')
+  if (!opened) {
+    toast.error('El navegador bloqueó la nueva pestaña. Permita ventanas emergentes para este sitio.')
+    return
+  }
+  opened.opener = null
 }
 
 async function onRegistrarConceptoVariable() {
@@ -355,7 +188,6 @@ async function onGenerar() {
   estadoVivo.value = 'Generando planilla'
   try {
     planilla.value = await generarPlanilla(anio.value, mes.value)
-    clearEdits()
     estadoVivo.value = 'Planilla generada'
     toast.success('Planilla generada.')
   } catch (err) {
@@ -364,45 +196,6 @@ async function onGenerar() {
     toast.error(message)
   } finally {
     acting.value = false
-  }
-}
-
-async function onGuardar() {
-  const items = Object.entries(edits).map(([id, value]) => ({
-    id: Number(id),
-    horasTrabajadas: Number(value.horasTrabajadas),
-    estado: value.estado,
-    codigo: value.codigo,
-    minutosExtras25: Number(value.minutosExtras25),
-    minutosExtras35: Number(value.minutosExtras35),
-    minutosTardanza: Number(value.minutosTardanza),
-  }))
-  if (!items.length) {
-    return
-  }
-  for (const item of items) {
-    if (!Number.isFinite(item.horasTrabajadas) || item.horasTrabajadas < 0 || item.horasTrabajadas > 24) {
-      toast.error('Las horas deben estar entre 0 y 24.')
-      return
-    }
-    if ([item.minutosExtras25, item.minutosExtras35, item.minutosTardanza].some((minutos) => !Number.isInteger(minutos) || minutos < 0 || minutos > 1440)) {
-      toast.error('Los minutos deben ser enteros entre 0 y 1440.')
-      return
-    }
-  }
-  saving.value = true
-  estadoVivo.value = 'Guardando asistencia'
-  try {
-    planilla.value = await actualizarPlanilla(items)
-    clearEdits()
-    estadoVivo.value = 'Asistencia guardada'
-    toast.success('Asistencia guardada.')
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'No se pudo guardar la asistencia.'
-    estadoVivo.value = message
-    toast.error(message)
-  } finally {
-    saving.value = false
   }
 }
 
@@ -467,18 +260,6 @@ function onWindowKeydown(event: KeyboardEvent) {
     if (!configSaving.value) {
       void onGuardarConfig()
     }
-    return
-  }
-  if (dirtyCount.value > 0 && !saving.value) {
-    event.preventDefault()
-    void onGuardar()
-  }
-}
-
-function onBeforeUnload(event: BeforeUnloadEvent) {
-  if (dirtyCount.value > 0) {
-    event.preventDefault()
-    event.returnValue = ''
   }
 }
 
@@ -508,12 +289,10 @@ watch(configOpen, async (isOpen) => {
 
 onMounted(() => {
   window.addEventListener('keydown', onWindowKeydown)
-  window.addEventListener('beforeunload', onBeforeUnload)
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onWindowKeydown)
-  window.removeEventListener('beforeunload', onBeforeUnload)
   document.removeEventListener('keydown', onDocumentKeydown)
   unlockBodyScroll()
 })
@@ -590,17 +369,7 @@ async function onEliminarFeriado(item: AsistenciaFeriado) {
   }
 }
 
-watch([anio, mes], (siguiente, anterior) => {
-  if (skipPeriodoWatch) {
-    skipPeriodoWatch = false
-    return
-  }
-  if (anterior && dirtyCount.value > 0 && !confirmarCambioPeriodo()) {
-    skipPeriodoWatch = true
-    anio.value = anterior[0]
-    mes.value = anterior[1]
-    return
-  }
+watch([anio, mes], () => {
   void load()
 })
 
@@ -613,10 +382,9 @@ void load()
 
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-        <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Asistencia</h2>
+        <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">Asistencia</h2>
         <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600">
-          Tareo mensual del personal con contrato activo. Registre códigos, horas, sobretiempos, tardanzas e incidencias por día.
+          Configure el calendario, conceptos variables y abra la planilla de tareo en una pestaña dedicada.
         </p>
       </div>
       <div ref="configTriggerWrap" class="sm:mt-7">
@@ -635,7 +403,7 @@ void load()
       </div>
     </div>
 
-    <dl class="mt-6 grid gap-3 sm:grid-cols-3">
+    <dl class="mt-3 grid gap-2 sm:grid-cols-3">
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-4">
         <dt class="text-xs font-semibold uppercase tracking-wide text-slate-600">Periodo</dt>
         <dd class="mt-2 text-lg font-bold text-palette-navy">{{ tituloPeriodo }}</dd>
@@ -653,14 +421,14 @@ void load()
       </div>
     </dl>
 
-    <div class="mt-4 flex flex-col gap-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+    <div class="mt-3 flex flex-col gap-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
       <div class="flex flex-wrap items-end gap-2">
         <Button
           variant="outline"
           size="icon"
           class="h-10 w-10"
           type="button"
-          :disabled="loading || acting || saving"
+          :disabled="loading || acting"
           aria-label="Mes anterior"
           @click="cambiarPeriodo(-1)"
         >
@@ -672,8 +440,7 @@ void load()
             id="asistencia-mes"
             v-model.number="mes"
             :class="inputClass"
-            :disabled="loading || acting || saving"
-            :aria-describedby="dirtyCount ? 'asistencia-dirty' : undefined"
+            :disabled="loading || acting"
           >
             <option v-for="item in meses" :key="item.value" :value="item.value">{{ item.label }}</option>
           </select>
@@ -687,7 +454,7 @@ void load()
             min="2000"
             max="2100"
             :class="inputClass"
-            :disabled="loading || acting || saving"
+            :disabled="loading || acting"
           />
         </div>
         <Button
@@ -695,7 +462,7 @@ void load()
           size="icon"
           class="h-10 w-10"
           type="button"
-          :disabled="loading || acting || saving"
+          :disabled="loading || acting"
           aria-label="Mes siguiente"
           @click="cambiarPeriodo(1)"
         >
@@ -708,7 +475,6 @@ void load()
           type="button"
           :disabled="acting || loading"
           :aria-busy="acting"
-          :aria-describedby="planilla && !planilla.generado ? 'asistencia-vacio' : undefined"
           @click="onGenerar"
         >
           {{ acting ? 'Generando…' : planilla?.generado ? 'Completar días faltantes' : 'Generar mes' }}
@@ -716,52 +482,16 @@ void load()
         <Button
           class="h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
           type="button"
-          :disabled="saving || dirtyCount === 0"
-          :aria-busy="saving"
-          :aria-describedby="dirtyCount ? 'asistencia-dirty' : undefined"
-          :title="dirtyCount ? 'Atajo: Ctrl+S' : undefined"
-          @click="onGuardar"
+          :disabled="loading"
+          @click="abrirPlanilla"
         >
-          {{ saving ? 'Guardando…' : dirtyCount ? `Guardar ${dirtyCount} cambio${dirtyCount === 1 ? '' : 's'}` : 'Guardar cambios' }}
+          <ArrowUpRightIcon data-icon="inline-start" />
+          Abrir planilla
         </Button>
       </div>
     </div>
 
-    <div
-      v-if="dirtyCount"
-      id="asistencia-dirty"
-      class="mt-3 flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950 sm:flex-row sm:items-center sm:justify-between"
-      role="status"
-    >
-      <p>
-        Hay {{ dirtyCount }} celda{{ dirtyCount === 1 ? '' : 's' }} sin guardar.
-        <span class="text-amber-900">Atajo: Ctrl+S.</span>
-      </p>
-      <Button variant="outline" size="sm" class="h-8 px-3" type="button" @click="onDescartar">
-        Descartar
-      </Button>
-    </div>
-
-    <ul class="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-800" aria-label="Leyenda de estados">
-      <li class="inline-flex items-center gap-1.5">
-        <span class="size-3 rounded-sm border-l-3 border-l-emerald-700 bg-emerald-100" aria-hidden="true" />
-        Asistió
-      </li>
-      <li class="inline-flex items-center gap-1.5">
-        <span class="size-3 rounded-sm border-l-3 border-l-red-700 bg-red-100" aria-hidden="true" />
-        Falta (0 h)
-      </li>
-      <li class="inline-flex items-center gap-1.5">
-        <span class="size-3 rounded-sm border-l-3 border-l-amber-700 bg-amber-100" aria-hidden="true" />
-        Permiso
-      </li>
-      <li class="inline-flex items-center gap-1.5">
-        <span class="size-3 rounded-sm border-l-3 border-l-slate-500 bg-slate-200" aria-hidden="true" />
-        Descanso (0 h)
-      </li>
-    </ul>
-
-    <section v-if="planilla?.generado" class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+    <section v-if="planilla?.generado" class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
       <div>
         <h3 class="text-base font-semibold text-palette-navy">Conceptos variables del mes</h3>
         <p class="mt-1 text-sm text-slate-600">
@@ -819,145 +549,34 @@ void load()
       </div>
     </section>
 
-    <div class="mt-4 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">
-      <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="mt-3 rounded-lg border border-palette-cyan/70 bg-white px-4 py-6 sm:px-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 class="text-base font-semibold text-palette-navy">Planilla</h3>
+          <h3 class="text-base font-semibold text-palette-navy">Planilla de tareo</h3>
           <p class="mt-1 text-sm text-slate-600">
-            Desplace horizontalmente para ver todos los días. La columna de persona permanece fija.
+            Se abre en una pestaña a pantalla completa, sin menú lateral, para ver y llenar todos los días con más espacio.
+          </p>
+          <p v-if="planilla?.generado" class="mt-2 text-sm text-slate-600">
+            {{ planilla.filas.length }} persona{{ planilla.filas.length === 1 ? '' : 's' }} ·
+            {{ planilla.diasLaborables.length }} días laborables
           </p>
         </div>
-        <div class="flex flex-wrap items-center gap-3 sm:justify-end">
-          <DialogRoot v-model:open="tutorialOpen">
-            <DialogTrigger as-child>
-              <Button variant="outline" class="h-9 bg-white px-3" type="button">
-                <CircleHelpIcon data-icon="inline-start" />
-                ¿Cómo llenar el tareo?
-              </Button>
-            </DialogTrigger>
-            <DialogPortal>
-              <DialogOverlay
-                class="fixed inset-0 z-[90] bg-palette-navy/45 backdrop-blur-[1px] data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-              />
-              <DialogContent
-                class="fixed top-1/2 left-1/2 z-[100] flex max-h-[calc(100vh-2rem)] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl data-[state=closed]:animate-out data-[state=open]:animate-in data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
-              >
-                <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
-                  <div>
-                    <DialogTitle class="text-lg font-semibold text-palette-navy sm:text-xl">
-                      Cómo registrar el tareo diario
-                    </DialogTitle>
-                    <DialogDescription class="mt-1 text-sm leading-6 text-slate-600">
-                      Esta planilla registra el resultado del día, no las horas de entrada y salida.
-                    </DialogDescription>
-                  </div>
-                  <DialogClose as-child>
-                    <Button variant="ghost" size="icon" class="shrink-0" type="button" aria-label="Cerrar tutorial">
-                      <XIcon />
-                    </Button>
-                  </DialogClose>
-                </header>
-
-                <div class="overflow-y-auto px-5 py-5 sm:px-6">
-                  <div class="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
-                    <strong>Si completó sus 8 horas:</strong> escriba <strong>8</strong> en Horas, seleccione
-                    <strong>A · Asistencia</strong> y deje HE 25%, HE 35% y Tardanza en <strong>0</strong>.
-                  </div>
-
-                  <ol class="mt-5 space-y-4">
-                    <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
-                      <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">1</span>
-                      <div>
-                        <h4 class="font-semibold text-palette-navy">Horas trabajadas</h4>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                          Ingrese el total real trabajado ese día. Jornada completa: <strong>8</strong>. Si trabajó 7 horas
-                          y 45 minutos: <strong>7.75</strong>. Este campo no representa la hora del reloj a la que llegó.
-                        </p>
-                      </div>
-                    </li>
-                    <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
-                      <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">2</span>
-                      <div>
-                        <h4 class="font-semibold text-palette-navy">Código del día</h4>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                          Use <strong>A</strong> para asistencia normal. Seleccione otro código cuando corresponda:
-                          descanso, feriado, trabajo en descanso/feriado, descanso médico, vacaciones, licencia o falta.
-                          Los códigos que no implican trabajo colocan las horas en cero automáticamente.
-                        </p>
-                      </div>
-                    </li>
-                    <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
-                      <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">3</span>
-                      <div>
-                        <h4 class="font-semibold text-palette-navy">Minutos adicionales</h4>
-                        <p class="mt-1 text-sm leading-6 text-slate-600">
-                          Registre en minutos las horas extra sujetas a sobretasa del <strong>25%</strong> o
-                          <strong>35%</strong>, y los minutos de <strong>tardanza</strong>. Ejemplo: una hora extra se
-                          registra como <strong>60</strong>.
-                        </p>
-                      </div>
-                    </li>
-                  </ol>
-
-                  <div class="mt-5">
-                    <h4 class="font-semibold text-palette-navy">Ejemplos rápidos</h4>
-                    <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
-                      <table class="min-w-[36rem] w-full text-left text-sm">
-                        <thead class="bg-palette-ice text-palette-navy">
-                          <tr>
-                            <th class="px-3 py-2.5 font-semibold">Caso</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Horas</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Código</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">HE 25%</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">HE 35%</th>
-                            <th class="px-3 py-2.5 text-center font-semibold">Tardanza</th>
-                          </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 text-slate-700">
-                          <tr><td class="px-3 py-2.5">Jornada normal completa</td><td class="px-3 py-2.5 text-center">8</td><td class="px-3 py-2.5 text-center">A</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td></tr>
-                          <tr><td class="px-3 py-2.5">Llegó 15 min tarde y trabajó 7 h 45 min</td><td class="px-3 py-2.5 text-center">7.75</td><td class="px-3 py-2.5 text-center">A</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">15</td></tr>
-                          <tr><td class="px-3 py-2.5">Trabajó 1 hora extra al 25%</td><td class="px-3 py-2.5 text-center">9</td><td class="px-3 py-2.5 text-center">A</td><td class="px-3 py-2.5 text-center">60</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td></tr>
-                          <tr><td class="px-3 py-2.5">Descanso semanal</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">D</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td><td class="px-3 py-2.5 text-center">0</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-                    Si el horario comienza a las 8:00 y la persona llegó exactamente a las 8:00, no existe tardanza:
-                    registre <strong>0 minutos</strong>. Si llegó a las 8:15, registre <strong>15 minutos</strong>.
-                  </div>
-                </div>
-
-                <footer class="flex justify-end border-t border-slate-200 px-5 py-4 sm:px-6">
-                  <DialogClose as-child>
-                    <Button class="h-10 bg-palette-navy px-5 text-white hover:bg-palette-royal" type="button">
-                      Entendido
-                    </Button>
-                  </DialogClose>
-                </footer>
-              </DialogContent>
-            </DialogPortal>
-          </DialogRoot>
-          <p v-if="planilla" class="text-sm text-slate-600">
-            {{ planilla.filas.length }} persona{{ planilla.filas.length === 1 ? '' : 's' }}
-          </p>
-        </div>
+        <Button
+          class="h-10 shrink-0 bg-palette-navy px-4 text-white hover:bg-palette-royal"
+          type="button"
+          :disabled="loading"
+          @click="abrirPlanilla"
+        >
+          <ArrowUpRightIcon data-icon="inline-start" />
+          Abrir planilla
+        </Button>
       </div>
-
       <div
-        v-if="loading && !planilla"
-        class="space-y-3"
-        aria-busy="true"
+        v-if="planilla && !planilla.generado"
+        class="mt-4 rounded-lg border border-dashed border-palette-cyan/80 bg-palette-ice/40 px-4 py-8 text-center"
       >
-        <span class="sr-only">Cargando planilla de asistencia</span>
-        <Skeleton class="h-9 w-full" />
-        <Skeleton v-for="row in 6" :key="row" class="h-14 w-full" />
-      </div>
-
-      <div v-else-if="planilla && !planilla.generado" id="asistencia-vacio" class="rounded-lg border border-dashed border-palette-cyan/80 bg-palette-ice/40 px-4 py-10 text-center">
         <p class="text-sm text-slate-600">
-          Aún no hay registros para {{ tituloPeriodo }}. Genere la planilla con el personal de contrato activo y los días laborables configurados.
+          Aún no hay registros para {{ tituloPeriodo }}. Genere la planilla y luego ábrala para llenar el tareo.
         </p>
         <Button
           class="mt-4 h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
@@ -968,170 +587,6 @@ void load()
           Generar {{ tituloPeriodo }}
         </Button>
       </div>
-
-      <div
-        v-else-if="planilla"
-        class="max-h-[min(70vh,42rem)] overflow-auto rounded-lg border border-palette-cyan/60 **:data-[slot=table-container]:overflow-visible"
-        tabindex="0"
-        role="region"
-        aria-label="Planilla de asistencia. Desplace para ver todos los días. La columna de persona permanece fija."
-      >
-        <Table class="min-w-max">
-          <TableCaption class="sr-only">
-            {{ tituloPeriodo }} · {{ planilla.diasLaborables.length }} días laborables.
-            Cada celda tiene horas, código de tareo, minutos extra al 25 y 35 por ciento y minutos de tardanza.
-            Falta y Descanso dejan las horas en cero.
-          </TableCaption>
-          <TableHeader>
-            <TableRow class="hover:bg-transparent">
-              <TableHead class="sticky top-0 left-0 z-30 min-w-52 bg-palette-ice px-3 shadow-[2px_0_0_0_#8cd2f5]">
-                Persona
-              </TableHead>
-              <TableHead class="sticky top-0 z-20 min-w-40 bg-palette-ice px-3">Jornada</TableHead>
-              <TableHead
-                v-for="fecha in planilla.diasLaborables"
-                :key="fecha"
-                class="sticky top-0 z-20 min-w-40 px-1.5 text-center"
-                :class="fecha === hoyIso ? 'bg-sky-100' : 'bg-palette-ice'"
-                :aria-current="fecha === hoyIso ? 'date' : undefined"
-              >
-                <span class="block text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-                  {{ diaCorto(fecha) }}
-                </span>
-                <span class="text-sm font-bold text-palette-navy">{{ diaMes(fecha) }}</span>
-                <span class="sr-only">{{ fechaLarga(fecha) }}{{ fecha === hoyIso ? ', hoy' : '' }}</span>
-              </TableHead>
-              <TableHead class="sticky top-0 z-20 bg-palette-ice px-3 text-right">Total h</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableEmpty v-if="!filasVista.length" :colspan="3 + planilla.diasLaborables.length">
-              <span class="text-slate-600">No hay personas con contrato activo vigente en el mes.</span>
-            </TableEmpty>
-            <TableRow
-              v-for="fila in filasVista"
-              :key="fila.personaId"
-              class="hover:bg-transparent"
-            >
-              <TableHead
-                scope="row"
-                class="sticky left-0 z-10 min-w-52 whitespace-normal bg-white px-3 py-3 text-left font-medium shadow-[2px_0_0_0_#8cd2f5]"
-              >
-                {{ fila.personaApellidos }}, {{ fila.personaNombres }}
-                <span class="mt-0.5 block text-xs font-normal text-slate-600">{{ fila.numeroDocumento }}</span>
-              </TableHead>
-              <TableCell class="px-3 py-3 text-sm text-slate-700">
-                {{ fila.jornadaLabel || '8 horas diarias' }}
-                <span class="mt-0.5 block text-xs text-slate-600">{{ fila.horasEsperadasDia }} h esperadas</span>
-              </TableCell>
-              <TableCell
-                v-for="fecha in planilla.diasLaborables"
-                :key="`${fila.personaId}-${fecha}`"
-                class="px-1 py-1.5 align-middle"
-                :class="[
-                  fila.porFecha[fecha] ? estadoClase(estadoDe(fila.porFecha[fecha])) : 'bg-white',
-                  fecha === hoyIso ? 'ring-1 ring-inset ring-sky-400' : '',
-                ]"
-              >
-                <div v-if="fila.porFecha[fecha]" class="flex min-w-38 flex-col gap-1 p-1">
-                  <label class="sr-only" :for="`horas-${fila.porFecha[fecha].id}`">
-                    Horas de {{ fila.personaApellidos }}, {{ fila.personaNombres }} el {{ fechaLarga(fecha) }}
-                  </label>
-                  <input
-                    :id="`horas-${fila.porFecha[fecha].id}`"
-                    :class="cellInputClass"
-                    type="number"
-                    min="0"
-                    max="24"
-                    step="0.25"
-                    inputmode="decimal"
-                    autocomplete="off"
-                    :disabled="horasBloqueadas(codigoDe(fila.porFecha[fecha]))"
-                    :aria-describedby="horasBloqueadas(codigoDe(fila.porFecha[fecha])) ? 'asistencia-horas-bloqueadas' : undefined"
-                    :title="horasBloqueadas(codigoDe(fila.porFecha[fecha])) ? 'Las horas quedan en 0 para esta incidencia' : 'Horas trabajadas'"
-                    :value="horasDe(fila.porFecha[fecha])"
-                    @input="onHoras(fila.porFecha[fecha], fila.horasEsperadasDia, ($event.target as HTMLInputElement).value)"
-                  />
-                  <label class="sr-only" :for="`codigo-${fila.porFecha[fecha].id}`">
-                    Código de tareo de {{ fila.personaApellidos }}, {{ fila.personaNombres }} el {{ fechaLarga(fecha) }}
-                  </label>
-                  <select
-                    :id="`codigo-${fila.porFecha[fecha].id}`"
-                    :class="[cellSelectClass, estadoSelectClase(estadoDe(fila.porFecha[fecha]))]"
-                    :value="codigoDe(fila.porFecha[fecha])"
-                    @change="onCodigo(fila.porFecha[fecha], fila.horasEsperadasDia, ($event.target as HTMLSelectElement).value as CodigoTareo)"
-                  >
-                    <option v-for="item in CODIGOS_TAREO" :key="item.value" :value="item.value">
-                      {{ item.label }}
-                    </option>
-                  </select>
-                  <div class="grid grid-cols-3 gap-1" aria-label="Minutos adicionales del día">
-                    <label class="min-w-0 text-center text-[9px] font-semibold leading-3 text-slate-600">
-                      <span class="block whitespace-nowrap">HE 25%</span>
-                      <input
-                        :id="`extras-25-${fila.porFecha[fecha].id}`"
-                        :class="cellInputClass"
-                        type="number"
-                        min="0"
-                        max="1440"
-                        step="1"
-                        inputmode="numeric"
-                        title="Minutos de horas extra con sobretasa del 25%"
-                        :value="minutosDe(fila.porFecha[fecha], 'minutosExtras25')"
-                        @input="onMinutos(fila.porFecha[fecha], 'minutosExtras25', ($event.target as HTMLInputElement).value)"
-                      />
-                    </label>
-                    <label class="min-w-0 text-center text-[9px] font-semibold leading-3 text-slate-600">
-                      <span class="block whitespace-nowrap">HE 35%</span>
-                      <input
-                        :id="`extras-35-${fila.porFecha[fecha].id}`"
-                        :class="cellInputClass"
-                        type="number"
-                        min="0"
-                        max="1440"
-                        step="1"
-                        inputmode="numeric"
-                        title="Minutos de horas extra con sobretasa del 35%"
-                        :value="minutosDe(fila.porFecha[fecha], 'minutosExtras35')"
-                        @input="onMinutos(fila.porFecha[fecha], 'minutosExtras35', ($event.target as HTMLInputElement).value)"
-                      />
-                    </label>
-                    <label class="min-w-0 text-center text-[9px] font-semibold leading-3 text-slate-600">
-                      <span class="block whitespace-nowrap">Tardanza</span>
-                      <input
-                        :id="`tardanza-${fila.porFecha[fecha].id}`"
-                        :class="cellInputClass"
-                        type="number"
-                        min="0"
-                        max="1440"
-                        step="1"
-                        inputmode="numeric"
-                        title="Minutos de tardanza"
-                        :value="minutosDe(fila.porFecha[fecha], 'minutosTardanza')"
-                        @input="onMinutos(fila.porFecha[fecha], 'minutosTardanza', ($event.target as HTMLInputElement).value)"
-                      />
-                    </label>
-                  </div>
-                </div>
-                <span
-                  v-else
-                  class="block px-1 py-3 text-center text-xs font-medium text-slate-600"
-                  :title="`Sin registro el ${fechaLarga(fecha)}. El contrato puede no estar vigente ese día.`"
-                >
-                  —
-                  <span class="sr-only">Sin registro el {{ fechaLarga(fecha) }}</span>
-                </span>
-              </TableCell>
-              <TableCell class="px-3 py-3 text-right text-sm font-semibold tabular-nums text-palette-navy">
-                {{ totalFila(fila.registros) }}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      <p id="asistencia-horas-bloqueadas" class="sr-only">
-        Las horas quedan en 0 y no se editan cuando el estado es Falta o Descanso.
-      </p>
     </div>
 
     <Teleport to="body">
@@ -1183,7 +638,7 @@ void load()
                   <p id="asistencia-dias-ayuda" class="mt-1 text-sm text-slate-600">
                     Seleccione al menos un día. Aplica a todo el personal.
                   </p>
-                  <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div class="mt-3 grid gap-2 grid-cols-2 sm:grid-cols-4">
                     <label
                       v-for="dia in DIAS_SEMANA"
                       :key="dia.value"

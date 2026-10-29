@@ -9,8 +9,7 @@ const title = computed(() => (typeof route.meta.title === 'string' ? route.meta.
 
 <template>
   <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Gestión Humana</p>
-    <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">{{ title }}</h2>
+    <h2 class="text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">{{ title }}</h2>
     <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate-500">
       Vista placeholder de {{ title.toLowerCase() }}.
     </p>
