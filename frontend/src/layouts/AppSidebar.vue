@@ -45,7 +45,7 @@ function syncOpenGroupFromRoute() {
 }
 
 function isGroupActive(group: NavGroup): boolean {
-  return group.children.some((child) => child.name === route.name)
+  return getGroupIdForRouteName(route.name) === group.id
 }
 
 onMounted(syncOpenGroupFromRoute)

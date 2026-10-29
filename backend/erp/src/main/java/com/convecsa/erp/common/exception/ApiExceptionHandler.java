@@ -41,6 +41,9 @@ public class ApiExceptionHandler {
         DocumentoDuplicadoException.class,
         PlantillaCodigoDuplicadoException.class,
         PeriodoNominaDuplicadoException.class,
+        DeclaracionMensualDuplicadaException.class,
+        PeriodoCcDuplicadoException.class,
+        ProyectoCodigoDuplicadoException.class,
         FeriadoDuplicadoException.class,
         ContratoYaCesadoException.class
     })
@@ -131,7 +134,12 @@ public class ApiExceptionHandler {
         MofPuestoNoEncontradoException.class,
         LinkInvitadoNoEncontradoException.class,
         PlantillaNoEncontradaException.class,
-        CeseNoEncontradoException.class
+        CeseNoEncontradoException.class,
+        ProyectoNoEncontradoException.class,
+        PeriodoCcNoEncontradoException.class,
+        BoletaCcNoEncontradaException.class,
+        DeclaracionMensualNoEncontradaException.class,
+        ReciboHonorarioNoEncontradoException.class
     })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();

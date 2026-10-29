@@ -1,0 +1,112 @@
+{
+  "fuente": "V8 PLANILLA DE CONSTRUCCION 2026.xlsm",
+  "hojas": ["Consolidado", "IMP_PLAME", "AFPNET", "RxH", "ASIENTO_CONTABLE"],
+  "reglaMes": "periodo_cc.fecha_hasta pertenece al mes de declaración",
+  "plameRem": {
+    "separador": "|",
+    "campos": ["tipoDoc", "numDoc", "codigoConcepto", "cantidad", "devengado", "pagado"],
+    "tipoDoc": { "DNI": "01", "CE": "04", "PASAPORTE": "07", "RUC": "06" }
+  },
+  "plameJor": {
+    "separador": "|",
+    "campos": ["tipoDoc", "numDoc", "horasOrd", "minutosOrd", "horasExtra", "minutosExtra"]
+  },
+  "plameSnl": {
+    "separador": "|",
+    "campos": ["tipoDoc", "numDoc", "tipoSuspension", "nroDias"],
+    "tipos": {
+      "07": "Faltas",
+      "20": "Descanso médico",
+      "21": "Incapacidad temporal",
+      "22": "Pre y post natal",
+      "25": "Licencia sindical",
+      "26": "Licencia con goce",
+      "28": "Paternidad",
+      "32": "Fallecimiento"
+    }
+  },
+  "afpnet": {
+    "separador": ",",
+    "campos": [
+      "secuencia", "cuspp", "tipoDoc", "numDoc", "apellidoPaterno", "apellidoMaterno",
+      "nombres", "relacionLaboral", "inicioRl", "ceseRl", "excepcionAportar",
+      "remuneracionAsegurable", "aporteVolAfiliadoPrev", "aporteVolAfiliadoNoPrev",
+      "aporteVolEmpleador", "tipoTrabajo", "afp"
+    ],
+    "tipoDoc": { "DNI": "0", "CE": "1" },
+    "tipoTrabajoRcc": "C",
+    "relacionVigente": "S"
+  },
+  "rxh": {
+    "separador": "|",
+    "campos": [
+      "tipoDocumento", "numeroDocumento", "apellidoPaterno", "apellidoMaterno", "nombres",
+      "domiciliado", "convenioDobleTributacion", "tipoComprobante", "serie", "numero",
+      "monto", "fechaEmision", "fechaPago", "retencionCuarta", "retencionPension",
+      "importeAportePension"
+    ],
+    "plameHonorario": "0121",
+    "plameRetencionCuarta": "0604"
+  },
+  "conceptosPlameRcc": {
+    "FERIA_TRABAJADO": "0107",
+    "DESCANSO_TRABAJADO": "0107",
+    "JORNAL_BASICO": "0121",
+    "DOMINICAL": "0115",
+    "REM_FERIADO": "0115",
+    "BUC": "0311",
+    "MOVILIDAD": "0909",
+    "VACACIONES_10": "0114",
+    "GRATIFICACION": "0407",
+    "BONIF_LEY_29351": "0313",
+    "CTS_15": "0904",
+    "ESCOLARIDAD": "0211",
+    "HE_60": "1001",
+    "HE_100": "1002",
+    "INDEMNIZACION_HE": "0507",
+    "BAE": "1003",
+    "ALTURA": "1004",
+    "ALTITUD": "0303",
+    "COTA_CERO": "1005",
+    "ALTAS_TEMP": "1006",
+    "CONTACTO_AGUA": "0310",
+    "AGUAS_SERVIDAS": "1007",
+    "NOCTURNO": "0309",
+    "ONP": "0607",
+    "COMISION_AFP": "0601",
+    "PRIMA_AFP": "0606",
+    "APORTE_AFP": "0608",
+    "CONAFOVICER": "0602",
+    "RENTA_5TA": "0605",
+    "CUOTA_SINDICAL": "0702",
+    "ESSALUD": "0804",
+    "FONDO_CAPACITACION": "0809",
+    "SCTR_SALUD": "0806",
+    "SCTR_PENSION": "0813"
+  },
+  "conceptosPlameAdmin": {
+    "SUELDO_BASICO": "0121",
+    "ASIG_FAMILIAR": "0201",
+    "APORTE_OBLIG": "0608",
+    "COMISION_AFP": "0601",
+    "PRIMA_SEGURO": "0606",
+    "APORTE_ONP": "0607",
+    "ESSALUD": "0804",
+    "SCTR_SALUD": "0806",
+    "SCTR_PENSION": "0813",
+    "VIDA_LEY": "0803",
+    "ESSALUD_VIDA": "0815"
+  },
+  "casoConsolidadoOb001": {
+    "dni": "71118318",
+    "horasOrdinarias": 187.5,
+    "horasDominical": 31.25,
+    "faltas": 1,
+    "diasRemunerados": 24,
+    "jornalBasico": 2092.97,
+    "dominical": 348.83,
+    "buc": 669.75,
+    "totalHaberes": 6421.51,
+    "neto": 5724.46
+  }
+}

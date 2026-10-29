@@ -8,6 +8,8 @@ import ContratosPage from '@/pages/gestion-humana/ContratosPage.vue'
 import FirmasDigitalesPage from '@/pages/gestion-humana/FirmasDigitalesPage.vue'
 import KpisDesempenoDetallePage from '@/pages/gestion-humana/KpisDesempenoDetallePage.vue'
 import KpisDesempenoPage from '@/pages/gestion-humana/KpisDesempenoPage.vue'
+import DeclaracionDetallePage from '@/pages/gestion-humana/DeclaracionDetallePage.vue'
+import DeclaracionesPage from '@/pages/gestion-humana/DeclaracionesPage.vue'
 import NominasPage from '@/pages/gestion-humana/NominasPage.vue'
 import OnboardingPage from '@/pages/gestion-humana/OnboardingPage.vue'
 import PeriodoNominaPage from '@/pages/gestion-humana/PeriodoNominaPage.vue'
@@ -20,6 +22,9 @@ import PersonaInvitadoPage from '@/pages/PersonaInvitadoPage.vue'
 import UsuariosPage from '@/pages/UsuariosPage.vue'
 import VacacionesPage from '@/pages/gestion-humana/VacacionesPage.vue'
 import ConstanciasCertificadosPage from '@/pages/gestion-humana/ConstanciasCertificadosPage.vue'
+import ProyectosPage from '@/pages/proyectos/ProyectosPage.vue'
+import ProyectoTareoPage from '@/pages/proyectos/ProyectoTareoPage.vue'
+import ProyectoPlanillaPage from '@/pages/proyectos/ProyectoPlanillaPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -91,6 +96,17 @@ const router = createRouter({
           component: NominasPage,
         },
         {
+          path: 'gestion-humana/nominas/declaraciones',
+          name: 'gh-declaraciones',
+          component: DeclaracionesPage,
+        },
+        {
+          path: 'gestion-humana/nominas/declaraciones/:id(\\d+)',
+          name: 'gh-declaracion-detalle',
+          component: DeclaracionDetallePage,
+          props: true,
+        },
+        {
           path: 'gestion-humana/nominas/:id(\\d+)',
           name: 'gh-nomina-detalle',
           component: PeriodoNominaPage,
@@ -129,6 +145,21 @@ const router = createRouter({
         {
           path: 'personal/:legacy(.*)*',
           redirect: { name: 'gh-personal' },
+        },
+        {
+          path: 'proyectos',
+          name: 'proyectos',
+          component: ProyectosPage,
+        },
+        {
+          path: 'proyectos/:id(\\d+)/tareo',
+          name: 'proyecto-tareo',
+          component: ProyectoTareoPage,
+        },
+        {
+          path: 'proyectos/:id(\\d+)/planilla',
+          name: 'proyecto-planilla',
+          component: ProyectoPlanillaPage,
         },
       ],
     },

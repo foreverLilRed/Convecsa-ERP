@@ -177,14 +177,24 @@ onMounted(() => {
           Periodos mensuales REMYPE: genere boletas, ajuste conceptos y descargue o imprima el documento.
         </p>
       </div>
-      <Button
-        class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:mt-7 sm:w-auto"
-        type="button"
-        @click="modalOpen = true"
-      >
-        <PlusIcon data-icon="inline-start" />
-        Nuevo periodo
-      </Button>
+      <div class="flex w-full flex-col gap-2 sm:mt-7 sm:w-auto sm:flex-row">
+        <Button
+          variant="outline"
+          class="h-10 w-full px-4 sm:w-auto"
+          type="button"
+          @click="router.push({ name: 'gh-declaraciones' })"
+        >
+          Declaración mensual
+        </Button>
+        <Button
+          class="h-10 w-full bg-palette-navy px-4 text-white hover:bg-palette-royal sm:w-auto"
+          type="button"
+          @click="modalOpen = true"
+        >
+          <PlusIcon data-icon="inline-start" />
+          Nuevo periodo
+        </Button>
+      </div>
     </div>
 
     <div class="mt-6 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6 sm:py-6">

@@ -5,6 +5,8 @@ import com.convecsa.erp.persona.entity.Persona;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,6 +27,10 @@ public interface PersonaRepository extends JpaRepository<Persona, Long>, JpaSpec
     long countByCreatedAtGreaterThanEqualAndCreatedAtLessThan(Instant inicio, Instant finExclusivo);
 
     long countByFechaVigenciaEmoBetween(LocalDate inicio, LocalDate fin);
+
+    Optional<Persona> findByNumeroDocumento(String numeroDocumento);
+
+    List<Persona> findByNumeroDocumentoIn(Collection<String> numerosDocumento);
 
     boolean existsByTipoDocumentoAndNumeroDocumento(TipoDocumento tipoDocumento, String numeroDocumento);
 

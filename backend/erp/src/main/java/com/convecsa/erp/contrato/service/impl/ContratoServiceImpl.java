@@ -32,12 +32,18 @@ import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.JornadaRepository;
 import com.convecsa.erp.contrato.repository.MetodoPagoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
+import com.convecsa.erp.construccion.domain.CategoriaObrera;
+import com.convecsa.erp.construccion.entity.ContratoCc;
+import com.convecsa.erp.construccion.entity.Proyecto;
+import com.convecsa.erp.construccion.repository.ContratoCcRepository;
+import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.contrato.repository.RegimenLaboralRepository;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
 import com.convecsa.erp.nomina.repository.AfpRepository;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,6 +68,8 @@ public class ContratoServiceImpl implements InterfazContratoService {
     private final PlantillaContratoRepository plantillaContratoRepository;
     private final AfpRepository afpRepository;
     private final ContratoPlantillaService contratoPlantillaService;
+    private final ContratoCcRepository contratoCcRepository;
+    private final ProyectoRepository proyectoRepository;
 
     @Value("${app.plantillas.pin:6283}")
     private String plantillasPin;
@@ -134,6 +142,10 @@ public class ContratoServiceImpl implements InterfazContratoService {
         if (categoria.isRequiereFechaFin() && request.getFechaFin() == null) {
             throw new IllegalArgumentException("La fecha de fin es obligatoria para esta modalidad");
         }
+        if (esConstruccionCivil(categoria)
+                && (request.getCategoriaObrera() == null || request.getCategoriaObrera().isBlank())) {
+            throw new IllegalArgumentException("Seleccione la categoría de obrero");
+        }
 
         Contrato contrato = new Contrato();
         contrato.setTitulo(request.getTitulo().trim());
@@ -148,6 +160,10 @@ public class ContratoServiceImpl implements InterfazContratoService {
         contrato.setObservaciones(blankToNull(request.getObservaciones()));
         contrato.setMetadata(aplicarExtras(esquemaDe(plantilla), request.getMetadata()));
         Contrato saved = contratoRepository.save(contrato);
+        if (esConstruccionCivil(categoria)) {
+            saved.setConstruccionCivil(crearContratoCc(saved, request));
+            contratoCcRepository.save(saved.getConstruccionCivil());
+        }
         return toDto(saved);
     }
 
@@ -337,6 +353,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
         PlantillaContrato plantilla = contrato.getTipoPlantilla();
         CategoriaContrato categoria = contrato.getCategoriaContrato();
         RegimenLaboral regimen = categoria.getRegimenLaboral();
+        ContratoCc cc = contrato.getConstruccionCivil();
         return ContratoDTO.builder()
                 .id(contrato.getId())
                 .titulo(contrato.getTitulo())
@@ -359,7 +376,45 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .tipoPlantillaNombre(plantilla.getNombre())
                 .observaciones(contrato.getObservaciones())
                 .metadata(contrato.getMetadata())
+                .categoriaObrera(cc == null || cc.getCategoria() == null ? null : cc.getCategoria().name())
+                .especialidadBae(cc == null ? null : cc.getEspecialidadBae())
+                .afiliadoSindical(cc == null ? null : cc.isAfiliadoSindical())
+                .cuotaSindical(cc == null ? null : cc.getCuotaSindical())
+                .hijosEscolaridad(cc == null ? null : cc.getHijosEscolaridad())
+                .proyectoId(cc == null || cc.getProyecto() == null ? null : cc.getProyecto().getId())
+                .proyectoCodigo(cc == null || cc.getProyecto() == null ? null : cc.getProyecto().getCodigo())
+                .proyectoNombre(cc == null || cc.getProyecto() == null ? null : cc.getProyecto().getNombre())
                 .build();
+    }
+
+    private ContratoCc crearContratoCc(Contrato contrato, ContratoRequest request) {
+        if (request.getCategoriaObrera() == null || request.getCategoriaObrera().isBlank()) {
+            throw new IllegalArgumentException("Seleccione la categoría de obrero");
+        }
+        CategoriaObrera categoria;
+        try {
+            categoria = CategoriaObrera.valueOf(request.getCategoriaObrera().trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Categoría de obrero inválida");
+        }
+        ContratoCc cc = new ContratoCc();
+        cc.setContrato(contrato);
+        cc.setCategoria(categoria);
+        cc.setEspecialidadBae(blankToNull(request.getEspecialidadBae()));
+        cc.setAfiliadoSindical(Boolean.TRUE.equals(request.getAfiliadoSindical()));
+        cc.setCuotaSindical(request.getCuotaSindical() == null ? BigDecimal.ZERO : request.getCuotaSindical());
+        cc.setHijosEscolaridad(request.getHijosEscolaridad() == null ? 0 : request.getHijosEscolaridad());
+        if (request.getProyectoId() != null) {
+            Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
+                    .orElseThrow(() -> new IllegalArgumentException("Proyecto inválido"));
+            cc.setProyecto(proyecto);
+        }
+        return cc;
+    }
+
+    private static boolean esConstruccionCivil(CategoriaContrato categoria) {
+        return categoria.getRegimenLaboral() != null
+                && "CONSTRUCCION_CIVIL".equals(categoria.getRegimenLaboral().getCodigo());
     }
 
     private static String blankToNull(String valor) {

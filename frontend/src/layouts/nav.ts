@@ -41,6 +41,7 @@ export const navItems: NavItem[] = [
       { name: 'gh-plantillas-contrato', label: 'Plantillas de Contrato', path: '/gestion-humana/plantillas-contrato' },
       { name: 'gh-onboarding', label: 'Onboarding y Offboarding', path: '/gestion-humana/onboarding' },
       { name: 'gh-nominas', label: 'Nóminas', path: '/gestion-humana/nominas' },
+      { name: 'gh-declaraciones', label: 'Declaración mensual', path: '/gestion-humana/nominas/declaraciones' },
       { name: 'gh-asistencia', label: 'Asistencia', path: '/gestion-humana/asistencia' },
       { name: 'gh-kpis', label: 'KPIs y desempeño', path: '/gestion-humana/kpis' },
       { name: 'gh-manuales-mof', label: 'Manuales MOF', path: '/gestion-humana/manuales-mof' },
@@ -54,7 +55,9 @@ export const navItems: NavItem[] = [
     id: 'proyectos',
     label: 'Proyectos',
     icon: 'folder',
-    children: [],
+    children: [
+      { name: 'proyectos', label: 'Obras', path: '/proyectos' },
+    ],
   },
   {
     kind: 'group',
@@ -74,8 +77,20 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'Nóminas'
   }
 
+  if (name === 'gh-declaracion-detalle') {
+    return 'Declaración mensual'
+  }
+
   if (name === 'gh-kpis-detalle') {
     return 'KPIs y desempeño'
+  }
+
+  if (name === 'proyecto-tareo') {
+    return 'Tareo'
+  }
+
+  if (name === 'proyecto-planilla') {
+    return 'Planilla RCC'
   }
 
   for (const item of navItems) {
@@ -99,8 +114,12 @@ export function getGroupIdForRouteName(name: string | symbol | null | undefined)
     return null
   }
 
-  if (name === 'gh-nomina-detalle' || name === 'gh-kpis-detalle') {
+  if (name === 'gh-nomina-detalle' || name === 'gh-declaracion-detalle' || name === 'gh-kpis-detalle') {
     return 'gestion-humana'
+  }
+
+  if (name === 'proyecto-tareo' || name === 'proyecto-planilla') {
+    return 'proyectos'
   }
 
   const group = navItems.find(

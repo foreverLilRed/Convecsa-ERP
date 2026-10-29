@@ -46,6 +46,18 @@ public class ContratoRequest {
 
     private Map<String, String> metadata = new LinkedHashMap<>();
 
+    private String categoriaObrera;
+
+    private String especialidadBae;
+
+    private Boolean afiliadoSindical;
+
+    private BigDecimal cuotaSindical;
+
+    private Integer hijosEscolaridad;
+
+    private Long proyectoId;
+
     @AssertTrue(message = "La fecha de fin no puede ser menor que la de inicio")
     public boolean isRangoFechasValido() {
         return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);

@@ -71,6 +71,12 @@ class ContratoServiceCrearTest {
     @Mock
     private ContratoPlantillaService contratoPlantillaService;
 
+    @Mock
+    private com.convecsa.erp.construccion.repository.ContratoCcRepository contratoCcRepository;
+
+    @Mock
+    private com.convecsa.erp.construccion.repository.ProyectoRepository proyectoRepository;
+
     @InjectMocks
     private ContratoServiceImpl servicio;
 

@@ -72,6 +72,12 @@ export type ContratoRequest = {
   tipoPlantillaId: number
   observaciones?: string | null
   metadata: Record<string, string>
+  categoriaObrera?: string | null
+  especialidadBae?: string | null
+  afiliadoSindical?: boolean
+  cuotaSindical?: number | null
+  hijosEscolaridad?: number | null
+  proyectoId?: number | null
 }
 
 export type ContratoDTO = {
@@ -96,6 +102,14 @@ export type ContratoDTO = {
   tipoPlantillaNombre: string
   observaciones: string | null
   metadata: Record<string, string>
+  categoriaObrera?: string | null
+  especialidadBae?: string | null
+  afiliadoSindical?: boolean | null
+  cuotaSindical?: number | null
+  hijosEscolaridad?: number | null
+  proyectoId?: number | null
+  proyectoCodigo?: string | null
+  proyectoNombre?: string | null
 }
 
 export type AdendaDTO = {

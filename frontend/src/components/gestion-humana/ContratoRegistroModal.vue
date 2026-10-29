@@ -15,8 +15,10 @@ import {
   ComboboxList,
   ComboboxTrigger,
 } from '@/components/ui/combobox'
+import { obtenerCatalogosConstruccion } from '@/services/construccion/construccionService'
 import { crearContrato, obtenerContratosCatalogos } from '@/services/contrato/contratoService'
 import { listarPersonas } from '@/services/persona/personaService'
+import type { ConstruccionCatalogos } from '@/types/construccion'
 import type { CatalogoItem, ContratosCatalogos, ModalidadContrato, PlantillaCampo, PlantillaContrato } from '@/types/contrato'
 import type { PersonaResumenDTO } from '@/types/persona'
 
@@ -32,6 +34,11 @@ type ContratoForm = {
   activo: boolean
   fechaCorte: string
   observaciones: string
+  categoriaObrera: string
+  especialidadBae: string
+  afiliadoSindical: boolean
+  hijosEscolaridad: string
+  proyectoId: string
 }
 
 const props = defineProps<{
@@ -56,6 +63,11 @@ function emptyForm(): ContratoForm {
     activo: true,
     fechaCorte: '',
     observaciones: '',
+    categoriaObrera: '',
+    especialidadBae: '',
+    afiliadoSindical: false,
+    hijosEscolaridad: '0',
+    proyectoId: '',
   }
 }
 
@@ -64,6 +76,7 @@ const extras = reactive<Record<string, string>>({})
 const error = ref('')
 const submitting = ref(false)
 const catalogos = ref<ContratosCatalogos | null>(null)
+const catalogosCc = ref<ConstruccionCatalogos | null>(null)
 const personas = ref<PersonaResumenDTO[]>([])
 const personaSeleccionada = ref<PersonaResumenDTO | null>(null)
 const personaSearch = ref('')
@@ -101,6 +114,8 @@ const regimenSeleccionado = computed(() => {
   }
   return (catalogos.value?.regimenesLaborales ?? []).find((item) => item.id === id) ?? null
 })
+
+const esConstruccionCivil = computed(() => regimenSeleccionado.value?.codigo === 'CONSTRUCCION_CIVIL')
 
 const etiquetaSueldo = computed(() => {
   const codigo = regimenSeleccionado.value?.codigo
@@ -200,6 +215,7 @@ async function buscarPersonas(q: string) {
 
 async function loadCatalogos() {
   catalogos.value = await obtenerContratosCatalogos()
+  catalogosCc.value = await obtenerCatalogosConstruccion()
 }
 
 watch(
@@ -276,6 +292,12 @@ function validate(): string | null {
   if (form.fechaInicio && form.fechaFin && form.fechaFin < form.fechaInicio) return 'La fecha de fin no puede ser menor que la de inicio.'
   const sueldo = Number(form.sueldo)
   if (!Number.isFinite(sueldo) || sueldo <= 0) return 'Ingrese un sueldo mayor a cero.'
+  if (esConstruccionCivil.value) {
+    if (!form.categoriaObrera) return 'Seleccione la categoría de obrero.'
+    if (!form.proyectoId) return 'Seleccione la obra / proyecto.'
+    const hijos = Number(form.hijosEscolaridad)
+    if (!Number.isInteger(hijos) || hijos < 0 || hijos > 20) return 'Ingrese un número válido de hijos para escolaridad.'
+  }
   for (const campo of camposExtra.value) {
     const valor = extras[campo.clave]?.trim() ?? ''
     if (campo.requerido && !valor) {
@@ -315,6 +337,12 @@ async function onSubmit() {
       fechaCorte: form.fechaCorte || null,
       observaciones: form.observaciones.trim() || null,
       metadata,
+      categoriaObrera: esConstruccionCivil.value ? form.categoriaObrera : null,
+      especialidadBae: esConstruccionCivil.value ? form.especialidadBae || null : null,
+      afiliadoSindical: esConstruccionCivil.value ? form.afiliadoSindical : false,
+      cuotaSindical: esConstruccionCivil.value && form.afiliadoSindical ? 40 : 0,
+      hijosEscolaridad: esConstruccionCivil.value ? Number(form.hijosEscolaridad) : 0,
+      proyectoId: esConstruccionCivil.value ? Number(form.proyectoId) : null,
     })
     toast.success('Contrato creado.')
     emit('saved')
@@ -522,6 +550,68 @@ onUnmounted(() => {
                       Opcional en contratos a plazo indeterminado.
                     </p>
                   </div>
+                </div>
+
+                <div v-if="esConstruccionCivil" class="contents">
+                  <div class="min-w-0">
+                    <label class="text-sm font-medium text-slate-700" for="contrato-categoria-obrera">Categoría</label>
+                    <select id="contrato-categoria-obrera" v-model="form.categoriaObrera" :class="inputClass">
+                      <option value="">Seleccione</option>
+                      <option
+                        v-for="item in catalogosCc?.categorias ?? []"
+                        :key="item.codigo"
+                        :value="item.codigo"
+                      >
+                        {{ item.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="min-w-0">
+                    <label class="text-sm font-medium text-slate-700" for="contrato-bae">Especialidad BAE</label>
+                    <select id="contrato-bae" v-model="form.especialidadBae" :class="inputClass">
+                      <option value="">Ninguna</option>
+                      <option
+                        v-for="item in catalogosCc?.especialidadesBae ?? []"
+                        :key="item.codigo"
+                        :value="item.codigo"
+                      >
+                        {{ item.label }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="min-w-0">
+                    <label class="text-sm font-medium text-slate-700" for="contrato-proyecto">Obra / proyecto</label>
+                    <select id="contrato-proyecto" v-model="form.proyectoId" :class="inputClass">
+                      <option value="">Seleccione</option>
+                      <option
+                        v-for="item in catalogosCc?.proyectos ?? []"
+                        :key="item.id"
+                        :value="String(item.id)"
+                      >
+                        {{ item.codigo }} — {{ item.nombre }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="min-w-0">
+                    <label class="text-sm font-medium text-slate-700" for="contrato-hijos">Hijos (escolaridad)</label>
+                    <input
+                      id="contrato-hijos"
+                      v-model="form.hijosEscolaridad"
+                      type="number"
+                      min="0"
+                      max="20"
+                      :class="inputClass"
+                    />
+                  </div>
+                  <label class="flex min-w-0 items-center gap-2 self-end pb-2 text-sm text-slate-700" for="contrato-sindicato">
+                    <input
+                      id="contrato-sindicato"
+                      v-model="form.afiliadoSindical"
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-slate-300"
+                    />
+                    Afiliado sindical
+                  </label>
                 </div>
 
                 <div class="min-w-0">

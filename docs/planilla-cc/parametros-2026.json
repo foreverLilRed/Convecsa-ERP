@@ -1,0 +1,52 @@
+{
+  "fuente": "V8 PLANILLA DE CONSTRUCCION 2026.xlsm",
+  "pliego": "Resolución Ministerial N° 197-2025-TR",
+  "anio": 2026,
+  "uit": 5500,
+  "horasDia": 8,
+  "jornadaLunesViernes": 8.5,
+  "jornadaSabado": 5.5,
+  "movilidadDia": 8.6,
+  "movilidadFeriado": 8.6,
+  "conafovicer": 0.02,
+  "fondoCapacitacion": 0.0045,
+  "essalud": 0.09,
+  "onp": 0.13,
+  "bonifLey29351": 0.09,
+  "vacaciones": 0.10,
+  "cts": 0.15,
+  "he60Factor": 1.6,
+  "he100Factor": 2.0,
+  "alturaPorTramo4Pisos": 0.08,
+  "altitudDia": 2.5,
+  "cotaCeroDia": 1.9,
+  "altasTemperaturasDia": 4.5,
+  "nocturno": 0.25,
+  "contactoAgua": 0.20,
+  "aguasServidas": 0.20,
+  "gratificacionJornalesAnio": 40,
+  "gratificacionMesesFiestasPatrias": 7,
+  "gratificacionMesesNavidad": 5,
+  "escolaridadJornalesAnio": 30,
+  "categorias": [
+    { "codigo": "OPERARIO", "jornal": 89.30, "buc": 0.32 },
+    { "codigo": "OFICIAL", "jornal": 69.75, "buc": 0.30 },
+    { "codigo": "PEON", "jornal": 62.80, "buc": 0.30 }
+  ],
+  "especialidadesBae": [
+    { "codigo": "EQUIPO_MEDIANO", "label": "Op. De Equipo Mediano", "tasa": 0.08 },
+    { "codigo": "EQUIPO_PESADO", "label": "Op. De Equipo Pesado", "tasa": 0.10 },
+    { "codigo": "ELECTROMECANICO", "label": "Electromecánico", "tasa": 0.22 },
+    { "codigo": "TOPOGRAFO", "label": "Topógrafo", "tasa": 0.09 },
+    { "codigo": "SOLDADOR_6G", "label": "Soldador Homologado 6G", "tasa": 0.25 }
+  ],
+  "plame": {
+    "jornalBasico": "121",
+    "dominical": "115",
+    "buc": "311",
+    "movilidad": "909",
+    "vacaciones": "114",
+    "cts": "313",
+    "horasExtras": "115"
+  }
+}

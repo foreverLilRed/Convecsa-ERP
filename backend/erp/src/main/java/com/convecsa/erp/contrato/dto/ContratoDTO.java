@@ -31,4 +31,12 @@ public class ContratoDTO {
     private final String tipoPlantillaNombre;
     private final String observaciones;
     private final Map<String, String> metadata;
+    private final String categoriaObrera;
+    private final String especialidadBae;
+    private final Boolean afiliadoSindical;
+    private final BigDecimal cuotaSindical;
+    private final Integer hijosEscolaridad;
+    private final Long proyectoId;
+    private final String proyectoCodigo;
+    private final String proyectoNombre;
 }

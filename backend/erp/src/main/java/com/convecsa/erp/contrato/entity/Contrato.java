@@ -1,5 +1,6 @@
 package com.convecsa.erp.contrato.entity;
 
+import com.convecsa.erp.construccion.entity.ContratoCc;
 import com.convecsa.erp.contrato.catalogo.CategoriaContrato;
 import com.convecsa.erp.persona.entity.Persona;
 import jakarta.persistence.Column;
@@ -9,7 +10,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -68,6 +71,9 @@ public class Contrato {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false)
     private Map<String, String> metadata = new LinkedHashMap<>();
+
+    @OneToOne(mappedBy = "contrato", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private ContratoCc construccionCivil;
 
     public String metadata(String clave) {
         return metadata == null ? null : metadata.get(clave);
