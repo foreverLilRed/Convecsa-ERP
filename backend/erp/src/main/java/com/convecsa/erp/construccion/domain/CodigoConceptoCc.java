@@ -34,5 +34,7 @@ public enum CodigoConceptoCc {
     ESSALUD,
     FONDO_CAPACITACION,
     SCTR_SALUD,
-    SCTR_PENSION
+    SCTR_PENSION,
+    REINTEGRO,
+    DESCUENTO_MANUAL
 }

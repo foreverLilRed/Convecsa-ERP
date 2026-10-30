@@ -50,7 +50,7 @@ public class AsientoRccService {
             descuentos = descuentos.add(n(fila.getTotalDescuentos()));
             aportes = aportes.add(n(fila.getTotalAportesEmpleador()));
             neto = neto.add(n(fila.getNeto()));
-            acumular(destinos, destino(fila.getProyecto()), n(fila.getTotalHaberes()).add(n(fila.getTotalAportesEmpleador())));
+            acumular(destinos, destino(fila.getProyecto(), fila.getCentroCosto()), n(fila.getTotalHaberes()).add(n(fila.getTotalAportesEmpleador())));
             for (ConsolidadoCcConcepto concepto : fila.getConceptos()) {
                 if (concepto.getCategoria() == CategoriaConcepto.DESCUENTO) {
                     acumular(descuentosPorCuenta, cuentaDescuento(concepto.getCodigo()), n(concepto.getMonto()));
@@ -123,15 +123,20 @@ public class AsientoRccService {
         return asientoContableService.generarPdf(asiento, empresa);
     }
 
-    private static DestinoContable destino(Proyecto proyecto) {
+    private static DestinoContable destino(Proyecto proyecto, String centroCostoContrato) {
         if (proyecto == null) {
             return new DestinoContable("92", "Costos de producción / obra", "RCC");
         }
-        String auxiliar = proyecto.getCodigo();
-        if (proyecto.getCentroCosto() != null && !proyecto.getCentroCosto().isBlank()) {
-            auxiliar = proyecto.getCodigo() + " / " + proyecto.getCentroCosto().trim();
+        String cc = blankToNull(centroCostoContrato);
+        if (cc == null) {
+            cc = blankToNull(proyecto.getCentroCosto());
         }
+        String auxiliar = cc == null ? proyecto.getCodigo() : proyecto.getCodigo() + " / " + cc;
         return new DestinoContable("92", "Costos de producción / obra", auxiliar);
+    }
+
+    private static String blankToNull(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     private static String cuentaDescuento(CodigoConceptoCc codigo) {

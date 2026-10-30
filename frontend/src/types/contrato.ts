@@ -78,6 +78,7 @@ export type ContratoRequest = {
   cuotaSindical?: number | null
   hijosEscolaridad?: number | null
   proyectoId?: number | null
+  centroCosto?: string | null
 }
 
 export type ContratoDTO = {
@@ -110,6 +111,7 @@ export type ContratoDTO = {
   proyectoId?: number | null
   proyectoCodigo?: string | null
   proyectoNombre?: string | null
+  centroCosto?: string | null
 }
 
 export type AdendaDTO = {

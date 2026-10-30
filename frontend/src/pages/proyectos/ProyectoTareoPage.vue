@@ -23,6 +23,7 @@ import {
 } from '@/services/construccion/construccionService'
 import {
   CODIGOS_TAREO,
+  type CadenciaPeriodoCc,
   type CodigoTareoCc,
   type PeriodoCc,
   type Proyecto,
@@ -45,6 +46,7 @@ const loading = ref(true)
 const saving = ref(false)
 const creating = ref(false)
 const form = reactive({
+  cadencia: 'SEMANAL' as CadenciaPeriodoCc,
   fechaDesde: lunesDe(new Date()),
   fechaHasta: domingoDe(new Date()),
 })
@@ -71,6 +73,32 @@ function iso(fecha: Date): string {
   const m = String(fecha.getMonth() + 1).padStart(2, '0')
   const d = String(fecha.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+function cadenciaLabel(cadencia: CadenciaPeriodoCc | undefined): string {
+  if (cadencia === 'QUINCENAL') return 'Quincena'
+  if (cadencia === 'MENSUAL') return 'Mes'
+  return 'Semana'
+}
+
+function aplicarPreset(cadencia: CadenciaPeriodoCc) {
+  const hoy = new Date()
+  if (cadencia === 'SEMANAL') {
+    form.fechaDesde = lunesDe(hoy)
+    form.fechaHasta = domingoDe(hoy)
+    return
+  }
+  if (cadencia === 'QUINCENAL') {
+    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() <= 15 ? 1 : 16)
+    const fin = hoy.getDate() <= 15
+      ? new Date(hoy.getFullYear(), hoy.getMonth(), 15)
+      : new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
+    form.fechaDesde = iso(inicio)
+    form.fechaHasta = iso(fin)
+    return
+  }
+  form.fechaDesde = iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
+  form.fechaHasta = iso(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0))
 }
 
 function clave(personaId: number, fecha: string): string {
@@ -148,6 +176,7 @@ async function onCrearPeriodo() {
     const creado = await crearPeriodoCc(proyectoId.value, {
       fechaDesde: form.fechaDesde,
       fechaHasta: form.fechaHasta,
+      cadencia: form.cadencia,
     })
     toast.success('Periodo creado.')
     await loadPeriodos(creado.id)
@@ -201,8 +230,8 @@ async function onGuardar() {
       Tareo {{ proyecto ? `· ${proyecto.codigo}` : '' }}
     </h2>
     <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
-      Marque horas y códigos por día para el personal RCC asignado a esta obra. El domingo se liquida
-      como promedio de lunes a sábado.
+      Marque horas y códigos por día para el personal RCC asignado a esta obra. El dominical se
+      calcula por semana ISO (horas lunes a sábado / 6). En quincena o mes, desplácese la grilla.
     </p>
     <div
       v-if="proyecto?.alertaUit"
@@ -225,15 +254,28 @@ async function onGuardar() {
 
     <div class="mt-6 space-y-5 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="grid gap-3 sm:grid-cols-3">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label class="text-sm font-medium text-slate-700" for="tareo-periodo">Periodo</label>
             <select id="tareo-periodo" v-model.number="periodoId" :class="selectClass + ' mt-1.5 h-10'">
               <option :value="null">Sin periodos</option>
               <option v-for="item in periodos" :key="item.id" :value="item.id">
-                Sem. {{ item.nroSemana }} · {{ item.fechaDesde }} → {{ item.fechaHasta }}
+                {{ cadenciaLabel(item.cadencia) }} · {{ item.fechaDesde }} → {{ item.fechaHasta }}
                 ({{ item.estado === 'CERRADO' ? 'Cerrado' : 'Borrador' }})
               </option>
+            </select>
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700" for="tareo-cadencia">Cadencia</label>
+            <select
+              id="tareo-cadencia"
+              v-model="form.cadencia"
+              :class="selectClass + ' mt-1.5 h-10'"
+              @change="aplicarPreset(form.cadencia)"
+            >
+              <option value="SEMANAL">Semanal (L-D)</option>
+              <option value="QUINCENAL">Quincenal (1-15 / 16-fin)</option>
+              <option value="MENSUAL">Mensual (mes calendario)</option>
             </select>
           </div>
           <div>

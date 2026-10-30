@@ -12,9 +12,12 @@ import com.convecsa.erp.construccion.entity.BoletaCc;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.entity.TareoCcDia;
+import com.convecsa.erp.construccion.entity.ContratoCc;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
+import com.convecsa.erp.construccion.repository.ContratoCcRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.repository.TareoCcDiaRepository;
+import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.domain.EstadoDeclaracion;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.nomina.declaracion.dto.ConsolidadoCcConceptoDTO;
@@ -94,6 +97,7 @@ public class DeclaracionMensualService {
     private final AfpnetArchivoService afpnetArchivoService;
     private final DispersionArchivoService dispersionArchivoService;
     private final AsientoRccService asientoRccService;
+    private final ContratoCcRepository contratoCcRepository;
     private final ConsolidadoCcCalculator calculator = new ConsolidadoCcCalculator();
     private final RxhParser rxhParser = new RxhParser();
 
@@ -152,11 +156,13 @@ public class DeclaracionMensualService {
         consolidadoRepository.flush();
 
         List<ConsolidadoCalculo> calculos = calculator.calcular(boletas, dias);
+        Map<Long, List<ContratoCc>> contratosPorProyecto = new HashMap<>();
         for (ConsolidadoCalculo calculo : calculos) {
             ConsolidadoCc fila = new ConsolidadoCc();
             fila.setDeclaracion(declaracion);
             fila.setPersona(calculo.getPersona());
             fila.setProyecto(calculo.getProyecto());
+            fila.setCentroCosto(centroCostoDe(calculo, contratosPorProyecto));
             fila.setTotalHaberes(calculo.getTotalHaberes());
             fila.setTotalDescuentos(calculo.getTotalDescuentos());
             fila.setTotalAportesEmpleador(calculo.getTotalAportesEmpleador());
@@ -290,7 +296,7 @@ public class DeclaracionMensualService {
     }
 
     @Transactional(readOnly = true)
-    public ArchivoDescargaDTO descargarDispersion(Long id) {
+    public ArchivoDescargaDTO descargarDispersion(Long id, BancoDispersion banco) {
         DeclaracionMensual declaracion = cargar(id);
         Fuentes fuentes = cargarFuentes(declaracion);
         for (ConsolidadoCc fila : fuentes.obreros) {
@@ -299,8 +305,9 @@ public class DeclaracionMensualService {
         for (BoletaPago boleta : fuentes.administrativos) {
             Hibernate.initialize(boleta.getPersona().getCuentasBancarias());
         }
-        String contenido = dispersionArchivoService.generar(fuentes.obreros, fuentes.administrativos);
-        String nombre = "dispersion-" + declaracionPeriodo(declaracion) + ".txt";
+        BancoDispersion formato = banco == null ? BancoDispersion.CCI : banco;
+        String contenido = dispersionArchivoService.generar(fuentes.obreros, fuentes.administrativos, formato);
+        String nombre = "dispersion-" + declaracionPeriodo(declaracion) + "-" + formato.name().toLowerCase() + ".txt";
         return new ArchivoDescargaDTO(nombre, TXT_TYPE, contenido.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -346,6 +353,24 @@ public class DeclaracionMensualService {
                 .orElse(null);
         String ruc = PlameFormato.rucArchivo(empresa == null ? null : empresa.getRuc());
         return ruc + PlameFormato.periodo(declaracion.getAnio(), declaracion.getMes());
+    }
+
+    private String centroCostoDe(ConsolidadoCalculo calculo, Map<Long, List<ContratoCc>> cache) {
+        Proyecto proyecto = calculo.getProyecto();
+        if (proyecto == null || calculo.getPersona() == null) {
+            return null;
+        }
+        List<ContratoCc> contratos = cache.computeIfAbsent(proyecto.getId(), contratoCcRepository::findActivosByProyectoId);
+        return contratos.stream()
+                .filter(cc -> cc.getContrato().getPersona().getId().equals(calculo.getPersona().getId()))
+                .map(cc -> blankToNull(cc.getCentroCosto()))
+                .filter(valor -> valor != null)
+                .findFirst()
+                .orElse(blankToNull(proyecto.getCentroCosto()));
+    }
+
+    private static String blankToNull(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     private static String declaracionPeriodo(DeclaracionMensual declaracion) {

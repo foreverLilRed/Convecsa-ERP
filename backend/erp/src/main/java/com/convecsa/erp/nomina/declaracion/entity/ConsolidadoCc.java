@@ -59,6 +59,9 @@ public class ConsolidadoCc {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal neto = BigDecimal.ZERO;
 
+    @Column(name = "centro_costo", length = 40)
+    private String centroCosto;
+
     @Column(name = "horas_ord", nullable = false, precision = 8, scale = 2)
     private BigDecimal horasOrd = BigDecimal.ZERO;
 

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { PlusIcon } from '@lucide/vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
@@ -18,13 +19,24 @@ import {
   abrirDocumentoBoletaCc,
   abrirPdfBoletaCc,
   cerrarPeriodoCc,
+  descargarBoletasCcPdf,
+  descargarDispersionCc,
+  enviarBoletasCcCorreo,
+  guardarExtrasBoletaCc,
   liquidarPeriodoCc,
   listarBoletasCc,
   listarPeriodosCc,
   obtenerBoletaCc,
   obtenerProyecto,
 } from '@/services/construccion/construccionService'
-import type { BoletaCc, BoletaCcResumen, PeriodoCc, Proyecto } from '@/types/construccion'
+import type {
+  BancoDispersion,
+  BoletaCc,
+  BoletaCcResumen,
+  CadenciaPeriodoCc,
+  PeriodoCc,
+  Proyecto,
+} from '@/types/construccion'
 
 const selectClass =
   'mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
@@ -41,9 +53,23 @@ const detalle = ref<BoletaCc | null>(null)
 const loading = ref(true)
 const liquidando = ref(false)
 const cerrando = ref(false)
+const acting = ref(false)
+const savingExtras = ref(false)
+const selectedIds = ref<number[]>([])
+let extraSeq = 0
+const extras = ref<{ key: number; categoria: 'HABER' | 'DESCUENTO'; label: string; monto: string }[]>([])
 
 const periodoActual = computed(() => periodos.value.find((item) => item.id === periodoId.value) ?? null)
 const cerrado = computed(() => periodoActual.value?.estado === 'CERRADO')
+const allSelected = computed(
+  () => boletas.value.length > 0 && boletas.value.every((item) => selectedIds.value.includes(item.id)),
+)
+
+function cadenciaLabel(cadencia: CadenciaPeriodoCc | undefined): string {
+  if (cadencia === 'QUINCENAL') return 'Quincena'
+  if (cadencia === 'MENSUAL') return 'Mes'
+  return 'Semana'
+}
 
 async function load() {
   loading.value = true
@@ -63,6 +89,8 @@ async function load() {
 
 async function loadBoletas() {
   detalle.value = null
+  extras.value = []
+  selectedIds.value = []
   if (!periodoId.value) {
     boletas.value = []
     return
@@ -122,8 +150,124 @@ async function onVer(boleta: BoletaCcResumen) {
   }
   try {
     detalle.value = await obtenerBoletaCc(proyectoId.value, periodoId.value, boleta.id)
+    extras.value = (detalle.value.conceptos ?? [])
+      .filter((item) => item.origen === 'MANUAL')
+      .map((item) => ({
+        key: ++extraSeq,
+        categoria: item.categoria === 'DESCUENTO' ? 'DESCUENTO' : 'HABER',
+        label: item.label,
+        monto: String(item.monto),
+      }))
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudo abrir la boleta.')
+  }
+}
+
+function toggleAll(checked: boolean) {
+  selectedIds.value = checked ? boletas.value.map((item) => item.id) : []
+}
+
+function toggleBoleta(id: number, checked: boolean) {
+  selectedIds.value = checked
+    ? [...new Set([...selectedIds.value, id])]
+    : selectedIds.value.filter((item) => item !== id)
+}
+
+function idsLote(): number[] {
+  return selectedIds.value.length ? selectedIds.value : boletas.value.map((item) => item.id)
+}
+
+function agregarExtra() {
+  extras.value = [...extras.value, { key: ++extraSeq, categoria: 'HABER', label: '', monto: '' }]
+}
+
+function quitarExtra(key: number) {
+  extras.value = extras.value.filter((row) => row.key !== key)
+}
+
+async function onGuardarExtras() {
+  if (!periodoId.value || !detalle.value) {
+    return
+  }
+  const payload = []
+  for (const row of extras.value) {
+    const label = row.label.trim()
+    const monto = Number(row.monto)
+    if (!label && row.monto === '') {
+      continue
+    }
+    if (!label || !Number.isFinite(monto) || monto < 0) {
+      toast.error('Cada reintegro o descuento necesita nombre y monto válido.')
+      return
+    }
+    payload.push({ categoria: row.categoria, label, monto })
+  }
+  savingExtras.value = true
+  try {
+    detalle.value = await guardarExtrasBoletaCc(proyectoId.value, periodoId.value, detalle.value.id, payload)
+    boletas.value = await listarBoletasCc(proyectoId.value, periodoId.value)
+    toast.success('Reintegros guardados. Sobreviven una reliquidación.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudieron guardar los reintegros.')
+  } finally {
+    savingExtras.value = false
+  }
+}
+
+async function onLotePdf() {
+  if (!periodoId.value || !boletas.value.length) {
+    return
+  }
+  acting.value = true
+  try {
+    await descargarBoletasCcPdf(
+      proyectoId.value,
+      periodoId.value,
+      idsLote(),
+      `boletas-rcc-${periodoId.value}.pdf`,
+    )
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo descargar el lote.')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function onLoteCorreo() {
+  if (!periodoId.value || !boletas.value.length) {
+    return
+  }
+  acting.value = true
+  try {
+    const result = await enviarBoletasCcCorreo(proyectoId.value, periodoId.value, idsLote())
+    if (result.errores) {
+      toast.warning(`${result.enviados} enviadas y ${result.errores} con error. ${result.detalles[0] ?? ''}`)
+    } else {
+      toast.success(`${result.enviados} boleta(s) enviadas por correo.`)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudieron enviar las boletas.')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function onDispersion(banco: BancoDispersion) {
+  if (!periodoId.value) {
+    return
+  }
+  acting.value = true
+  try {
+    await descargarDispersionCc(
+      proyectoId.value,
+      periodoId.value,
+      banco,
+      `dispersion-${proyecto.value?.codigo ?? 'rcc'}-${banco.toLowerCase()}.txt`,
+    )
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo descargar la dispersión.')
+  } finally {
+    acting.value = false
   }
 }
 
@@ -161,7 +305,7 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
       Planilla RCC {{ proyecto ? `· ${proyecto.codigo}` : '' }}
     </h2>
     <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
-      Liquide la semana a partir del tareo y emita la boleta de construcción civil.
+      Liquide el periodo a partir del tareo, agregue reintegros y emita o disperse las boletas RCC.
     </p>
     <div
       v-if="proyecto?.alertaUit"
@@ -189,7 +333,7 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
           <select id="planilla-periodo" v-model.number="periodoId" :class="selectClass">
             <option :value="null">Sin periodos</option>
             <option v-for="item in periodos" :key="item.id" :value="item.id">
-              Sem. {{ item.nroSemana }} · {{ item.fechaDesde }} → {{ item.fechaHasta }}
+              {{ cadenciaLabel(item.cadencia) }} · {{ item.fechaDesde }} → {{ item.fechaHasta }}
               ({{ item.estado === 'CERRADO' ? 'Cerrado' : 'Borrador' }})
             </option>
           </select>
@@ -201,7 +345,7 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
             :disabled="liquidando || cerrado || !periodoId"
             @click="onLiquidar"
           >
-            Liquidar semana
+            Liquidar
           </Button>
           <Button
             variant="outline"
@@ -210,6 +354,21 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
             @click="onCerrar"
           >
             Cerrar periodo
+          </Button>
+          <Button variant="outline" type="button" :disabled="acting || !boletas.length" @click="onLotePdf">
+            PDF lote
+          </Button>
+          <Button variant="outline" type="button" :disabled="acting || !boletas.length" @click="onLoteCorreo">
+            Enviar correo
+          </Button>
+          <Button variant="outline" type="button" :disabled="acting || !boletas.length" @click="onDispersion('CCI')">
+            CCI
+          </Button>
+          <Button variant="outline" type="button" :disabled="acting || !boletas.length" @click="onDispersion('BCP')">
+            BCP
+          </Button>
+          <Button variant="outline" type="button" :disabled="acting || !boletas.length" @click="onDispersion('INTERBANK')">
+            Interbank
           </Button>
         </div>
       </div>
@@ -220,6 +379,15 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
       <Table v-else>
         <TableHeader>
           <TableRow>
+            <TableHead class="w-10">
+              <input
+                type="checkbox"
+                class="h-4 w-4 rounded border-slate-300"
+                :checked="allSelected"
+                :disabled="!boletas.length"
+                @change="toggleAll(($event.target as HTMLInputElement).checked)"
+              />
+            </TableHead>
             <TableHead>Trabajador</TableHead>
             <TableHead>Documento</TableHead>
             <TableHead>Categoría</TableHead>
@@ -230,10 +398,18 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty v-if="!boletas.length" :colspan="7">
-            Aún no hay boletas. Guarde el tareo y liquide la semana.
+          <TableEmpty v-if="!boletas.length" :colspan="8">
+            Aún no hay boletas. Guarde el tareo y liquide el periodo.
           </TableEmpty>
           <TableRow v-for="boleta in boletas" :key="boleta.id">
+            <TableCell>
+              <input
+                type="checkbox"
+                class="h-4 w-4 rounded border-slate-300"
+                :checked="selectedIds.includes(boleta.id)"
+                @change="toggleBoleta(boleta.id, ($event.target as HTMLInputElement).checked)"
+              />
+            </TableCell>
             <TableCell class="font-medium">{{ boleta.personaNombreCompleto }}</TableCell>
             <TableCell>{{ boleta.numeroDocumento }}</TableCell>
             <TableCell>{{ boleta.categoria || '—' }}</TableCell>
@@ -301,6 +477,40 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
               <span>{{ money.format(item.monto) }}</span>
             </li>
           </ul>
+        </div>
+      </div>
+
+      <div v-if="!cerrado" class="mt-6 border-t border-palette-cyan/60 pt-4">
+        <div class="flex items-center justify-between">
+          <h4 class="text-sm font-semibold text-palette-navy">Reintegros y descuentos</h4>
+          <Button variant="outline" class="h-8 px-3 text-xs" type="button" @click="agregarExtra">
+            <PlusIcon data-icon="inline-start" />
+            Agregar
+          </Button>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">
+          Los conceptos manuales se conservan al reliquidar. No entran a la base de AFP ni EsSalud.
+        </p>
+        <ul v-if="extras.length" class="mt-3 space-y-2">
+          <li v-for="row in extras" :key="row.key" class="grid gap-2 sm:grid-cols-[8rem_1fr_7rem_auto]">
+            <select v-model="row.categoria" :class="selectClass">
+              <option value="HABER">Reintegro</option>
+              <option value="DESCUENTO">Descuento</option>
+            </select>
+            <input v-model="row.label" :class="selectClass" placeholder="Nombre" />
+            <input v-model="row.monto" type="number" min="0" step="0.01" :class="selectClass" placeholder="0.00" />
+            <Button variant="ghost" class="h-10" type="button" @click="quitarExtra(row.key)">Quitar</Button>
+          </li>
+        </ul>
+        <div class="mt-3 flex justify-end">
+          <Button
+            class="bg-palette-navy text-white hover:bg-palette-royal"
+            type="button"
+            :disabled="savingExtras"
+            @click="onGuardarExtras"
+          >
+            Guardar extras
+          </Button>
         </div>
       </div>
     </div>

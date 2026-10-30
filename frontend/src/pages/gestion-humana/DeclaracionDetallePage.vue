@@ -125,11 +125,11 @@ async function onAsiento() {
   )
 }
 
-async function onDispersion() {
+async function onDispersion(banco: 'CCI' | 'BCP' | 'INTERBANK') {
   await run(
-    'dispersion',
-    () => descargarDispersion(numericId.value, `dispersion-${periodoArchivo()}.txt`),
-    'Dispersión descargada.',
+    `dispersion-${banco}`,
+    () => descargarDispersion(numericId.value, `dispersion-${periodoArchivo()}-${banco.toLowerCase()}.txt`, banco),
+    `Dispersión ${banco} descargada.`,
   )
 }
 
@@ -222,8 +222,14 @@ onMounted(() => {
         <Button variant="outline" class="h-9 px-3" type="button" :disabled="!!working" @click="onAsiento">
           Asiento PDF
         </Button>
-        <Button variant="outline" class="h-9 px-3" type="button" :disabled="!!working" @click="onDispersion">
-          Dispersión
+        <Button variant="outline" class="h-9 px-3" type="button" :disabled="!!working" @click="onDispersion('CCI')">
+          Dispersión CCI
+        </Button>
+        <Button variant="outline" class="h-9 px-3" type="button" :disabled="!!working" @click="onDispersion('BCP')">
+          BCP
+        </Button>
+        <Button variant="outline" class="h-9 px-3" type="button" :disabled="!!working" @click="onDispersion('INTERBANK')">
+          Interbank
         </Button>
         <Button
           v-if="borrador"

@@ -1,7 +1,10 @@
 package com.convecsa.erp.construccion.entity;
 
+import com.convecsa.erp.construccion.domain.NivelRiesgoObra;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -36,6 +39,16 @@ public class Proyecto {
 
     @Column(name = "valor_obra", precision = 14, scale = 2)
     private BigDecimal valorObra;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_riesgo", length = 10)
+    private NivelRiesgoObra nivelRiesgo;
+
+    @Column(name = "tasa_sctr_salud", nullable = false, precision = 7, scale = 6)
+    private BigDecimal tasaSctrSalud = BigDecimal.ZERO;
+
+    @Column(name = "tasa_sctr_pension", nullable = false, precision = 7, scale = 6)
+    private BigDecimal tasaSctrPension = BigDecimal.ZERO;
 
     @Column(nullable = false)
     private boolean activo = true;

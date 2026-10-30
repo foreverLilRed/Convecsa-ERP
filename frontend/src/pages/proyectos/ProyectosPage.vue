@@ -39,6 +39,9 @@ const form = reactive({
   ubicacion: '',
   centroCosto: '',
   valorObra: '',
+  nivelRiesgo: '' as '' | 'BAJO' | 'MEDIO' | 'ALTO',
+  tasaSctrSalud: '',
+  tasaSctrPension: '',
 })
 
 const activos = computed(() => proyectos.value.filter((item) => item.activo).length)
@@ -67,6 +70,32 @@ function formatValor(valor: number | null): string {
   return valor == null ? '—' : money.format(valor)
 }
 
+function parseTasa(texto: string): number | false {
+  const limpio = texto.trim().replace(',', '.')
+  if (!limpio) {
+    return 0
+  }
+  const valor = Number(limpio)
+  if (!Number.isFinite(valor) || valor < 0 || valor > 1) {
+    return false
+  }
+  return valor
+}
+
+function formatTasa(valor: number | null): string {
+  if (valor == null || valor === 0) {
+    return '—'
+  }
+  return `${(valor * 100).toLocaleString('es-PE', { maximumFractionDigits: 4 })}%`
+}
+
+function riesgoLabel(valor: Proyecto['nivelRiesgo']): string {
+  if (valor === 'BAJO') return 'Bajo'
+  if (valor === 'MEDIO') return 'Medio'
+  if (valor === 'ALTO') return 'Alto'
+  return '—'
+}
+
 function lockBodyScroll() {
   const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
   document.body.style.overflow = 'hidden'
@@ -91,6 +120,9 @@ watch(modalOpen, (isOpen) => {
     form.ubicacion = ''
     form.centroCosto = ''
     form.valorObra = ''
+    form.nivelRiesgo = ''
+    form.tasaSctrSalud = ''
+    form.tasaSctrPension = ''
     formError.value = ''
     submitting.value = false
     lockBodyScroll()
@@ -126,6 +158,13 @@ async function onCrear() {
       return
     }
   }
+  const tasaSalud = parseTasa(form.tasaSctrSalud)
+  const tasaPension = parseTasa(form.tasaSctrPension)
+  if (tasaSalud === false || tasaPension === false) {
+    formError.value = 'Las tasas SCTR deben ser un decimal entre 0 y 1.'
+    toast.error(formError.value)
+    return
+  }
   submitting.value = true
   try {
     const creado = await crearProyecto({
@@ -134,6 +173,9 @@ async function onCrear() {
       ubicacion: form.ubicacion.trim() || null,
       centroCosto: form.centroCosto.trim() || null,
       valorObra,
+      nivelRiesgo: form.nivelRiesgo || null,
+      tasaSctrSalud: tasaSalud,
+      tasaSctrPension: tasaPension,
     })
     if (creado.alertaUit) {
       toast.warning(
@@ -193,6 +235,8 @@ async function onCrear() {
             <TableHead>Nombre</TableHead>
             <TableHead>Ubicación</TableHead>
             <TableHead>Centro de costo</TableHead>
+            <TableHead>Riesgo</TableHead>
+            <TableHead>SCTR</TableHead>
             <TableHead>Valor de obra</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead class="text-right">Acciones</TableHead>
@@ -200,15 +244,20 @@ async function onCrear() {
         </TableHeader>
         <TableBody>
           <TableRow v-if="loading">
-            <TableCell colspan="7"><Skeleton class="h-8 w-full" /></TableCell>
+            <TableCell colspan="9"><Skeleton class="h-8 w-full" /></TableCell>
           </TableRow>
-          <TableEmpty v-else-if="proyectos.length === 0" :colspan="7">
+          <TableEmpty v-else-if="proyectos.length === 0" :colspan="9">
             No hay obras registradas.
           </TableEmpty>
           <TableRow v-for="proyecto in proyectos" v-else :key="proyecto.id">
             <TableCell class="font-medium">{{ proyecto.codigo }}</TableCell>
             <TableCell>{{ proyecto.nombre }}</TableCell>
             <TableCell>{{ proyecto.ubicacion || '—' }}</TableCell>
+            <TableCell>{{ proyecto.centroCosto || '—' }}</TableCell>
+            <TableCell>{{ riesgoLabel(proyecto.nivelRiesgo) }}</TableCell>
+            <TableCell>
+              {{ formatTasa(proyecto.tasaSctrSalud) }} / {{ formatTasa(proyecto.tasaSctrPension) }}
+            </TableCell>
             <TableCell>
               {{ formatValor(proyecto.valorObra) }}
               <span
@@ -278,6 +327,40 @@ async function onCrear() {
                   <label class="text-sm font-medium text-slate-700" for="obra-cc">Centro de costo</label>
                   <input id="obra-cc" v-model="form.centroCosto" maxlength="40" :class="inputClass" />
                 </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="obra-riesgo">Nivel de riesgo SCTR</label>
+                  <select id="obra-riesgo" v-model="form.nivelRiesgo" :class="inputClass">
+                    <option value="">Sin definir</option>
+                    <option value="BAJO">Bajo</option>
+                    <option value="MEDIO">Medio</option>
+                    <option value="ALTO">Alto</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="obra-sctr-salud">Tasa SCTR salud</label>
+                    <input
+                      id="obra-sctr-salud"
+                      v-model="form.tasaSctrSalud"
+                      inputmode="decimal"
+                      placeholder="0.0125"
+                      :class="inputClass"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="obra-sctr-pension">Tasa SCTR pensión</label>
+                    <input
+                      id="obra-sctr-pension"
+                      v-model="form.tasaSctrPension"
+                      inputmode="decimal"
+                      placeholder="0.0125"
+                      :class="inputClass"
+                    />
+                  </div>
+                </div>
+                <p class="text-xs text-slate-500">
+                  Ingrese la tasa en decimal (1.25% = 0.0125). Cero no genera línea de aporte.
+                </p>
                 <div>
                   <label class="text-sm font-medium text-slate-700" for="obra-valor">Valor de obra (S/)</label>
                   <input

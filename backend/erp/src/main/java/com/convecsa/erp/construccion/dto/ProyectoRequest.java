@@ -1,5 +1,6 @@
 package com.convecsa.erp.construccion.dto;
 
+import com.convecsa.erp.construccion.domain.NivelRiesgoObra;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -29,6 +30,16 @@ public class ProyectoRequest {
     @DecimalMin(value = "0.00")
     @Digits(integer = 12, fraction = 2)
     private BigDecimal valorObra;
+
+    private NivelRiesgoObra nivelRiesgo;
+
+    @DecimalMin(value = "0.00")
+    @Digits(integer = 1, fraction = 6)
+    private BigDecimal tasaSctrSalud;
+
+    @DecimalMin(value = "0.00")
+    @Digits(integer = 1, fraction = 6)
+    private BigDecimal tasaSctrPension;
 
     private Boolean activo;
 }

@@ -58,6 +58,9 @@ public class ContratoRequest {
 
     private Long proyectoId;
 
+    @Size(max = 40)
+    private String centroCosto;
+
     @AssertTrue(message = "La fecha de fin no puede ser menor que la de inicio")
     public boolean isRangoFechasValido() {
         return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);

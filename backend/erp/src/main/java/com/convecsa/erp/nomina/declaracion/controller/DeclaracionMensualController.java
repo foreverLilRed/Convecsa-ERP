@@ -7,6 +7,7 @@ import com.convecsa.erp.nomina.declaracion.dto.DeclaracionMensualDTO;
 import com.convecsa.erp.nomina.declaracion.dto.DeclaracionMensualRequest;
 import com.convecsa.erp.nomina.declaracion.dto.ReciboHonorarioAsignarRequest;
 import com.convecsa.erp.nomina.declaracion.dto.ReciboHonorarioDTO;
+import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.dto.RxhImportacionDTO;
 import com.convecsa.erp.nomina.declaracion.service.DeclaracionMensualService;
 import com.convecsa.erp.nomina.dto.AsientoContableDTO;
@@ -105,8 +106,10 @@ public class DeclaracionMensualController {
     }
 
     @GetMapping("/{id:\\d+}/dispersion")
-    public ResponseEntity<byte[]> dispersion(@PathVariable Long id) {
-        return archivo(declaracionService.descargarDispersion(id));
+    public ResponseEntity<byte[]> dispersion(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "CCI") BancoDispersion banco) {
+        return archivo(declaracionService.descargarDispersion(id, banco));
     }
 
     private static ResponseEntity<byte[]> archivo(ArchivoDescargaDTO archivo) {

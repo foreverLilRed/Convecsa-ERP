@@ -1,3 +1,9 @@
+export type NivelRiesgoObra = 'BAJO' | 'MEDIO' | 'ALTO'
+
+export type CadenciaPeriodoCc = 'SEMANAL' | 'QUINCENAL' | 'MENSUAL'
+
+export type BancoDispersion = 'CCI' | 'BCP' | 'INTERBANK'
+
 export type Proyecto = {
   id: number
   codigo: string
@@ -5,6 +11,9 @@ export type Proyecto = {
   ubicacion: string | null
   centroCosto: string | null
   valorObra: number | null
+  nivelRiesgo: NivelRiesgoObra | null
+  tasaSctrSalud: number | null
+  tasaSctrPension: number | null
   activo: boolean
   alertaUit: boolean
   uitAnio: number
@@ -16,6 +25,9 @@ export type ProyectoRequest = {
   ubicacion?: string | null
   centroCosto?: string | null
   valorObra?: number | null
+  nivelRiesgo?: NivelRiesgoObra | null
+  tasaSctrSalud?: number | null
+  tasaSctrPension?: number | null
   activo?: boolean
 }
 
@@ -39,6 +51,7 @@ export type PersonalObra = {
   especialidadBae: string | null
   hijosEscolaridad: number
   afiliadoSindical: boolean
+  centroCosto: string | null
 }
 
 export type PeriodoCc = {
@@ -49,6 +62,7 @@ export type PeriodoCc = {
   fechaDesde: string
   fechaHasta: string
   nroSemana: number
+  cadencia: CadenciaPeriodoCc
   estado: 'BORRADOR' | 'CERRADO'
   createdAt: string
   closedAt: string | null
@@ -59,6 +73,7 @@ export type PeriodoCcRequest = {
   fechaDesde: string
   fechaHasta: string
   nroSemana?: number
+  cadencia?: CadenciaPeriodoCc
 }
 
 export type CodigoTareoCc = 'LAB' | 'F' | 'DSC' | 'FE' | 'DM' | 'LIC'
@@ -107,6 +122,7 @@ export type BoletaCcConcepto = {
   codigo: string
   label: string
   monto: number
+  origen?: 'CALCULADO' | 'MANUAL' | 'TAREO'
   orden: number
 }
 

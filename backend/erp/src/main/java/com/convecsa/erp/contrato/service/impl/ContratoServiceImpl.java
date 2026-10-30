@@ -384,6 +384,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
                 .proyectoId(cc == null || cc.getProyecto() == null ? null : cc.getProyecto().getId())
                 .proyectoCodigo(cc == null || cc.getProyecto() == null ? null : cc.getProyecto().getCodigo())
                 .proyectoNombre(cc == null || cc.getProyecto() == null ? null : cc.getProyecto().getNombre())
+                .centroCosto(cc == null ? null : cc.getCentroCosto())
                 .build();
     }
 
@@ -404,6 +405,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
         cc.setAfiliadoSindical(Boolean.TRUE.equals(request.getAfiliadoSindical()));
         cc.setCuotaSindical(request.getCuotaSindical() == null ? BigDecimal.ZERO : request.getCuotaSindical());
         cc.setHijosEscolaridad(request.getHijosEscolaridad() == null ? 0 : request.getHijosEscolaridad());
+        cc.setCentroCosto(blankToNull(request.getCentroCosto()));
         if (request.getProyectoId() != null) {
             Proyecto proyecto = proyectoRepository.findById(request.getProyectoId())
                     .orElseThrow(() -> new IllegalArgumentException("Proyecto inválido"));

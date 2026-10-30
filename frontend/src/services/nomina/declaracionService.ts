@@ -91,8 +91,12 @@ export function descargarAfpnet(id: number, filename: string): Promise<void> {
   return downloadAuthenticatedRequest(`${BASE}/${id}/afpnet`, filename)
 }
 
-export function descargarDispersion(id: number, filename: string): Promise<void> {
-  return downloadAuthenticatedRequest(`${BASE}/${id}/dispersion`, filename)
+export function descargarDispersion(
+  id: number,
+  filename: string,
+  banco: 'CCI' | 'BCP' | 'INTERBANK' = 'CCI',
+): Promise<void> {
+  return downloadAuthenticatedRequest(`${BASE}/${id}/dispersion?banco=${banco}`, filename)
 }
 
 export function descargarAsientoPdf(id: number, filename: string): Promise<void> {

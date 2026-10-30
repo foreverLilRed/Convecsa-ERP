@@ -39,6 +39,7 @@ type ContratoForm = {
   afiliadoSindical: boolean
   hijosEscolaridad: string
   proyectoId: string
+  centroCosto: string
 }
 
 const props = defineProps<{
@@ -68,6 +69,7 @@ function emptyForm(): ContratoForm {
     afiliadoSindical: false,
     hijosEscolaridad: '0',
     proyectoId: '',
+    centroCosto: '',
   }
 }
 
@@ -343,6 +345,7 @@ async function onSubmit() {
       cuotaSindical: esConstruccionCivil.value && form.afiliadoSindical ? 40 : 0,
       hijosEscolaridad: esConstruccionCivil.value ? Number(form.hijosEscolaridad) : 0,
       proyectoId: esConstruccionCivil.value ? Number(form.proyectoId) : null,
+      centroCosto: esConstruccionCivil.value ? form.centroCosto.trim() || null : null,
     })
     toast.success('Contrato creado.')
     emit('saved')
@@ -591,6 +594,16 @@ onUnmounted(() => {
                         {{ item.codigo }} — {{ item.nombre }}
                       </option>
                     </select>
+                  </div>
+                  <div class="min-w-0">
+                    <label class="text-sm font-medium text-slate-700" for="contrato-cc">Centro de costo</label>
+                    <input
+                      id="contrato-cc"
+                      v-model="form.centroCosto"
+                      maxlength="40"
+                      placeholder="Vacío = centro de costo de la obra"
+                      :class="inputClass"
+                    />
                   </div>
                   <div class="min-w-0">
                     <label class="text-sm font-medium text-slate-700" for="contrato-hijos">Hijos (escolaridad)</label>

@@ -60,6 +60,34 @@ class AsientoRccServiceTest {
                 .anyMatch(l -> "92".equals(l.getCuenta()) && "OB001 / MANO DE OBRA".equals(l.getDestino())));
     }
 
+    @Test
+    void asientoPriorizaCentroCostoDelContrato() {
+        DeclaracionMensual declaracion = new DeclaracionMensual();
+        declaracion.setId(6L);
+        declaracion.setAnio(2026);
+        declaracion.setMes(4);
+        declaracion.setEstado(EstadoDeclaracion.BORRADOR);
+
+        Proyecto proyecto = new Proyecto();
+        proyecto.setCodigo("OB001");
+        proyecto.setCentroCosto("MANO DE OBRA");
+
+        ConsolidadoCc fila = new ConsolidadoCc();
+        fila.setProyecto(proyecto);
+        fila.setCentroCosto("OBRERO-A");
+        fila.setTotalHaberes(new BigDecimal("100.00"));
+        fila.setTotalDescuentos(new BigDecimal("10.00"));
+        fila.setTotalAportesEmpleador(new BigDecimal("9.00"));
+        fila.setNeto(new BigDecimal("90.00"));
+        fila.reemplazarConceptos(List.of(
+                concepto(CategoriaConcepto.DESCUENTO, CodigoConceptoCc.ONP, "10.00"),
+                concepto(CategoriaConcepto.APORTE_EMPLEADOR, CodigoConceptoCc.ESSALUD, "9.00")));
+
+        AsientoContableDTO asiento = service.construir(declaracion, List.of(fila));
+        assertTrue(asiento.getAsientos().get(1).getLineas().stream()
+                .anyMatch(l -> "92".equals(l.getCuenta()) && "OB001 / OBRERO-A".equals(l.getDestino())));
+    }
+
     private static ConsolidadoCcConcepto concepto(
             CategoriaConcepto categoria, CodigoConceptoCc codigo, String monto) {
         ConsolidadoCcConcepto concepto = new ConsolidadoCcConcepto();

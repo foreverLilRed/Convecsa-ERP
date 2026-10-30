@@ -17,4 +17,5 @@ public class PersonalObraDTO {
     private final String especialidadBae;
     private final int hijosEscolaridad;
     private final boolean afiliadoSindical;
+    private final String centroCosto;
 }

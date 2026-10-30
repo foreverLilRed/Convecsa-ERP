@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class CcParametros {
 
     private final BigDecimal horasDia;
@@ -16,6 +16,8 @@ public class CcParametros {
     private final BigDecimal conafovicer;
     private final BigDecimal fondoCapacitacion;
     private final BigDecimal essalud;
+    private final BigDecimal sctrSalud;
+    private final BigDecimal sctrPension;
     private final BigDecimal vacaciones;
     private final BigDecimal cts;
     private final BigDecimal he60Factor;

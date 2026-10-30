@@ -50,6 +50,8 @@ public final class PlameCatalogo {
         RCC.put(CodigoConceptoCc.FONDO_CAPACITACION, "0809");
         RCC.put(CodigoConceptoCc.SCTR_SALUD, "0806");
         RCC.put(CodigoConceptoCc.SCTR_PENSION, "0813");
+        RCC.put(CodigoConceptoCc.REINTEGRO, "0121");
+        RCC.put(CodigoConceptoCc.DESCUENTO_MANUAL, "0701");
 
         ADMIN.put(CodigoConcepto.SUELDO_BASICO, "0121");
         ADMIN.put(CodigoConcepto.ASIG_FAMILIAR, "0201");

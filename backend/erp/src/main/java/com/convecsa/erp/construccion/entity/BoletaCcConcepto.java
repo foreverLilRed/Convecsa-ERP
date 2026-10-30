@@ -2,6 +2,7 @@ package com.convecsa.erp.construccion.entity;
 
 import com.convecsa.erp.construccion.domain.CodigoConceptoCc;
 import com.convecsa.erp.nomina.domain.CategoriaConcepto;
+import com.convecsa.erp.nomina.domain.OrigenConcepto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -46,6 +47,10 @@ public class BoletaCcConcepto {
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal monto;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OrigenConcepto origen = OrigenConcepto.CALCULADO;
 
     @Column(nullable = false)
     private int orden;

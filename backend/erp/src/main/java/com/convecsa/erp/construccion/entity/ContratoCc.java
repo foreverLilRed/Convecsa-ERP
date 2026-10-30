@@ -52,4 +52,7 @@ public class ContratoCc {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proyecto_id")
     private Proyecto proyecto;
+
+    @Column(name = "centro_costo", length = 40)
+    private String centroCosto;
 }

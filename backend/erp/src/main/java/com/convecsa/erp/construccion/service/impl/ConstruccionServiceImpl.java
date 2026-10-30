@@ -5,12 +5,15 @@ import com.convecsa.erp.common.exception.PeriodoCcDuplicadoException;
 import com.convecsa.erp.common.exception.PeriodoCcNoEncontradoException;
 import com.convecsa.erp.common.exception.ProyectoCodigoDuplicadoException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
+import com.convecsa.erp.construccion.domain.CadenciaPeriodoCc;
 import com.convecsa.erp.construccion.domain.CategoriaObrera;
+import com.convecsa.erp.construccion.domain.CodigoConceptoCc;
 import com.convecsa.erp.construccion.domain.CodigoTareoCc;
 import com.convecsa.erp.construccion.domain.EstadoPeriodoCc;
 import com.convecsa.erp.construccion.domain.SemestreGrati;
 import com.convecsa.erp.construccion.dto.BoletaCcConceptoDTO;
 import com.convecsa.erp.construccion.dto.BoletaCcDTO;
+import com.convecsa.erp.construccion.dto.BoletaCcExtrasRequest;
 import com.convecsa.erp.construccion.dto.BoletaCcResumenDTO;
 import com.convecsa.erp.construccion.dto.ConstruccionCatalogosDTO;
 import com.convecsa.erp.construccion.dto.PeriodoCcDTO;
@@ -23,6 +26,7 @@ import com.convecsa.erp.construccion.dto.TareoCcGrillaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
 import com.convecsa.erp.construccion.entity.BoletaCc;
 import com.convecsa.erp.construccion.entity.BoletaCcConcepto;
+import com.convecsa.erp.construccion.entity.BoletaCcEnvioCorreo;
 import com.convecsa.erp.construccion.entity.CcCategoriaJornal;
 import com.convecsa.erp.construccion.entity.CcEspecialidadBae;
 import com.convecsa.erp.construccion.entity.CcParametroAnual;
@@ -30,6 +34,7 @@ import com.convecsa.erp.construccion.entity.ContratoCc;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.entity.TareoCcDia;
+import com.convecsa.erp.construccion.repository.BoletaCcEnvioCorreoRepository;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
 import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.ContratoCcRepository;
@@ -42,17 +47,27 @@ import com.convecsa.erp.construccion.support.CalculoNominaCcService;
 import com.convecsa.erp.construccion.support.CcLiquidacionInput;
 import com.convecsa.erp.construccion.support.CcLiquidacionResult;
 import com.convecsa.erp.construccion.support.CcParametros;
+import com.convecsa.erp.construccion.support.DominicalCc;
 import com.convecsa.erp.construccion.support.RentaQuintaProyeccionService;
 import com.convecsa.erp.construccion.support.UitObraAlerta;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.nomina.catalogo.Afp;
+import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
+import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
+import com.convecsa.erp.nomina.declaracion.support.DispersionArchivoService;
+import com.convecsa.erp.nomina.domain.CategoriaConcepto;
+import com.convecsa.erp.nomina.domain.OrigenConcepto;
 import com.convecsa.erp.nomina.domain.TipoComisionAfp;
+import com.convecsa.erp.nomina.dto.BoletaConceptoExtraRequest;
+import com.convecsa.erp.nomina.dto.BoletaEnvioResumenDTO;
+import com.convecsa.erp.nomina.dto.BoletaLoteRequest;
 import com.convecsa.erp.nomina.entity.AfpTasa;
 import com.convecsa.erp.nomina.entity.NominaDocumentoConfiguracion;
 import com.convecsa.erp.nomina.repository.AfpRepository;
 import com.convecsa.erp.nomina.repository.AfpTasaRepository;
 import com.convecsa.erp.nomina.repository.NominaDocumentoConfiguracionRepository;
+import com.convecsa.erp.nomina.support.BoletaCorreoService;
 import com.convecsa.erp.nomina.support.BoletaPdfService;
 import com.convecsa.erp.persona.entity.Persona;
 import java.math.BigDecimal;
@@ -85,10 +100,13 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private final PeriodoCcRepository periodoCcRepository;
     private final TareoCcDiaRepository tareoCcDiaRepository;
     private final BoletaCcRepository boletaCcRepository;
+    private final BoletaCcEnvioCorreoRepository boletaCcEnvioCorreoRepository;
     private final CalculoNominaCcService calculoNominaCcService;
     private final RentaQuintaProyeccionService rentaQuintaProyeccionService;
     private final BoletaCcPlantillaService boletaCcPlantillaService;
     private final BoletaPdfService boletaPdfService;
+    private final BoletaCorreoService boletaCorreoService;
+    private final DispersionArchivoService dispersionArchivoService;
     private final AfpRepository afpRepository;
     private final AfpTasaRepository afpTasaRepository;
     private final NominaDocumentoConfiguracionRepository documentoConfiguracionRepository;
@@ -145,6 +163,9 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         proyecto.setUbicacion(blankToNull(request.getUbicacion()));
         proyecto.setCentroCosto(blankToNull(request.getCentroCosto()));
         proyecto.setValorObra(request.getValorObra());
+        proyecto.setNivelRiesgo(request.getNivelRiesgo());
+        proyecto.setTasaSctrSalud(nz(request.getTasaSctrSalud()));
+        proyecto.setTasaSctrPension(nz(request.getTasaSctrPension()));
         proyecto.setActivo(request.getActivo() == null || request.getActivo());
         return toProyectoDto(proyectoRepository.save(proyecto), parametrosVigentes(LocalDate.now().getYear()));
     }
@@ -182,6 +203,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         periodo.setNroSemana(request.getNroSemana() == null
                 ? request.getFechaDesde().get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear())
                 : request.getNroSemana());
+        periodo.setCadencia(request.getCadencia() == null ? CadenciaPeriodoCc.SEMANAL : request.getCadencia());
         periodo.setEstado(EstadoPeriodoCc.BORRADOR);
         PeriodoCc saved = periodoCcRepository.save(periodo);
         asegurarTareoInicial(saved);
@@ -255,7 +277,11 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         PeriodoCc periodo = buscarPeriodo(proyectoId, periodoId);
         exigirBorrador(periodo);
         asegurarTareoInicial(periodo);
-        CcParametros parametros = toParametros(parametrosVigentes(periodo.getFechaHasta().getYear()));
+        CcParametros parametros = toParametros(parametrosVigentes(periodo.getFechaHasta().getYear()))
+                .toBuilder()
+                .sctrSalud(nz(periodo.getProyecto().getTasaSctrSalud()))
+                .sctrPension(nz(periodo.getProyecto().getTasaSctrPension()))
+                .build();
         Map<Long, ContratoCc> personal = personalPorPersona(proyectoId);
         Map<Long, List<TareoCcDia>> porPersona = tareoCcDiaRepository
                 .findByPeriodoIdOrderByPersonaIdAscFechaAsc(periodoId)
@@ -280,14 +306,10 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                     : calculoNominaCcService.calcular(input.toBuilder().rentaQuinta(rentaQuinta).build(), parametros);
             BoletaCc boleta = boletaCcRepository.findByPeriodoIdAndPersonaId(periodoId, entry.getKey())
                     .orElseGet(BoletaCc::new);
+            List<BoletaCcConcepto> manuals = copiarManuales(boleta);
             boleta.setPeriodo(periodo);
             boleta.setPersona(contratoCc.getContrato().getPersona());
             boleta.setContrato(contratoCc.getContrato());
-            boleta.setTotalHaberes(resultado.getTotalHaberes());
-            boleta.setTotalDescuentos(resultado.getTotalDescuentos());
-            boleta.setTotalAportesEmpleador(resultado.getTotalAportes());
-            boleta.setTotalAfecto(resultado.getTotalAfecto());
-            boleta.setNeto(resultado.getNeto());
             boleta.setTarifaDia(resultado.getTarifaDia());
             boleta.setTarifaHora(resultado.getTarifaHora());
             List<BoletaCcConcepto> conceptos = new ArrayList<>();
@@ -297,9 +319,12 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 concepto.setCodigo(item.codigo());
                 concepto.setLabel(item.label());
                 concepto.setMonto(item.monto());
+                concepto.setOrigen(OrigenConcepto.CALCULADO);
                 conceptos.add(concepto);
             });
+            conceptos.addAll(manuals);
             boleta.reemplazarConceptos(conceptos);
+            aplicarTotales(boleta, resultado);
             boletas.add(toResumen(boletaCcRepository.save(boleta), contratoCc));
         }
         return boletas;
@@ -342,6 +367,124 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     @Transactional(readOnly = true)
     public byte[] documentoBoletaPdf(Long proyectoId, Long periodoId, Long boletaId) {
         return boletaPdfService.convertir(documentoBoletaHtml(proyectoId, periodoId, boletaId));
+    }
+
+    @Override
+    @Transactional
+    public BoletaCcDTO guardarExtras(
+            Long proyectoId, Long periodoId, Long boletaId, BoletaCcExtrasRequest request) {
+        PeriodoCc periodo = buscarPeriodo(proyectoId, periodoId);
+        exigirBorrador(periodo);
+        BoletaCc boleta = buscarBoleta(proyectoId, periodoId, boletaId);
+        boleta.getConceptos().removeIf(item -> item.getOrigen() == OrigenConcepto.MANUAL);
+        List<BoletaConceptoExtraRequest> extras = request == null || request.getExtras() == null
+                ? List.of()
+                : request.getExtras();
+        int orden = boleta.getConceptos().size();
+        for (BoletaConceptoExtraRequest extra : extras) {
+            if (extra.getCategoria() == null || extra.getLabel() == null || extra.getLabel().isBlank()) {
+                throw new IllegalArgumentException("Cada reintegro requiere categoría y nombre");
+            }
+            if (extra.getCategoria() == CategoriaConcepto.APORTE_EMPLEADOR) {
+                throw new IllegalArgumentException("Los reintegros no pueden ser aportes del empleador");
+            }
+            BoletaCcConcepto concepto = new BoletaCcConcepto();
+            concepto.setBoleta(boleta);
+            concepto.setCategoria(extra.getCategoria());
+            concepto.setCodigo(extra.getCategoria() == CategoriaConcepto.DESCUENTO
+                    ? CodigoConceptoCc.DESCUENTO_MANUAL
+                    : CodigoConceptoCc.REINTEGRO);
+            concepto.setLabel(extra.getLabel().trim());
+            concepto.setMonto(nz(extra.getMonto()));
+            concepto.setOrigen(OrigenConcepto.MANUAL);
+            concepto.setOrden(orden++);
+            boleta.getConceptos().add(concepto);
+        }
+        recalcularTotalesDesdeConceptos(boleta);
+        return toBoletaDto(boletaCcRepository.save(boleta));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] documentoBoletasPdf(Long proyectoId, Long periodoId, BoletaLoteRequest request) {
+        List<BoletaCc> boletas = cargarBoletasLote(proyectoId, periodoId, request);
+        return boletaPdfService.combinar(boletas.stream()
+                .map(boleta -> boletaPdfService.convertir(
+                        documentoBoletaHtml(proyectoId, periodoId, boleta.getId())))
+                .toList());
+    }
+
+    @Override
+    @Transactional
+    public BoletaEnvioResumenDTO enviarBoletas(Long proyectoId, Long periodoId, BoletaLoteRequest request) {
+        PeriodoCc periodo = buscarPeriodo(proyectoId, periodoId);
+        List<BoletaCc> boletas = cargarBoletasLote(proyectoId, periodoId, request);
+        NominaDocumentoConfiguracion configuracion = documentoConfiguracionRepository
+                .findById(NominaDocumentoConfiguracion.ID_UNICO)
+                .orElse(null);
+        String empresa = configuracion == null || configuracion.getRazonSocial() == null
+                ? "CONVECSA S.A.C."
+                : configuracion.getRazonSocial();
+        int anio = periodo.getFechaHasta().getYear();
+        int mes = periodo.getFechaHasta().getMonthValue();
+        List<String> detalles = new ArrayList<>();
+        int enviados = 0;
+        int errores = 0;
+        for (BoletaCc boleta : boletas) {
+            Persona persona = boleta.getPersona();
+            String destinatario = persona.getCorreo() == null || persona.getCorreo().isBlank()
+                    ? null
+                    : persona.getCorreo().trim();
+            String nombre = persona.getNombres() + " " + persona.getApellidos();
+            BoletaCcEnvioCorreo auditoria = new BoletaCcEnvioCorreo();
+            auditoria.setBoleta(boleta);
+            auditoria.setDestinatario(destinatario == null ? "SIN_CORREO" : destinatario);
+            try {
+                if (destinatario == null) {
+                    throw new IllegalArgumentException("La persona no tiene correo registrado");
+                }
+                byte[] pdf = documentoBoletaPdf(proyectoId, periodoId, boleta.getId());
+                boletaCorreoService.enviar(
+                        destinatario,
+                        nombre,
+                        empresa,
+                        anio,
+                        mes,
+                        "boleta-rcc-" + boleta.getId() + ".pdf",
+                        pdf);
+                auditoria.setEstado("ENVIADO");
+                enviados++;
+            } catch (Exception ex) {
+                auditoria.setEstado("ERROR");
+                auditoria.setDetalle(ex.getMessage() == null ? "Error de envío" : ex.getMessage());
+                if (auditoria.getDetalle().length() > 1000) {
+                    auditoria.setDetalle(auditoria.getDetalle().substring(0, 1000));
+                }
+                detalles.add(nombre + ": " + auditoria.getDetalle());
+                errores++;
+            }
+            boletaCcEnvioCorreoRepository.save(auditoria);
+        }
+        return new BoletaEnvioResumenDTO(enviados, errores, detalles);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ArchivoDescargaDTO descargarDispersion(Long proyectoId, Long periodoId, BancoDispersion banco) {
+        PeriodoCc periodo = buscarPeriodo(proyectoId, periodoId);
+        List<BoletaCc> boletas = boletaCcRepository.findByPeriodoIdOrderByIdAsc(periodoId);
+        if (boletas.isEmpty()) {
+            throw new IllegalArgumentException("Liquide la planilla antes de generar la dispersión");
+        }
+        for (BoletaCc boleta : boletas) {
+            boleta.getPersona().getCuentasBancarias().size();
+        }
+        BancoDispersion formato = banco == null ? BancoDispersion.CCI : banco;
+        String contenido = dispersionArchivoService.generarBoletas(boletas, formato);
+        String nombre = "dispersion-" + periodo.getProyecto().getCodigo() + "-"
+                + periodo.getFechaDesde() + "-" + periodo.getFechaHasta() + "-"
+                + formato.name().toLowerCase() + ".txt";
+        return new ArchivoDescargaDTO(nombre, "text/plain; charset=UTF-8", contenido.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     private void asegurarTareoInicial(PeriodoCc periodo) {
@@ -524,7 +667,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .cuotaSindical(cuota)
                 .rentaQuinta(BigDecimal.ZERO)
                 .horasOrdinarias(horasOrd)
-                .horasDominical(horasOrd.divide(new BigDecimal("6"), 4, RoundingMode.HALF_UP))
+                .horasDominical(DominicalCc.horasDominical(dias))
                 .he60(he60)
                 .he100(he100)
                 .diasEfectivos(diasLab)
@@ -596,6 +739,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .conafovicer(p.getConafovicer())
                 .fondoCapacitacion(p.getFondoCapacitacion())
                 .essalud(p.getEssalud())
+                .sctrSalud(BigDecimal.ZERO)
+                .sctrPension(BigDecimal.ZERO)
                 .vacaciones(p.getVacaciones())
                 .cts(p.getCts())
                 .he60Factor(p.getHe60Factor())
@@ -708,6 +853,9 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .ubicacion(proyecto.getUbicacion())
                 .centroCosto(proyecto.getCentroCosto())
                 .valorObra(proyecto.getValorObra())
+                .nivelRiesgo(proyecto.getNivelRiesgo())
+                .tasaSctrSalud(proyecto.getTasaSctrSalud())
+                .tasaSctrPension(proyecto.getTasaSctrPension())
                 .activo(proyecto.isActivo())
                 .alertaUit(UitObraAlerta.supera(proyecto.getValorObra(), parametros.getUit()))
                 .uitAnio(parametros.getAnio())
@@ -727,6 +875,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .especialidadBae(contratoCc.getEspecialidadBae())
                 .hijosEscolaridad(contratoCc.getHijosEscolaridad())
                 .afiliadoSindical(contratoCc.isAfiliadoSindical())
+                .centroCosto(contratoCc.getCentroCosto())
                 .build();
     }
 
@@ -740,6 +889,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .fechaDesde(periodo.getFechaDesde())
                 .fechaHasta(periodo.getFechaHasta())
                 .nroSemana(periodo.getNroSemana())
+                .cadencia(periodo.getCadencia() == null ? CadenciaPeriodoCc.SEMANAL : periodo.getCadencia())
                 .estado(periodo.getEstado())
                 .createdAt(periodo.getCreatedAt())
                 .closedAt(periodo.getClosedAt())
@@ -807,9 +957,94 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                                 item.getCodigo(),
                                 item.getLabel(),
                                 item.getMonto(),
+                                item.getOrigen() == null ? OrigenConcepto.CALCULADO : item.getOrigen(),
                                 item.getOrden()))
                         .toList())
                 .build();
+    }
+
+    private List<BoletaCc> cargarBoletasLote(Long proyectoId, Long periodoId, BoletaLoteRequest request) {
+        buscarPeriodo(proyectoId, periodoId);
+        List<BoletaCc> todas = boletaCcRepository.findByPeriodoIdOrderByIdAsc(periodoId);
+        List<Long> ids = request == null || request.getBoletaIds() == null
+                ? List.of()
+                : request.getBoletaIds().stream().filter(java.util.Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            if (todas.isEmpty()) {
+                throw new IllegalArgumentException("No hay boletas para emitir");
+            }
+            return todas;
+        }
+        Map<Long, BoletaCc> porId = todas.stream().collect(Collectors.toMap(BoletaCc::getId, item -> item));
+        List<BoletaCc> seleccion = new ArrayList<>();
+        for (Long id : ids) {
+            BoletaCc boleta = porId.get(id);
+            if (boleta == null) {
+                throw new IllegalArgumentException("Una o más boletas no pertenecen al periodo seleccionado");
+            }
+            seleccion.add(boleta);
+        }
+        return seleccion;
+    }
+
+    private static List<BoletaCcConcepto> copiarManuales(BoletaCc boleta) {
+        List<BoletaCcConcepto> manuals = new ArrayList<>();
+        if (boleta.getId() == null || boleta.getConceptos() == null) {
+            return manuals;
+        }
+        for (BoletaCcConcepto item : boleta.getConceptos()) {
+            if (item.getOrigen() != OrigenConcepto.MANUAL) {
+                continue;
+            }
+            BoletaCcConcepto copia = new BoletaCcConcepto();
+            copia.setCategoria(item.getCategoria());
+            copia.setCodigo(item.getCodigo());
+            copia.setLabel(item.getLabel());
+            copia.setMonto(item.getMonto());
+            copia.setOrigen(OrigenConcepto.MANUAL);
+            manuals.add(copia);
+        }
+        return manuals;
+    }
+
+    private static void aplicarTotales(BoletaCc boleta, CcLiquidacionResult resultado) {
+        BigDecimal extraHaber = BigDecimal.ZERO;
+        BigDecimal extraDesc = BigDecimal.ZERO;
+        for (BoletaCcConcepto concepto : boleta.getConceptos()) {
+            if (concepto.getOrigen() != OrigenConcepto.MANUAL) {
+                continue;
+            }
+            if (concepto.getCategoria() == CategoriaConcepto.HABER) {
+                extraHaber = extraHaber.add(nz(concepto.getMonto()));
+            } else if (concepto.getCategoria() == CategoriaConcepto.DESCUENTO) {
+                extraDesc = extraDesc.add(nz(concepto.getMonto()));
+            }
+        }
+        boleta.setTotalHaberes(resultado.getTotalHaberes().add(extraHaber));
+        boleta.setTotalDescuentos(resultado.getTotalDescuentos().add(extraDesc));
+        boleta.setTotalAportesEmpleador(resultado.getTotalAportes());
+        boleta.setTotalAfecto(resultado.getTotalAfecto());
+        boleta.setNeto(resultado.getNeto().add(extraHaber).subtract(extraDesc));
+    }
+
+    private static void recalcularTotalesDesdeConceptos(BoletaCc boleta) {
+        BigDecimal haberes = BigDecimal.ZERO;
+        BigDecimal descuentos = BigDecimal.ZERO;
+        BigDecimal aportes = BigDecimal.ZERO;
+        for (BoletaCcConcepto concepto : boleta.getConceptos()) {
+            BigDecimal monto = nz(concepto.getMonto());
+            if (concepto.getCategoria() == CategoriaConcepto.HABER) {
+                haberes = haberes.add(monto);
+            } else if (concepto.getCategoria() == CategoriaConcepto.DESCUENTO) {
+                descuentos = descuentos.add(monto);
+            } else if (concepto.getCategoria() == CategoriaConcepto.APORTE_EMPLEADOR) {
+                aportes = aportes.add(monto);
+            }
+        }
+        boleta.setTotalHaberes(haberes);
+        boleta.setTotalDescuentos(descuentos);
+        boleta.setTotalAportesEmpleador(aportes);
+        boleta.setNeto(haberes.subtract(descuentos));
     }
 
     private static String labelCategoria(CategoriaObrera categoria) {

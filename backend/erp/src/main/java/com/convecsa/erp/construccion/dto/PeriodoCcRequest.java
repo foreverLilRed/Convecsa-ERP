@@ -1,5 +1,6 @@
 package com.convecsa.erp.construccion.dto;
 
+import com.convecsa.erp.construccion.domain.CadenciaPeriodoCc;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -17,6 +18,8 @@ public class PeriodoCcRequest {
     private LocalDate fechaHasta;
 
     private Integer nroSemana;
+
+    private CadenciaPeriodoCc cadencia;
 
     @AssertTrue(message = "La fecha hasta no puede ser menor que la fecha desde")
     public boolean isRangoValido() {

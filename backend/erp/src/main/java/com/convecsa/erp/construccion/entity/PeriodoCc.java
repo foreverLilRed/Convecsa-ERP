@@ -1,5 +1,6 @@
 package com.convecsa.erp.construccion.entity;
 
+import com.convecsa.erp.construccion.domain.CadenciaPeriodoCc;
 import com.convecsa.erp.construccion.domain.EstadoPeriodoCc;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -42,6 +43,10 @@ public class PeriodoCc {
 
     @Column(name = "nro_semana", nullable = false)
     private int nroSemana;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CadenciaPeriodoCc cadencia = CadenciaPeriodoCc.SEMANAL;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

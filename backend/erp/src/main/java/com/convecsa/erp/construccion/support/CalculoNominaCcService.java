@@ -125,6 +125,10 @@ public class CalculoNominaCcService {
         List<CcConceptoCalculado> aportes = new ArrayList<>();
         add(aportes, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConceptoCc.ESSALUD, "EsSalud",
                 r2(totalAfecto.multiply(p.getEssalud())));
+        add(aportes, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConceptoCc.SCTR_SALUD, "SCTR salud",
+                r2(totalAfecto.multiply(nz(p.getSctrSalud()))));
+        add(aportes, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConceptoCc.SCTR_PENSION, "SCTR pensión",
+                r2(totalAfecto.multiply(nz(p.getSctrPension()))));
         add(aportes, CategoriaConcepto.APORTE_EMPLEADOR, CodigoConceptoCc.FONDO_CAPACITACION, "Fondo capacitación",
                 r2(p.getFondoCapacitacion().multiply(remFeriado.add(jornalBasico).add(dm).add(lic))));
 

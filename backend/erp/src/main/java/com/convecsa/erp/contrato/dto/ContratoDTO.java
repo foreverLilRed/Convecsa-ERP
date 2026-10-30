@@ -39,4 +39,5 @@ public class ContratoDTO {
     private final Long proyectoId;
     private final String proyectoCodigo;
     private final String proyectoNombre;
+    private final String centroCosto;
 }

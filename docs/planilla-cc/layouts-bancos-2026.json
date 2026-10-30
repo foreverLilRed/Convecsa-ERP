@@ -1,0 +1,20 @@
+{
+  "fuente": "Telecrédito BCP haberes / Interbank pago de haberes. El Excel V8 no incluye layout bancario; se documenta el archivo generado por el ERP.",
+  "separador": "|",
+  "finLinea": "CRLF",
+  "formatos": {
+    "CCI": {
+      "cabecera": "documento|nombre|banco|cci|neto",
+      "detalle": ["documento", "nombre", "banco", "cci", "neto"]
+    },
+    "BCP": {
+      "cabecera": false,
+      "detalle": ["tipoRegistro=2", "tipoDoc=01", "nroDoc", "nombre40", "tipoAbono C|I", "cuentaOCci", "importe", "moneda=PEN", "referencia"]
+    },
+    "INTERBANK": {
+      "cabecera": false,
+      "detalle": ["tipoDoc=01", "nroDoc", "nombre40", "tipoCuenta=CC", "cuenta", "importe", "concepto"]
+    }
+  },
+  "filtro": "Se omiten trabajadores sin cuenta o CCI del banco pedido."
+}

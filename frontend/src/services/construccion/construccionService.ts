@@ -1,5 +1,7 @@
-import { apiRequest, openAuthenticatedDocument } from '@/services/http'
+import { apiRequest, downloadAuthenticatedRequest, openAuthenticatedDocument, openAuthenticatedRequest } from '@/services/http'
+import type { BoletaEnvioResumen } from '@/types/nomina'
 import type {
+  BancoDispersion,
   BoletaCc,
   BoletaCcResumen,
   ConstruccionCatalogos,
@@ -118,4 +120,67 @@ export function abrirPdfBoletaCc(
   boletaId: number,
 ): Promise<void> {
   return openAuthenticatedDocument(boletaCcPdfUrl(proyectoId, periodoId, boletaId))
+}
+
+function loteBody(boletaIds: number[]): string {
+  return JSON.stringify({ boletaIds })
+}
+
+export function guardarExtrasBoletaCc(
+  proyectoId: number,
+  periodoId: number,
+  boletaId: number,
+  extras: { categoria: 'HABER' | 'DESCUENTO' | 'APORTE_EMPLEADOR'; label: string; monto: number }[],
+): Promise<BoletaCc> {
+  return apiRequest<BoletaCc>(
+    `/api/proyectos/${proyectoId}/periodos/${periodoId}/boletas/${boletaId}/extras`,
+    { method: 'PUT', body: JSON.stringify({ extras }) },
+  )
+}
+
+export function descargarBoletasCcPdf(
+  proyectoId: number,
+  periodoId: number,
+  boletaIds: number[],
+  filename: string,
+): Promise<void> {
+  return downloadAuthenticatedRequest(
+    `/api/proyectos/${proyectoId}/periodos/${periodoId}/boletas/pdf?descarga=true`,
+    filename,
+    { method: 'POST', body: loteBody(boletaIds) },
+  )
+}
+
+export function enviarBoletasCcCorreo(
+  proyectoId: number,
+  periodoId: number,
+  boletaIds: number[],
+): Promise<BoletaEnvioResumen> {
+  return apiRequest<BoletaEnvioResumen>(
+    `/api/proyectos/${proyectoId}/periodos/${periodoId}/boletas/correo`,
+    { method: 'POST', body: loteBody(boletaIds) },
+  )
+}
+
+export function descargarDispersionCc(
+  proyectoId: number,
+  periodoId: number,
+  banco: BancoDispersion,
+  filename: string,
+): Promise<void> {
+  return downloadAuthenticatedRequest(
+    `/api/proyectos/${proyectoId}/periodos/${periodoId}/dispersion?banco=${banco}`,
+    filename,
+  )
+}
+
+export function abrirLoteBoletasCcPdf(
+  proyectoId: number,
+  periodoId: number,
+  boletaIds: number[],
+): Promise<void> {
+  return openAuthenticatedRequest(
+    `/api/proyectos/${proyectoId}/periodos/${periodoId}/boletas/pdf?descarga=false`,
+    { method: 'POST', body: loteBody(boletaIds) },
+  )
 }

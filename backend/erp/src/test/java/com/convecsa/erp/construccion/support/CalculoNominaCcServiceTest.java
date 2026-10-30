@@ -48,6 +48,24 @@ class CalculoNominaCcServiceTest {
         assertEquals(new BigDecimal("5724.46"), resultado.getNeto());
     }
 
+    @Test
+    void sctrDeLaObraEsAporteEmpleadorYNoCambiaElNeto() {
+        CcParametros conSctr = parametros2026().toBuilder()
+                .sctrSalud(new BigDecimal("0.010000"))
+                .sctrPension(new BigDecimal("0.012000"))
+                .build();
+        CcLiquidacionResult sinSctr = calculo.calcular(ob001(), parametros2026());
+        CcLiquidacionResult conAportes = calculo.calcular(ob001(), conSctr);
+
+        assertMonto(conAportes, CodigoConceptoCc.SCTR_SALUD, "45.63");
+        assertMonto(conAportes, CodigoConceptoCc.SCTR_PENSION, "54.76");
+        assertEquals(sinSctr.getNeto(), conAportes.getNeto());
+        assertEquals(0, sinSctr.getConceptos().stream()
+                .filter(item -> item.codigo() == CodigoConceptoCc.SCTR_SALUD
+                        || item.codigo() == CodigoConceptoCc.SCTR_PENSION)
+                .count());
+    }
+
     private static CcLiquidacionInput ob001() {
         return CcLiquidacionInput.builder()
                 .categoria(CategoriaObrera.OPERARIO)
