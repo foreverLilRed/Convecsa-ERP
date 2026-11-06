@@ -37,6 +37,9 @@ class ContratoPlantillaServiceTest {
         assertTrue(html.contains("Seis mil quinientos soles con 00/100"));
         assertFalse(html.contains("{{trabajador_nombres}}"));
         assertFalse(html.contains("{{sueldo}}"));
+        assertTrue(html.contains("CONTRATO DE TRABAJO A PLAZO FIJO POR OBRA DETERMINADA O SERVICIO ESPECÍFICO"));
+        assertTrue(html.contains("EL TRABAJADOR"));
+        assertTrue(html.contains("señor(a)"));
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.convecsa.erp.contrato.catalogo.RegimenLaboral;
 import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.entity.PlantillaContrato;
+import com.convecsa.erp.persona.domain.Genero;
 import com.convecsa.erp.persona.domain.GradoInstruccion;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.entity.PersonaCelular;
@@ -44,6 +45,8 @@ public class ContratoPlantillaService {
             "trabajador_nombres",
             "trabajador_apellidos",
             "trabajador_nombre_completo",
+            "trabajador_tratamiento",
+            "trabajador_calidad",
             "trabajador_apellido_paterno",
             "trabajador_apellido_materno",
             "trabajador_tipo_documento",
@@ -296,6 +299,8 @@ public class ContratoPlantillaService {
         valores.put("trabajador_nombres", text(persona.getNombres()));
         valores.put("trabajador_apellidos", text(persona.getApellidos()));
         valores.put("trabajador_nombre_completo", (text(persona.getNombres()) + " " + text(persona.getApellidos())).trim());
+        valores.put("trabajador_tratamiento", tratamiento(persona.getGenero()));
+        valores.put("trabajador_calidad", calidad(persona.getGenero()));
         valores.put("trabajador_apellido_paterno", apellidos[0]);
         valores.put("trabajador_apellido_materno", apellidos[1]);
         valores.put("trabajador_tipo_documento", enumLabel(persona.getTipoDocumento()));
@@ -386,11 +391,30 @@ public class ContratoPlantillaService {
             return "";
         }
         long meses = ChronoUnit.MONTHS.between(inicio, fin);
+        LocalDate afterMonths = inicio.plusMonths(meses);
+        long dias = ChronoUnit.DAYS.between(afterMonths, fin);
         if (meses <= 0) {
-            long dias = ChronoUnit.DAYS.between(inicio, fin);
             return dias == 1 ? "1 día" : dias + " días";
         }
-        return meses == 1 ? "1 mes" : meses + " meses";
+        String parteMeses = meses == 1 ? "1 mes" : meses + " meses";
+        if (dias <= 0) {
+            return parteMeses;
+        }
+        return parteMeses + " con " + (dias == 1 ? "1 día" : dias + " días");
+    }
+
+    private static String tratamiento(Genero genero) {
+        if (genero == Genero.FEMENINO) {
+            return "doña";
+        }
+        if (genero == Genero.MASCULINO) {
+            return "don";
+        }
+        return "señor(a)";
+    }
+
+    private static String calidad(Genero genero) {
+        return genero == Genero.FEMENINO ? "LA TRABAJADORA" : "EL TRABAJADOR";
     }
 
     private static String sueldo(java.math.BigDecimal monto) {

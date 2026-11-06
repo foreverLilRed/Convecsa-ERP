@@ -229,6 +229,11 @@ watch(
       document.addEventListener('keydown', onDocumentKeydown)
       try {
         await Promise.all([loadCatalogos(), buscarPersonas('')])
+        if (!form.tipoPlantillaId) {
+          const cse = plantillasContrato.value.find((item) => item.codigo === 'CSE')
+          const fallback = plantillasContrato.value[0]
+          form.tipoPlantillaId = String(cse?.id ?? fallback?.id ?? '')
+        }
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'No se pudieron cargar los catálogos.')
       }
