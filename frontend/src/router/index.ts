@@ -24,6 +24,7 @@ import UsuariosPage from '@/pages/UsuariosPage.vue'
 import VacacionesPage from '@/pages/gestion-humana/VacacionesPage.vue'
 import ConstanciasCertificadosPage from '@/pages/gestion-humana/ConstanciasCertificadosPage.vue'
 import ProyectosPage from '@/pages/proyectos/ProyectosPage.vue'
+import ProyectoFichaPage from '@/pages/proyectos/ProyectoFichaPage.vue'
 import ProyectoTareoPage from '@/pages/proyectos/ProyectoTareoPage.vue'
 import ProyectoPlanillaPage from '@/pages/proyectos/ProyectoPlanillaPage.vue'
 
@@ -159,14 +160,21 @@ const router = createRouter({
           component: ProyectosPage,
         },
         {
-          path: 'proyectos/:id(\\d+)/tareo',
-          name: 'proyecto-tareo',
-          component: ProyectoTareoPage,
-        },
-        {
-          path: 'proyectos/:id(\\d+)/planilla',
-          name: 'proyecto-planilla',
-          component: ProyectoPlanillaPage,
+          path: 'proyectos/:id(\\d+)',
+          name: 'proyecto-ficha',
+          component: ProyectoFichaPage,
+          children: [
+            {
+              path: 'tareo',
+              name: 'proyecto-tareo',
+              component: ProyectoTareoPage,
+            },
+            {
+              path: 'planilla',
+              name: 'proyecto-planilla',
+              component: ProyectoPlanillaPage,
+            },
+          ],
         },
       ],
     },

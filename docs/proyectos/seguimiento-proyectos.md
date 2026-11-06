@@ -1,0 +1,564 @@
+# Seguimiento del módulo Proyectos
+
+Documento vivo de seguimiento para la gestión de obras en el ERP Convecsa. Sirve como checklist de implementación: se marcan objetivos a medida que se cierran. Lo marcado como **Hecho** cita archivos reales; lo **Pendiente** propone nombres de entidades, endpoints y páginas Vue como guía de implementación, no como contrato cerrado.
+
+Última revisión: 2026-11-06.
+
+## Leyenda
+
+| Casilla | Significado |
+| --- | --- |
+| `[x]` | Hecho y verificable en el código actual |
+| `[ ]` | Pendiente |
+| Parcial | Hay un subconjunto hecho; el resto queda abierto en la misma sección |
+
+Estados de sección usados en el resumen: **Hecho**, **Parcial**, **Pendiente**.
+
+Convención de cada sección:
+
+1. Objetivos (checkboxes).
+2. Cómo funciona, a grandes rasgos.
+3. Desglose técnico (entidad, endpoint, página Vue). En lo pendiente, los nombres son orientativos.
+
+---
+
+## 1. Resumen y alcance
+
+El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
+
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento). Faltan presupuesto, materiales, avances/valorizaciones, financiamiento/factoring y el tablero de rentabilidad.
+
+```mermaid
+flowchart LR
+  Maestro[MaestroDeObra] --> Asignacion[AsignacionDeRecursos]
+  Asignacion --> Ejecucion[Ejecucion]
+  Ejecucion --> Avance[AvancesYValorizaciones]
+  Avance --> Financiamiento[FinanciamientoYFactoring]
+  Financiamiento --> Cierre[CierreYRentabilidad]
+  Ejecucion --> CostoReal[CostoRealPorCentroCosto]
+  CostoReal --> Cierre
+```
+
+Subflujo de ejecución actual versus objetivo:
+
+```mermaid
+flowchart TB
+  subgraph hecho [Hecho]
+    Contrato[ContratoCc] --> Tareo[ParteDiario]
+    Tareo --> Planilla[PlanillaRCC]
+    Planilla --> Dispersion[DispersionBancaria]
+    Planilla --> Asiento[AsientoRCC]
+  end
+  subgraph pendiente [Pendiente]
+    Presupuesto[PresupuestoYAPU] --> Materiales[MaterialesYAlmacen]
+    Presupuesto --> Avances[AvancesFisicos]
+    Avances --> Valorizacion[ValorizacionCliente]
+    Valorizacion --> Factoring[Factoring]
+  end
+```
+
+### Estado global por subsección
+
+| # | Subsección | Estado |
+| --- | --- | --- |
+| 2 | Maestro de Obras | Hecho |
+| 3 | Asignación de recursos | Parcial |
+| 4 | Parte diario y mano de obra | Hecho |
+| 5 | Presupuesto y costeo meta | Pendiente |
+| 6 | Materiales y almacén | Pendiente |
+| 7 | Avances y valorizaciones | Pendiente |
+| 8 | Financiamiento de obra (incluye factoring) | Pendiente |
+| 9 | Integración contable y rentabilidad | Parcial |
+| 10 | Transversales | Parcial |
+
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo y Planilla viven como pestañas de esa ficha.
+
+Rutas Vue:
+
+- `/proyectos` → [`ProyectosPage.vue`](../../frontend/src/pages/proyectos/ProyectosPage.vue)
+- `/proyectos/:id` → [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) (tab Resumen)
+- `/proyectos/:id/tareo` → misma ficha, tab Tareo ([`ProyectoTareoPage.vue`](../../frontend/src/pages/proyectos/ProyectoTareoPage.vue))
+- `/proyectos/:id/planilla` → misma ficha, tab Planilla ([`ProyectoPlanillaPage.vue`](../../frontend/src/pages/proyectos/ProyectoPlanillaPage.vue))
+
+API base: [`ConstruccionController`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/controller/ConstruccionController.java) en `/api/proyectos`.
+
+---
+
+## 2. Maestro de Obras — Hecho
+
+Catálogo de obras de construcción civil. Cada obra es un `Proyecto` con código único, centro de costo, valor contractual y parámetros SCTR.
+
+### Objetivos
+
+- [x] Alta de obra con código único, nombre, ubicación, centro de costo y valor de obra
+- [x] Nivel de riesgo (BAJO / MEDIO / ALTO) y tasas SCTR salud / pensión
+- [x] Alerta informativa cuando el valor de obra supera 50 UIT (no bloquea tareo ni liquidación)
+- [x] Listado de obras activas con columnas de riesgo, SCTR y estado
+- [x] Consulta de catálogos (categorías obreras, especialidades BAE, UIT del año)
+- [x] Edición posterior de una obra ya creada (`PUT /api/proyectos/{id}`)
+- [x] Baja lógica / reactivación desde la ficha (campo `activo` + `estadoObra`)
+- [x] Datos de cliente (`clienteRazon`, `clienteRuc`), vigencia (`fechaInicio` / `fechaFin`) y estado de obra (`EN_EJECUCION` | `PARALIZADA` | `LIQUIDADA`)
+
+### Cómo funciona
+
+El usuario entra a **Obras**, ve la tabla y abre el modal **Nueva obra**. Completa código, nombre, ubicación, centro de costo, valor, nivel de riesgo y tasas SCTR. El alta nace en `EN_EJECUCION`. El backend valida código duplicado, normaliza el código a mayúsculas y calcula `alertaUit` contra la UIT vigente. Esa alerta se muestra en el listado y en la ficha, pero no impide operar.
+
+**Abrir** entra a la ficha: en Resumen se editan los mismos campos más cliente, RUC (11 dígitos si no va vacío), fechas de vigencia (`fecha_fin >= fecha_inicio`) y estado de obra. `activo` (baja lógica) convive con `estadoObra`. El código único se valida ignorando el propio id.
+
+El centro de costo de la obra es el fallback cuando el obrero no tiene centro propio en su contrato RCC.
+
+### Desglose técnico
+
+| Capa | Ubicación |
+| --- | --- |
+| Entidad | [`Proyecto.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/Proyecto.java) |
+| DTO | [`ProyectoDTO.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/ProyectoDTO.java), [`ProyectoRequest.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/ProyectoRequest.java) |
+| Dominio | [`NivelRiesgoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/domain/NivelRiesgoObra.java), [`EstadoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/domain/EstadoObra.java) |
+| Alerta UIT | [`UitObraAlerta.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/UitObraAlerta.java) |
+| Endpoints | `GET /api/proyectos`, `GET /api/proyectos?activo=`, `POST /api/proyectos`, `GET /api/proyectos/{id}`, `PUT /api/proyectos/{id}`, `GET /api/proyectos/catalogos` |
+| UI | [`ProyectosPage.vue`](../../frontend/src/pages/proyectos/ProyectosPage.vue), tab Resumen de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) |
+| Migraciones | `V42` (tabla `proyecto`), `V44` (`valor_obra`), `V45` (`nivel_riesgo`, tasas SCTR), `V47` (cliente, vigencia, `estado_obra`) |
+
+---
+
+## 3. Asignación de recursos — Parcial
+
+Quién y qué se asigna a la obra: personal, cuadrillas, maquinaria, responsables y subcontratistas.
+
+### Objetivos
+
+Personal RCC (hecho):
+
+- [x] Asignar obrero a una obra desde el alta de contrato RCC (`ContratoCc.proyecto`)
+- [x] Centro de costo por obrero, con fallback al de la obra
+- [x] Categoría (OPERARIO / OFICIAL / PEON), especialidad BAE, afiliación sindical, hijos escolaridad
+- [x] Listar personal activo de la obra (`GET /{id}/personal`) con fechas de ingreso y cese
+- [x] El tareo y la liquidación usan solo personal con contrato activo en esa obra
+
+Resto de recursos (pendiente):
+
+- [ ] Cuadrillas o frentes de trabajo (estructura, acabados, instalaciones) y asignación de obreros a cuadrilla
+- [x] Responsables de obra: residente, maestro de obra, supervisor SSOMA (un responsable por rol, persona del padrón)
+- [ ] Asignación de maquinaria y equipos (propios o alquilados) con fecha de ingreso/salida y tarifa/hora o tarifa/día
+- [ ] Subcontratistas por especialidad, con monto contratado y avance
+- [ ] Vista de “equipo de obra” unificada (personal + equipos + subcontratos)
+
+### Cómo funciona (hoy)
+
+El vínculo obra–obrero no se da en la pantalla de Obras: se da en **Gestión Humana → Contratos**. Al registrar un contrato de construcción civil se elige el `proyecto` y, opcionalmente, un `centroCosto`. Ese contrato alimenta `GET /api/proyectos/{id}/personal`, el parte diario y la planilla. Si el obrero cesa (`contrato.fechaFin`), el parte diario deshabilita los días posteriores y resalta la fila en el mes del cese.
+
+Los responsables (residente, maestro de obra, supervisor SSOMA) se eligen en la ficha, tab Resumen, con Combobox sobre `listarPersonas`. `PUT /api/proyectos/{id}/responsables` reemplaza el set (0 a 3 filas, unique por rol). No es un maestro de clientes ni un módulo de equipos: el cliente sigue siendo campos en la obra.
+
+### Desglose técnico (hecho)
+
+| Capa | Ubicación |
+| --- | --- |
+| Entidad | [`ContratoCc.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ContratoCc.java) |
+| DTO | [`PersonalObraDTO.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/PersonalObraDTO.java) |
+| Endpoint | `GET /api/proyectos/{id}/personal` |
+| Alta | [`ContratoRegistroModal.vue`](../../frontend/src/components/gestion-humana/ContratoRegistroModal.vue) (campo proyecto + centro de costo) |
+| Consumo | tareo y planilla |
+
+### Desglose técnico (responsables — hecho)
+
+| Capa | Ubicación |
+| --- | --- |
+| Entidad | [`ProyectoResponsable.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ProyectoResponsable.java) |
+| Dominio | [`RolResponsableObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/domain/RolResponsableObra.java) |
+| DTO | [`ResponsableObraDTO.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/ResponsableObraDTO.java), [`ProyectoResponsableRequest.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/ProyectoResponsableRequest.java) |
+| Endpoints | `GET /api/proyectos/{id}/responsables`, `PUT /api/proyectos/{id}/responsables` |
+| UI | Combobox por rol en [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) |
+| Migración | `V47` (tabla `proyecto_responsable`, unique `(proyecto_id, rol)`) |
+
+### Desglose técnico (propuesto)
+
+| Recurso | Entidad | Endpoints | UI |
+| --- | --- | --- | --- |
+| Cuadrilla | `CuadrillaObra`, `CuadrillaMiembro` | `/api/proyectos/{id}/cuadrillas` | pestaña en ficha de obra |
+| Equipos | `AsignacionEquipo` | `/api/proyectos/{id}/equipos` | `ProyectoEquiposPage.vue` |
+| Subcontratos | `SubcontratoObra` | `/api/proyectos/{id}/subcontratos` | `ProyectoSubcontratosPage.vue` |
+
+---
+
+## 4. Parte diario y mano de obra — Hecho
+
+Registro diario de asistencia RCC, periodos de pago y liquidación de planilla de construcción civil.
+
+### 4.1 Parte diario (tareo)
+
+#### Objetivos
+
+- [x] Vista mensual 1..N días según el mes (febrero 28/29, resto 30/31)
+- [x] Auto-creación de periodo `MENSUAL` al elegir mes/año
+- [x] Matriz Ord / +60% / +100% por día, domingo en ámbar, cesados del mes resaltados
+- [x] Columnas sticky: ítem, trabajador, F. Ingreso, F. Cese
+- [x] Códigos LAB / F / DSC / FE / DM / LIC; incidencias ponen horas en cero
+- [x] Atributos de jornal (BAE, movilidad, altura, altitud, cota cero, altas temperaturas, agua, aguas servidas, nocturno, pisos)
+- [x] Totales por fila de horas ordinarias, HE 60 y HE 100
+- [x] Dominical por semana ISO: (horas L–S) / 6
+- [x] Cadencia SEMANAL / QUINCENAL / MENSUAL en backend (la UI de tareo fija MENSUAL)
+- [x] Periodo cerrado = tareo de solo lectura
+- [ ] Exportar parte diario a Excel / PDF
+- [ ] Bloqueo por aprobación de residente (hoy solo existe BORRADOR / CERRADO ligado a liquidación)
+
+#### Cómo funciona
+
+En **Obras → Tareo** el usuario elige mes y año. Si no hay periodo mensual, el front lo crea (`cadencia=MENSUAL`, día 1 al último). El backend materializa un `TareoCcDia` por obrero y fecha (domingo nace en DSC; L–S nace en LAB con jornada parametrizada). El usuario edita horas y, vía el panel `⋯`, el código y los atributos. Guardar persiste el lote. El dominical no se teclea: se calcula al liquidar.
+
+#### Desglose técnico
+
+| Capa | Ubicación |
+| --- | --- |
+| Entidades | [`PeriodoCc.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/PeriodoCc.java), [`TareoCcDia.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/TareoCcDia.java) |
+| Dominio | [`CadenciaPeriodoCc`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/domain/CadenciaPeriodoCc.java), [`CodigoTareoCc`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/domain/CodigoTareoCc.java), [`EstadoPeriodoCc`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/domain/EstadoPeriodoCc.java) |
+| Dominical | [`DominicalCc.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/DominicalCc.java) |
+| Endpoints | `GET/POST /{id}/periodos`, `GET /{id}/periodos/{periodoId}`, `POST .../cerrar`, `GET/PUT .../tareo` |
+| UI | [`ProyectoTareoPage.vue`](../../frontend/src/pages/proyectos/ProyectoTareoPage.vue), [`ParteDiarioRccGrid.vue`](../../frontend/src/components/proyectos/ParteDiarioRccGrid.vue) |
+
+### 4.2 Planilla RCC, boletas y dispersión
+
+#### Objetivos
+
+- [x] Liquidar el periodo a partir del tareo (no se toca `CalculoNominaService` de RGC)
+- [x] Conceptos CALCULADO / MANUAL / TAREO; los MANUAL sobreviven la reliquidación (reintegro, descuento)
+- [x] SCTR salud y pensión como aporte empleador según tasas de la obra (neto del obrero no cambia)
+- [x] Boleta HTML y PDF individual
+- [x] PDF combinado de un lote de boletas
+- [x] Envío masivo por correo con auditoría (`boleta_cc_envio_correo`)
+- [x] Dispersión CCI / BCP / Interbank; omite filas sin cuenta del banco pedido
+- [x] Cerrar periodo solo si ya hay boletas
+- [ ] Vista de conceptos de boleta imprimible alineada 1:1 con la plantilla Excel histórica (el caso OB001 está cubierto en tests)
+
+#### Cómo funciona
+
+Desde **Planilla** se elige el periodo, se liquida y se listan boletas (haberes, descuentos, neto). Se pueden marcar varias para PDF lote, correo o archivo de banco. Los extras MANUAL (reintegro / descuento) se cargan sobre una boleta y no se pisan al reliquidar. La dispersión respeta el layout 2026 documentado en [`docs/planilla-cc/layouts-bancos-2026.json`](../planilla-cc/layouts-bancos-2026.json).
+
+Caso de referencia: [`docs/planilla-cc/caso-ob001.json`](../planilla-cc/caso-ob001.json). Si las tasas SCTR de la obra son 0, el neto del caso gold no cambia.
+
+#### Desglose técnico
+
+| Capa | Ubicación |
+| --- | --- |
+| Motor | [`CalculoNominaCcService.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/CalculoNominaCcService.java) |
+| Boleta | [`BoletaCc.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/BoletaCc.java), [`BoletaCcPlantillaService.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/BoletaCcPlantillaService.java) |
+| Dispersión | [`DispersionArchivoService.java`](../../backend/erp/src/main/java/com/convecsa/erp/nomina/declaracion/support/DispersionArchivoService.java) |
+| Endpoints | `POST .../liquidar`, `GET .../boletas`, `GET .../boletas/{id}`, `GET .../documento`, `GET .../pdf`, `PUT .../extras`, `POST .../boletas/pdf`, `POST .../boletas/correo`, `GET .../dispersion?banco=` |
+| UI | [`ProyectoPlanillaPage.vue`](../../frontend/src/pages/proyectos/ProyectoPlanillaPage.vue) |
+
+PLAME: códigos `REINTEGRO=0121`, `DESCUENTO_MANUAL=0701`. La declaración mensual (Gestión Humana) consolida RCC + RGC; no forma parte de esta pantalla pero sí del cierre de mes de la obra.
+
+---
+
+## 5. Presupuesto y costeo meta — Pendiente
+
+El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra el cual se comparará el costo real.
+
+### Objetivos
+
+- [ ] Importar o cargar presupuesto por partidas (capítulo, partida, unidad, metrado, precio unitario, total)
+- [ ] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
+- [ ] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
+- [ ] Costo objetivo por obra y por centro de costo / cuadrilla
+- [ ] Comparativo meta vs real (mano de obra ya disponible; materiales y equipos cuando existan)
+- [ ] Versiones de presupuesto (inicial, actualizado, adicional)
+- [ ] Bloqueo de presupuesto vigente para no editarlo sin una nueva versión
+
+### Cómo funciona (objetivo)
+
+Al ganar la licitación se carga el presupuesto contractual. Cada partida tiene metrado y APU. Durante la obra, el costo real (tareo, kardex, equipos, subcontratos) se acumula contra esas partidas. El tablero muestra desviación en soles y en porcentaje. Un adicional de obra genera una versión nueva, no pisa la inicial.
+
+### Desglose técnico (propuesto)
+
+| Capa | Propuesta |
+| --- | --- |
+| Entidades | `PresupuestoObra`, `PartidaPresupuesto`, `ApuPartida`, `PresupuestoVersion` |
+| Endpoints | `GET/POST /api/proyectos/{id}/presupuesto`, `GET/PUT /api/proyectos/{id}/presupuesto/partidas`, `POST .../presupuesto/versiones` |
+| UI | `ProyectoPresupuestoPage.vue`, componente `PartidaPresupuestoTable.vue` (shadcn Table) |
+| Relación | `PartidaPresupuesto.centroCosto` alinea con `ContratoCc.centroCosto` y con movimientos de almacén |
+
+---
+
+## 6. Materiales y almacén — Pendiente
+
+Ciclo de abastecimiento de la obra: pedido, compra, recepción, kardex y consumo por partida.
+
+### Objetivos
+
+- [ ] Catálogo de materiales (código, unidad, familia, stock mínimo)
+- [ ] Requerimiento de materiales emitido por la obra / cuadrilla, ligado a partida
+- [ ] Orden de compra (proveedor, precio, plazo) y su estado (borrador, emitida, recepcionada, cerrada)
+- [ ] Guía de remisión / recepción en almacén de obra, con diferencias
+- [ ] Kardex por almacén de obra (entradas, salidas, ajustes) y costo promedio
+- [ ] Vale de salida / consumo imputado a partida y a centro de costo
+- [ ] Valorización de inventario al cierre de mes
+- [ ] Alerta de quiebre de stock y de materiales críticos
+- [ ] Devoluciones a almacén central o a proveedor
+
+### Cómo funciona (objetivo)
+
+El residente (o almacenero) arma un requerimiento a partir del APU y del metrado pendiente. Compras genera la OC. Al llegar el material se recepciona contra la OC y entra al kardex del almacén de esa obra. El consumo diario (vale de salida) descuenta stock y carga costo a la partida. El costo real de materiales del mes alimenta rentabilidad (sección 9) y el asiento de existencias.
+
+```mermaid
+flowchart LR
+  Req[RequerimientoObra] --> Oc[OrdenDeCompra]
+  Oc --> Recepcion[RecepcionAlmacen]
+  Recepcion --> Kardex[KardexObra]
+  Kardex --> Vale[ValeDeSalida]
+  Vale --> Partida[CostoPorPartida]
+```
+
+### Desglose técnico (propuesto)
+
+| Capa | Propuesta |
+| --- | --- |
+| Entidades | `Material`, `AlmacenObra`, `RequerimientoObra`, `RequerimientoItem`, `OrdenCompra`, `OrdenCompraItem`, `MovimientoAlmacen` |
+| Endpoints | `/api/proyectos/{id}/materiales`, `/api/proyectos/{id}/requerimientos`, `/api/proyectos/{id}/compras`, `/api/proyectos/{id}/almacen` |
+| UI | `ProyectoMaterialesPage.vue`, `ProyectoRequerimientosPage.vue`, `ProyectoAlmacenPage.vue` |
+| Nota | Las OC pueden nacer a nivel empresa y destinarse a una obra; el documento asume destino = obra |
+
+---
+
+## 7. Avances y valorizaciones — Pendiente
+
+Avance físico de partidas, cronograma y cobro al cliente (valorización).
+
+### Objetivos
+
+- [ ] Registro de avance físico por partida (metrado ejecutado del periodo y acumulado)
+- [ ] Cronograma (inicio/fin por partida o por hito) y desviación de plazo
+- [ ] Valorización mensual al cliente: metrados del periodo × precios del presupuesto vigente
+- [ ] Adicionales y deductivos, con su propia valorización
+- [ ] Curva S (programado vs ejecutado, físico y económico)
+- [ ] Retención / fondo de garantía descontada en la valorización
+- [ ] Aprobación de valorización (borrador → presentada → observada → aprobada)
+- [ ] Generación de factura a partir de valorización aprobada (alimenta la sección 8)
+
+### Cómo funciona (objetivo)
+
+Cada mes el residente declara metrados ejecutados. El sistema arma la valorización (periodo, acumulado, anterior, actual) usando el presupuesto vigente. Se descuenta la retención pactada. Una vez aprobada por el cliente se emite la factura. La curva S compara lo programado en el cronograma con lo ejecutado y lo valorizado.
+
+### Desglose técnico (propuesto)
+
+| Capa | Propuesta |
+| --- | --- |
+| Entidades | `AvanceObra`, `AvancePartida`, `Valorizacion`, `ValorizacionItem`, `AdicionalObra` |
+| Endpoints | `/api/proyectos/{id}/avances`, `/api/proyectos/{id}/valorizaciones`, `/api/proyectos/{id}/adicionales` |
+| UI | `ProyectoAvancesPage.vue`, `ProyectoValorizacionesPage.vue` |
+| Relación | `Valorizacion` → `Factura` (sección 8); `AvancePartida.metrado` vs `PartidaPresupuesto.metrado` |
+
+---
+
+## 8. Financiamiento de obra — Pendiente
+
+Cómo se paga la obra: cobranzas, retenciones, líneas de crédito y **factoring**.
+
+### Objetivos
+
+Flujo de caja y cobranzas:
+
+- [ ] Flujo de caja proyectado vs ejecutado por obra (ingresos por valorización/factura, egresos de planilla, materiales, equipos, subcontratos)
+- [ ] Facturación ligada a valorización aprobada
+- [ ] Cobranzas (fecha, banco, importe, detracción si aplica)
+- [ ] Retenciones y fondo de garantía: saldo, liberación, carta fianza
+- [ ] Líneas de crédito / préstamos de capital de trabajo imputados a la obra
+
+Factoring:
+
+- [ ] Cesión de factura a entidad financiera (banco o factor)
+- [ ] Tasa de descuento, comisión, IGV de la comisión si aplica
+- [ ] Adelanto recibido (neto = valor factura − descuento − comisiones)
+- [ ] Fecha de pago del obligado (cliente) al factor
+- [ ] Conciliación: el cliente paga al factor, no a Convecsa; se cierra la cuenta por cobrar cedida
+- [ ] Estado de la operación: cedida, adelantada, cobrada, impaga, revertida
+- [ ] Tope de línea de factoring por entidad y utilización
+
+### Cómo funciona (objetivo)
+
+La valorización aprobada genera una factura por cobrar. Tesorería decide: esperar el pago del cliente o ceder la factura (factoring) para adelantar liquidez. En factoring, Convecsa recibe un neto inmediato; el cliente paga al factor en la fecha de vencimiento. El costo financiero (descuento + comisiones) es gasto de la obra y entra al flujo de caja y a la rentabilidad.
+
+```mermaid
+flowchart LR
+  Valorizacion[ValorizacionAprobada] --> Factura[EmisionFactura]
+  Factura --> Decision{Ceder}
+  Decision -->|no| CobroCliente[CobroDelCliente]
+  Decision -->|si| Cesion[CesionAlFactor]
+  Cesion --> Adelanto[AdelantoNeto]
+  Cesion --> CobroFactor[ClientePagaAlFactor]
+  CobroFactor --> Liquidacion[CierreDeCxC]
+  Adelanto --> Flujo[FlujoDeCajaObra]
+  CobroCliente --> Flujo
+```
+
+### Desglose técnico (propuesto)
+
+| Capa | Propuesta |
+| --- | --- |
+| Entidades | `FinanciamientoObra`, `FacturaObra`, `CobranzaObra`, `RetencionObra`, `LineaCreditoObra`, `OperacionFactoring`, `EntidadFactoring` |
+| Endpoints | `/api/proyectos/{id}/financiamiento`, `/api/proyectos/{id}/facturas`, `/api/proyectos/{id}/cobranzas`, `/api/proyectos/{id}/factoring` |
+| UI | `ProyectoFinanciamientoPage.vue` con pestañas Caja, Facturas, Factoring, Retenciones |
+| Campos mínimos de `OperacionFactoring` | `facturaId`, `entidad`, `fechaCesion`, `tasaDescuento`, `comision`, `importeNominal`, `importeNeto`, `fechaPagoEsperada`, `estado` |
+
+---
+
+## 9. Integración contable y rentabilidad — Parcial
+
+El costo y el ingreso de la obra deben aterrizar en contabilidad y en un tablero de margen.
+
+### Objetivos
+
+Hecho:
+
+- [x] Asiento RCC a partir de la planilla, agrupado por centro de costo del contrato (fallback: centro de la obra)
+- [x] Consolidado mensual RCC en declaración (`consolidado_cc.centro_costo`)
+- [x] Destino contable `obra / centro` en [`AsientoRccService.java`](../../backend/erp/src/main/java/com/convecsa/erp/nomina/declaracion/support/AsientoRccService.java)
+
+Pendiente:
+
+- [ ] Tablero de rentabilidad por obra: ingresos (valorizaciones/facturas) vs costos (MO + materiales + equipos + subcontratos + costo de factoring)
+- [ ] Margen bruto y margen neto, mensual y acumulado
+- [ ] Proyección a término (ETC / EAC) cuando existan presupuesto y avance
+- [ ] Asientos de consumo de materiales, depreciación/alquiler de equipos y costo de factoring
+- [ ] Exportar resumen de obra a Excel para gerencia
+
+### Cómo funciona (hoy)
+
+Al consolidar la declaración mensual, cada obrero aporta su neto y aportes al asiento RCC. El destino prioriza `ContratoCc.centroCosto` y, si está vacío, `Proyecto.centroCosto`. Eso permite ver la mano de obra por obra/frente, pero todavía no hay un P&amp;L de obra.
+
+### Desglose técnico (propuesto para el tablero)
+
+| Capa | Propuesta |
+| --- | --- |
+| Servicio | `RentabilidadObraService` (agrega boletas RCC + movimientos de almacén + facturas + factoring) |
+| Endpoint | `GET /api/proyectos/{id}/rentabilidad?desde=&hasta=` |
+| UI | `ProyectoRentabilidadPage.vue` (cards de ingreso/costo/margen + tabla mensual) |
+
+---
+
+## 10. Transversales — Parcial
+
+Cortes que aplican a todas las secciones anteriores.
+
+### Objetivos
+
+- [x] Ficha de obra (hub) con pestañas Resumen, Tareo y Planilla
+- [ ] Pestañas Presupuesto, Materiales, Avances, Financiamiento y Documentos
+- [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex)
+- [ ] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura)
+- [ ] Adjuntos: contrato de obra, planos, actas, valorizaciones firmadas, cesiones de factoring
+- [ ] Alertas: 50 UIT (ya existe, informativa), quiebre de stock, valorización por vencer, factura cedida impaga, desviación de presupuesto
+- [ ] Bitácora / diario de obra (texto libre por día, distinto del parte de asistencia)
+- [ ] Ampliar el menú **Proyectos** más allá de Obras cuando existan las pantallas
+
+### Desglose técnico (hub — hecho)
+
+| Capa | Ubicación |
+| --- | --- |
+| Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla` anidadas bajo `/proyectos/:id` |
+
+### Desglose técnico (propuesto)
+
+| Capa | Propuesta |
+| --- | --- |
+| Adjuntos | `DocumentoObra` + endpoint `/api/proyectos/{id}/documentos` |
+| Auditoría | reutilizar patrón de `boleta_cc_envio_correo` (quién, cuándo, qué) a nivel obra |
+| Permisos | extensión del `RolUsuario` actual o tabla `proyecto_usuario_rol` |
+
+---
+
+## 11. Backlog priorizado e hitos
+
+Orden sugerido para no romper el ciclo de mano de obra ya productivo. Cada fase es un hito macro; las casillas se marcan cuando la fase entra a producción.
+
+### Fase A — Cerrar el maestro y la ficha de obra
+
+- [x] `PUT /api/proyectos/{id}` (editar obra, activar/desactivar)
+- [x] Cliente, vigencia contractual y estado de obra
+- [x] Ficha de obra (hub) que reúna Tareo y Planilla como pestañas
+- [x] Responsables de obra
+
+Dependencias: ninguna. Desbloquea el resto de pantallas.
+
+### Fase B — Presupuesto y costeo meta
+
+- [ ] Presupuesto por partidas y versiones
+- [ ] APU (mano de obra, materiales, equipos)
+- [ ] Comparativo meta vs real de mano de obra (el único costo real que ya existe)
+
+Dependencias: Fase A. Desbloquea imputación de materiales y avances.
+
+### Fase C — Materiales y almacén
+
+- [ ] Catálogo, requerimiento, OC, recepción, kardex, vale de salida
+- [ ] Costo de materiales por partida y por mes
+
+Dependencias: Fase B (partida destino). Desbloquea rentabilidad más completa.
+
+### Fase D — Avances y valorizaciones
+
+- [ ] Avance físico por partida
+- [ ] Valorización mensual, adicionales/deductivos, curva S
+- [ ] Factura a partir de valorización aprobada
+
+Dependencias: Fase B. Desbloquea financiamiento.
+
+### Fase E — Financiamiento y factoring
+
+- [ ] Flujo de caja de obra, cobranzas, retenciones
+- [ ] Operación de factoring (cesión → adelanto → cobro → cierre de CxC)
+- [ ] Costo financiero imputado a la obra
+
+Dependencias: Fase D (factura). Es el hito de liquidez.
+
+### Fase F — Rentabilidad y transversales
+
+- [ ] Tablero de margen (ingresos vs MO + materiales + equipos + factoring)
+- [ ] Permisos por obra, adjuntos, auditoría, alertas
+- [ ] Ampliar menú Proyectos
+
+Dependencias: Fases B–E para que el tablero no quede solo con mano de obra.
+
+### Fuera de fase (mejora continua de lo ya hecho)
+
+- [x] Edición de obra (hecho en Fase A)
+- [ ] Exportar parte diario
+- [ ] Aprobación de tareo por residente, independiente del cierre de planilla
+- [ ] Cuadrillas, equipos y subcontratos (pueden entrar en B o C según prioridad de gerencia)
+
+---
+
+## Referencia rápida de lo ya expuesto por la API
+
+Base: `/api/proyectos`.
+
+| Método | Ruta | Uso |
+| --- | --- | --- |
+| GET | `/catalogos` | Categorías, especialidades BAE, UIT |
+| GET | `/` | Listado de obras |
+| POST | `/` | Alta de obra |
+| GET | `/{id}` | Detalle |
+| PUT | `/{id}` | Editar obra |
+| GET/PUT | `/{id}/responsables` | Responsables (reemplazo del set) |
+| GET | `/{id}/personal` | Obreros RCC activos |
+| GET/POST | `/{id}/periodos` | Periodos de planilla |
+| GET | `/{id}/periodos/{periodoId}` | Detalle de periodo |
+| POST | `/{id}/periodos/{periodoId}/cerrar` | Cerrar (exige boletas) |
+| GET/PUT | `/{id}/periodos/{periodoId}/tareo` | Parte diario |
+| POST | `/{id}/periodos/{periodoId}/liquidar` | Liquidar RCC |
+| GET | `/{id}/periodos/{periodoId}/boletas` | Listado de boletas |
+| GET | `.../boletas/{boletaId}` | Detalle |
+| GET | `.../boletas/{boletaId}/documento` | HTML |
+| GET | `.../boletas/{boletaId}/pdf` | PDF |
+| PUT | `.../boletas/{boletaId}/extras` | Conceptos MANUAL |
+| POST | `.../boletas/pdf` | PDF lote |
+| POST | `.../boletas/correo` | Correo masivo |
+| GET | `.../dispersion?banco=CCI\|BCP\|INTERBANK` | Archivo banco |
+
+---
+
+## Cómo actualizar este documento
+
+1. Al cerrar un objetivo, pasar la casilla de `[ ]` a `[x]` y, si aplica, cambiar el estado de la sección (Pendiente → Parcial → Hecho).
+2. Sustituir nombres “propuestos” por los archivos reales cuando existan, con el mismo estilo de enlace relativo usado en las secciones Hecho.
+3. No borrar objetivos descartados: marcarlos `[x]` no aplica; añadir una nota “Descartado: …” bajo el ítem.
+4. La fecha de “Última revisión” se actualiza en cada pase de implementación.

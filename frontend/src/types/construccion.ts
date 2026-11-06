@@ -1,5 +1,9 @@
 export type NivelRiesgoObra = 'BAJO' | 'MEDIO' | 'ALTO'
 
+export type EstadoObra = 'EN_EJECUCION' | 'PARALIZADA' | 'LIQUIDADA'
+
+export type RolResponsableObra = 'RESIDENTE' | 'MAESTRO_OBRA' | 'SUPERVISOR_SSOMA'
+
 export type CadenciaPeriodoCc = 'SEMANAL' | 'QUINCENAL' | 'MENSUAL'
 
 export type BancoDispersion = 'CCI' | 'BCP' | 'INTERBANK'
@@ -14,6 +18,11 @@ export type Proyecto = {
   nivelRiesgo: NivelRiesgoObra | null
   tasaSctrSalud: number | null
   tasaSctrPension: number | null
+  clienteRazon: string | null
+  clienteRuc: string | null
+  fechaInicio: string | null
+  fechaFin: string | null
+  estadoObra: EstadoObra
   activo: boolean
   alertaUit: boolean
   uitAnio: number
@@ -28,7 +37,26 @@ export type ProyectoRequest = {
   nivelRiesgo?: NivelRiesgoObra | null
   tasaSctrSalud?: number | null
   tasaSctrPension?: number | null
+  clienteRazon?: string | null
+  clienteRuc?: string | null
+  fechaInicio?: string | null
+  fechaFin?: string | null
+  estadoObra?: EstadoObra
   activo?: boolean
+}
+
+export type ResponsableObra = {
+  id: number
+  personaId: number
+  nombres: string
+  apellidos: string
+  numeroDocumento: string
+  rol: RolResponsableObra
+}
+
+export type ProyectoResponsableRequest = {
+  personaId: number
+  rol: RolResponsableObra
 }
 
 export type ConstruccionCatalogos = {

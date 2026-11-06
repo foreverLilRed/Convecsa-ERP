@@ -3,9 +3,12 @@ package com.convecsa.erp.construccion.service.impl;
 import com.convecsa.erp.common.exception.BoletaCcNoEncontradaException;
 import com.convecsa.erp.common.exception.PeriodoCcDuplicadoException;
 import com.convecsa.erp.common.exception.PeriodoCcNoEncontradoException;
+import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.exception.ProyectoCodigoDuplicadoException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
 import com.convecsa.erp.construccion.domain.CadenciaPeriodoCc;
+import com.convecsa.erp.construccion.domain.EstadoObra;
+import com.convecsa.erp.construccion.domain.RolResponsableObra;
 import com.convecsa.erp.construccion.domain.CategoriaObrera;
 import com.convecsa.erp.construccion.domain.CodigoConceptoCc;
 import com.convecsa.erp.construccion.domain.CodigoTareoCc;
@@ -21,6 +24,8 @@ import com.convecsa.erp.construccion.dto.PeriodoCcRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
+import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
+import com.convecsa.erp.construccion.dto.ResponsableObraDTO;
 import com.convecsa.erp.construccion.dto.TareoCcDiaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGrillaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
@@ -33,6 +38,7 @@ import com.convecsa.erp.construccion.entity.CcParametroAnual;
 import com.convecsa.erp.construccion.entity.ContratoCc;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.Proyecto;
+import com.convecsa.erp.construccion.entity.ProyectoResponsable;
 import com.convecsa.erp.construccion.entity.TareoCcDia;
 import com.convecsa.erp.construccion.repository.BoletaCcEnvioCorreoRepository;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
@@ -40,6 +46,7 @@ import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.ContratoCcRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
+import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.construccion.repository.TareoCcDiaRepository;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.construccion.support.BoletaCcPlantillaService;
@@ -70,6 +77,7 @@ import com.convecsa.erp.nomina.repository.NominaDocumentoConfiguracionRepository
 import com.convecsa.erp.nomina.support.BoletaCorreoService;
 import com.convecsa.erp.nomina.support.BoletaPdfService;
 import com.convecsa.erp.persona.entity.Persona;
+import com.convecsa.erp.persona.repository.PersonaRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -79,10 +87,12 @@ import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -95,6 +105,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private static final BigDecimal CUOTA_SINDICAL_DEFAULT = new BigDecimal("40.00");
 
     private final ProyectoRepository proyectoRepository;
+    private final ProyectoResponsableRepository proyectoResponsableRepository;
+    private final PersonaRepository personaRepository;
     private final CcParametroAnualRepository parametroRepository;
     private final ContratoCcRepository contratoCcRepository;
     private final PeriodoCcRepository periodoCcRepository;
@@ -158,16 +170,61 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             throw new ProyectoCodigoDuplicadoException("Ya existe un proyecto con el código " + codigo);
         }
         Proyecto proyecto = new Proyecto();
-        proyecto.setCodigo(codigo);
-        proyecto.setNombre(request.getNombre().trim());
-        proyecto.setUbicacion(blankToNull(request.getUbicacion()));
-        proyecto.setCentroCosto(blankToNull(request.getCentroCosto()));
-        proyecto.setValorObra(request.getValorObra());
-        proyecto.setNivelRiesgo(request.getNivelRiesgo());
-        proyecto.setTasaSctrSalud(nz(request.getTasaSctrSalud()));
-        proyecto.setTasaSctrPension(nz(request.getTasaSctrPension()));
-        proyecto.setActivo(request.getActivo() == null || request.getActivo());
+        aplicarCampos(proyecto, request, codigo);
         return toProyectoDto(proyectoRepository.save(proyecto), parametrosVigentes(LocalDate.now().getYear()));
+    }
+
+    @Override
+    @Transactional
+    public ProyectoDTO actualizarProyecto(Long id, ProyectoRequest request) {
+        Proyecto proyecto = buscarProyecto(id);
+        String codigo = request.getCodigo().trim().toUpperCase();
+        if (proyectoRepository.existsByCodigoIgnoreCaseAndIdNot(codigo, id)) {
+            throw new ProyectoCodigoDuplicadoException("Ya existe un proyecto con el código " + codigo);
+        }
+        aplicarCampos(proyecto, request, codigo);
+        return toProyectoDto(proyectoRepository.save(proyecto), parametrosVigentes(LocalDate.now().getYear()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ResponsableObraDTO> listarResponsables(Long proyectoId) {
+        buscarProyecto(proyectoId);
+        return proyectoResponsableRepository.findByProyectoIdOrderByRolAsc(proyectoId).stream()
+                .map(ConstruccionServiceImpl::toResponsableDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<ResponsableObraDTO> guardarResponsables(Long proyectoId, List<ProyectoResponsableRequest> request) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        List<ProyectoResponsableRequest> filas = request == null ? List.of() : request;
+        Set<RolResponsableObra> vistos = new HashSet<>();
+        for (ProyectoResponsableRequest fila : filas) {
+            if (fila.getRol() == null || fila.getPersonaId() == null) {
+                throw new IllegalArgumentException("Cada responsable requiere persona y rol");
+            }
+            if (!vistos.add(fila.getRol())) {
+                throw new IllegalArgumentException("Hay roles de responsable duplicados");
+            }
+        }
+        List<ProyectoResponsable> actuales =
+                proyectoResponsableRepository.findByProyectoIdOrderByRolAsc(proyectoId);
+        if (!actuales.isEmpty()) {
+            proyectoResponsableRepository.deleteAll(actuales);
+            proyectoResponsableRepository.flush();
+        }
+        for (ProyectoResponsableRequest fila : filas) {
+            Persona persona = personaRepository.findById(fila.getPersonaId())
+                    .orElseThrow(() -> new PersonaNoEncontradaException("No se encontró la persona"));
+            ProyectoResponsable responsable = new ProyectoResponsable();
+            responsable.setProyecto(proyecto);
+            responsable.setPersona(persona);
+            responsable.setRol(fila.getRol());
+            proyectoResponsableRepository.save(responsable);
+        }
+        return listarResponsables(proyectoId);
     }
 
     @Override
@@ -856,10 +913,66 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .nivelRiesgo(proyecto.getNivelRiesgo())
                 .tasaSctrSalud(proyecto.getTasaSctrSalud())
                 .tasaSctrPension(proyecto.getTasaSctrPension())
+                .clienteRazon(proyecto.getClienteRazon())
+                .clienteRuc(proyecto.getClienteRuc())
+                .fechaInicio(proyecto.getFechaInicio())
+                .fechaFin(proyecto.getFechaFin())
+                .estadoObra(proyecto.getEstadoObra())
                 .activo(proyecto.isActivo())
                 .alertaUit(UitObraAlerta.supera(proyecto.getValorObra(), parametros.getUit()))
                 .uitAnio(parametros.getAnio())
                 .build();
+    }
+
+    private static ResponsableObraDTO toResponsableDto(ProyectoResponsable responsable) {
+        Persona persona = responsable.getPersona();
+        return ResponsableObraDTO.builder()
+                .id(responsable.getId())
+                .personaId(persona.getId())
+                .nombres(persona.getNombres())
+                .apellidos(persona.getApellidos())
+                .numeroDocumento(persona.getNumeroDocumento())
+                .rol(responsable.getRol())
+                .build();
+    }
+
+    private void aplicarCampos(Proyecto proyecto, ProyectoRequest request, String codigo) {
+        validarVigencia(request.getFechaInicio(), request.getFechaFin());
+        proyecto.setCodigo(codigo);
+        proyecto.setNombre(request.getNombre().trim());
+        proyecto.setUbicacion(blankToNull(request.getUbicacion()));
+        proyecto.setCentroCosto(blankToNull(request.getCentroCosto()));
+        proyecto.setValorObra(request.getValorObra());
+        proyecto.setNivelRiesgo(request.getNivelRiesgo());
+        proyecto.setTasaSctrSalud(nz(request.getTasaSctrSalud()));
+        proyecto.setTasaSctrPension(nz(request.getTasaSctrPension()));
+        proyecto.setClienteRazon(blankToNull(request.getClienteRazon()));
+        proyecto.setClienteRuc(normalizarRuc(request.getClienteRuc()));
+        proyecto.setFechaInicio(request.getFechaInicio());
+        proyecto.setFechaFin(request.getFechaFin());
+        proyecto.setEstadoObra(request.getEstadoObra() == null ? EstadoObra.EN_EJECUCION : request.getEstadoObra());
+        if (request.getActivo() != null) {
+            proyecto.setActivo(request.getActivo());
+        } else if (proyecto.getId() == null) {
+            proyecto.setActivo(true);
+        }
+    }
+
+    private static void validarVigencia(LocalDate inicio, LocalDate fin) {
+        if (inicio != null && fin != null && fin.isBefore(inicio)) {
+            throw new IllegalArgumentException("La fecha de fin no puede ser menor que la de inicio");
+        }
+    }
+
+    private static String normalizarRuc(String ruc) {
+        String valor = blankToNull(ruc);
+        if (valor == null) {
+            return null;
+        }
+        if (!valor.matches("\\d{11}")) {
+            throw new IllegalArgumentException("El RUC del cliente debe tener 11 dígitos");
+        }
+        return valor;
     }
 
     private static PersonalObraDTO toPersonalDto(ContratoCc contratoCc) {

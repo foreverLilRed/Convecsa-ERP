@@ -1,7 +1,9 @@
 package com.convecsa.erp.construccion.dto;
 
+import com.convecsa.erp.construccion.domain.EstadoObra;
 import com.convecsa.erp.construccion.domain.NivelRiesgoObra;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,6 +20,11 @@ public class ProyectoDTO {
     private final NivelRiesgoObra nivelRiesgo;
     private final BigDecimal tasaSctrSalud;
     private final BigDecimal tasaSctrPension;
+    private final String clienteRazon;
+    private final String clienteRuc;
+    private final LocalDate fechaInicio;
+    private final LocalDate fechaFin;
+    private final EstadoObra estadoObra;
     private final boolean activo;
     private final boolean alertaUit;
     private final int uitAnio;

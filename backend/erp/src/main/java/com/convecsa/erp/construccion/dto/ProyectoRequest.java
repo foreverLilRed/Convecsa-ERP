@@ -1,11 +1,14 @@
 package com.convecsa.erp.construccion.dto;
 
+import com.convecsa.erp.construccion.domain.EstadoObra;
 import com.convecsa.erp.construccion.domain.NivelRiesgoObra;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -41,5 +44,22 @@ public class ProyectoRequest {
     @Digits(integer = 1, fraction = 6)
     private BigDecimal tasaSctrPension;
 
+    @Size(max = 160)
+    private String clienteRazon;
+
+    @Size(max = 11)
+    private String clienteRuc;
+
+    private LocalDate fechaInicio;
+
+    private LocalDate fechaFin;
+
+    private EstadoObra estadoObra;
+
     private Boolean activo;
+
+    @AssertTrue(message = "La fecha de fin no puede ser menor que la de inicio")
+    public boolean isVigenciaValida() {
+        return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);
+    }
 }

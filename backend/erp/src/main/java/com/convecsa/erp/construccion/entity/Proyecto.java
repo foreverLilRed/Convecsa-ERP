@@ -1,5 +1,6 @@
 package com.convecsa.erp.construccion.entity;
 
+import com.convecsa.erp.construccion.domain.EstadoObra;
 import com.convecsa.erp.construccion.domain.NivelRiesgoObra;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,6 +51,22 @@ public class Proyecto {
 
     @Column(name = "tasa_sctr_pension", nullable = false, precision = 7, scale = 6)
     private BigDecimal tasaSctrPension = BigDecimal.ZERO;
+
+    @Column(name = "cliente_razon", length = 160)
+    private String clienteRazon;
+
+    @Column(name = "cliente_ruc", length = 11)
+    private String clienteRuc;
+
+    @Column(name = "fecha_inicio")
+    private LocalDate fechaInicio;
+
+    @Column(name = "fecha_fin")
+    private LocalDate fechaFin;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_obra", nullable = false, length = 20)
+    private EstadoObra estadoObra = EstadoObra.EN_EJECUCION;
 
     @Column(nullable = false)
     private boolean activo = true;

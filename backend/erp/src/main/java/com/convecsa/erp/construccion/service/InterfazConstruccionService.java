@@ -9,6 +9,8 @@ import com.convecsa.erp.construccion.dto.PeriodoCcRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
+import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
+import com.convecsa.erp.construccion.dto.ResponsableObraDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGrillaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
@@ -26,6 +28,12 @@ public interface InterfazConstruccionService {
     ProyectoDTO obtenerProyecto(Long id);
 
     ProyectoDTO crearProyecto(ProyectoRequest request);
+
+    ProyectoDTO actualizarProyecto(Long id, ProyectoRequest request);
+
+    List<ResponsableObraDTO> listarResponsables(Long proyectoId);
+
+    List<ResponsableObraDTO> guardarResponsables(Long proyectoId, List<ProyectoResponsableRequest> request);
 
     List<PersonalObraDTO> listarPersonal(Long proyectoId);
 

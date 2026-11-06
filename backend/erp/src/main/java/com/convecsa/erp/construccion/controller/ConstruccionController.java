@@ -9,6 +9,9 @@ import com.convecsa.erp.construccion.dto.PeriodoCcRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
+import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
+import com.convecsa.erp.construccion.dto.ProyectoResponsablesGuardarRequest;
+import com.convecsa.erp.construccion.dto.ResponsableObraDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGrillaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
@@ -61,6 +64,25 @@ public class ConstruccionController {
     @GetMapping("/{id:\\d+}")
     public ProyectoDTO obtener(@PathVariable Long id) {
         return construccionService.obtenerProyecto(id);
+    }
+
+    @PutMapping("/{id:\\d+}")
+    public ProyectoDTO actualizar(@PathVariable Long id, @Valid @RequestBody ProyectoRequest request) {
+        return construccionService.actualizarProyecto(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/responsables")
+    public List<ResponsableObraDTO> responsables(@PathVariable Long id) {
+        return construccionService.listarResponsables(id);
+    }
+
+    @PutMapping("/{id:\\d+}/responsables")
+    public List<ResponsableObraDTO> guardarResponsables(
+            @PathVariable Long id,
+            @Valid @RequestBody ProyectoResponsablesGuardarRequest request) {
+        List<ProyectoResponsableRequest> filas =
+                request.getResponsables() == null ? List.of() : request.getResponsables();
+        return construccionService.guardarResponsables(id, filas);
     }
 
     @GetMapping("/{id:\\d+}/personal")

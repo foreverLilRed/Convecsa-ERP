@@ -85,6 +85,10 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'KPIs y desempeño'
   }
 
+  if (name === 'proyecto-ficha') {
+    return 'Ficha de obra'
+  }
+
   if (name === 'proyecto-tareo') {
     return 'Tareo'
   }
@@ -118,7 +122,7 @@ export function getGroupIdForRouteName(name: string | symbol | null | undefined)
     return 'gestion-humana'
   }
 
-  if (name === 'proyecto-tareo' || name === 'proyecto-planilla') {
+  if (name === 'proyecto-ficha' || name === 'proyecto-tareo' || name === 'proyecto-planilla') {
     return 'proyectos'
   }
 

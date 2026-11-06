@@ -9,6 +9,8 @@ public interface ProyectoRepository extends JpaRepository<Proyecto, Long> {
 
     boolean existsByCodigoIgnoreCase(String codigo);
 
+    boolean existsByCodigoIgnoreCaseAndIdNot(String codigo, Long id);
+
     Optional<Proyecto> findByCodigoIgnoreCase(String codigo);
 
     List<Proyecto> findByActivoTrueOrderByCodigoAsc();

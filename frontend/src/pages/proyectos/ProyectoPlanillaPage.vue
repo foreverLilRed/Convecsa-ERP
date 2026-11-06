@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { PlusIcon } from '@lucide/vue'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import { Button } from '@/components/ui/button'
@@ -43,7 +43,6 @@ const selectClass =
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const route = useRoute()
-const router = useRouter()
 const proyectoId = computed(() => Number(route.params.id))
 const proyecto = ref<Proyecto | null>(null)
 const periodos = ref<PeriodoCc[]>([])
@@ -300,33 +299,7 @@ function conceptosDe(categoria: BoletaCc['conceptos'][number]['categoria']) {
 
 <template>
   <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Proyectos</p>
-    <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
-      Planilla RCC {{ proyecto ? `· ${proyecto.codigo}` : '' }}
-    </h2>
-    <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
-      Liquide el periodo a partir del tareo, agregue reintegros y emita o disperse las boletas RCC.
-    </p>
-    <div
-      v-if="proyecto?.alertaUit"
-      class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-    >
-      El valor de esta obra supera 50 UIT ({{ proyecto.uitAnio }}). Es una alerta informativa: no
-      bloquea el tareo ni la liquidación.
-    </div>
-
-    <div class="mt-5 flex flex-wrap gap-2">
-      <Button variant="outline" type="button" @click="router.push({ name: 'proyectos' })">Obras</Button>
-      <Button
-        variant="outline"
-        type="button"
-        @click="router.push({ name: 'proyecto-tareo', params: { id: String(proyectoId) } })"
-      >
-        Tareo
-      </Button>
-    </div>
-
-    <div class="mt-6 space-y-5 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+    <div class="space-y-5 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div class="w-full max-w-md">
           <label class="text-sm font-medium text-slate-700" for="planilla-periodo">Periodo</label>

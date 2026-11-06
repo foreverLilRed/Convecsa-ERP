@@ -96,6 +96,17 @@ function riesgoLabel(valor: Proyecto['nivelRiesgo']): string {
   return '—'
 }
 
+function estadoObraLabel(estado: Proyecto['estadoObra'] | undefined): string {
+  if (estado === 'PARALIZADA') return 'Paralizada'
+  if (estado === 'LIQUIDADA') return 'Liquidada'
+  return 'En ejecución'
+}
+
+function estadoCelda(proyecto: Proyecto): string {
+  const estado = estadoObraLabel(proyecto.estadoObra)
+  return proyecto.activo ? estado : `${estado} · Inactiva`
+}
+
 function lockBodyScroll() {
   const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
   document.body.style.overflow = 'hidden'
@@ -176,6 +187,7 @@ async function onCrear() {
       nivelRiesgo: form.nivelRiesgo || null,
       tasaSctrSalud: tasaSalud,
       tasaSctrPension: tasaPension,
+      estadoObra: 'EN_EJECUCION',
     })
     if (creado.alertaUit) {
       toast.warning(
@@ -267,26 +279,16 @@ async function onCrear() {
                 UIT &gt; 50
               </span>
             </TableCell>
-            <TableCell>{{ proyecto.activo ? 'Activa' : 'Inactiva' }}</TableCell>
+            <TableCell>{{ estadoCelda(proyecto) }}</TableCell>
             <TableCell class="text-right">
-              <div class="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  class="h-8 px-3 text-xs"
-                  type="button"
-                  @click="router.push({ name: 'proyecto-tareo', params: { id: String(proyecto.id) } })"
-                >
-                  Tareo
-                </Button>
-                <Button
-                  variant="outline"
-                  class="h-8 px-3 text-xs"
-                  type="button"
-                  @click="router.push({ name: 'proyecto-planilla', params: { id: String(proyecto.id) } })"
-                >
-                  Planilla
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                class="h-8 px-3 text-xs"
+                type="button"
+                @click="router.push({ name: 'proyecto-ficha', params: { id: String(proyecto.id) } })"
+              >
+                Abrir
+              </Button>
             </TableCell>
           </TableRow>
         </TableBody>

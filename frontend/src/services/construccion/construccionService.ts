@@ -10,6 +10,8 @@ import type {
   PersonalObra,
   Proyecto,
   ProyectoRequest,
+  ProyectoResponsableRequest,
+  ResponsableObra,
   TareoCcDia,
   TareoCcGrilla,
 } from '@/types/construccion'
@@ -38,6 +40,27 @@ export function crearProyecto(request: ProyectoRequest): Promise<Proyecto> {
 
 export function obtenerProyecto(id: number): Promise<Proyecto> {
   return apiRequest<Proyecto>(`/api/proyectos/${id}`)
+}
+
+export function actualizarProyecto(id: number, request: ProyectoRequest): Promise<Proyecto> {
+  return apiRequest<Proyecto>(`/api/proyectos/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarResponsablesObra(proyectoId: number): Promise<ResponsableObra[]> {
+  return apiRequest<ResponsableObra[]>(`/api/proyectos/${proyectoId}/responsables`)
+}
+
+export function guardarResponsablesObra(
+  proyectoId: number,
+  responsables: ProyectoResponsableRequest[],
+): Promise<ResponsableObra[]> {
+  return apiRequest<ResponsableObra[]>(`/api/proyectos/${proyectoId}/responsables`, {
+    method: 'PUT',
+    body: JSON.stringify({ responsables }),
+  })
 }
 
 export function listarPersonalObra(proyectoId: number): Promise<PersonalObra[]> {

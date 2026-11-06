@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
 import ParteDiarioRccGrid from '@/components/proyectos/ParteDiarioRccGrid.vue'
@@ -12,19 +12,16 @@ import {
   crearPeriodoCc,
   guardarTareo,
   listarPeriodosCc,
-  obtenerProyecto,
   obtenerTareo,
 } from '@/services/construccion/construccionService'
-import type { PeriodoCc, Proyecto, TareoCcGrilla } from '@/types/construccion'
+import type { PeriodoCc, TareoCcGrilla } from '@/types/construccion'
 import { mesesCatalogo, periodoLabel } from '@/types/nomina'
 
 const selectClass =
   'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
 
 const route = useRoute()
-const router = useRouter()
 const proyectoId = computed(() => Number(route.params.id))
-const proyecto = ref<Proyecto | null>(null)
 const periodos = ref<PeriodoCc[]>([])
 const periodoId = ref<number | null>(null)
 const grilla = ref<TareoCcGrilla | null>(null)
@@ -77,10 +74,6 @@ function cambiarMes(delta: number) {
   anio.value = siguiente.getFullYear()
   mes.value = siguiente.getMonth() + 1
   anioInput.value = anio.value
-}
-
-async function loadProyecto() {
-  proyecto.value = await obtenerProyecto(proyectoId.value)
 }
 
 async function loadPeriodos(preferId?: number) {
@@ -146,7 +139,6 @@ async function asegurarPeriodoMensual() {
 async function load() {
   loading.value = true
   try {
-    await loadProyecto()
     await loadPeriodos()
     await asegurarPeriodoMensual()
   } catch (err) {
@@ -200,34 +192,7 @@ async function onGuardar() {
 
 <template>
   <section>
-    <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Proyectos</p>
-    <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
-      Parte diario {{ proyecto ? `· ${proyecto.codigo}` : '' }}
-    </h2>
-    <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
-      Matriz mensual de asistencia RCC (1 al último día del mes). Ord, +60% y +100% por día.
-      El dominical se calcula por semana ISO (horas lunes a sábado / 6).
-    </p>
-    <div
-      v-if="proyecto?.alertaUit"
-      class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-    >
-      El valor de esta obra supera 50 UIT ({{ proyecto.uitAnio }}). Es una alerta informativa: no
-      bloquea el tareo ni la liquidación.
-    </div>
-
-    <div class="mt-5 flex flex-wrap gap-2">
-      <Button variant="outline" type="button" @click="router.push({ name: 'proyectos' })">Obras</Button>
-      <Button
-        variant="outline"
-        type="button"
-        @click="router.push({ name: 'proyecto-planilla', params: { id: String(proyectoId) } })"
-      >
-        Planilla
-      </Button>
-    </div>
-
-    <div class="mt-6 space-y-5 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+    <div class="space-y-5 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div class="flex flex-wrap items-end gap-2">
           <Button
