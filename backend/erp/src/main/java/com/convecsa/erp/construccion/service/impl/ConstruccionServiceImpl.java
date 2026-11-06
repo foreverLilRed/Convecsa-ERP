@@ -876,6 +876,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .hijosEscolaridad(contratoCc.getHijosEscolaridad())
                 .afiliadoSindical(contratoCc.isAfiliadoSindical())
                 .centroCosto(contratoCc.getCentroCosto())
+                .fechaIngreso(contrato.getFechaInicio())
+                .fechaCese(contrato.getFechaFin())
                 .build();
     }
 

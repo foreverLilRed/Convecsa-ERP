@@ -1,6 +1,7 @@
 package com.convecsa.erp.construccion.dto;
 
 import com.convecsa.erp.construccion.domain.CategoriaObrera;
+import java.time.LocalDate;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -18,4 +19,6 @@ public class PersonalObraDTO {
     private final int hijosEscolaridad;
     private final boolean afiliadoSindical;
     private final String centroCosto;
+    private final LocalDate fechaIngreso;
+    private final LocalDate fechaCese;
 }

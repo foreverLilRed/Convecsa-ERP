@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 
+import ParteDiarioRccGrid from '@/components/proyectos/ParteDiarioRccGrid.vue'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableEmpty,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import {
   crearPeriodoCc,
   guardarTareo,
@@ -21,19 +15,11 @@ import {
   obtenerProyecto,
   obtenerTareo,
 } from '@/services/construccion/construccionService'
-import {
-  CODIGOS_TAREO,
-  type CadenciaPeriodoCc,
-  type CodigoTareoCc,
-  type PeriodoCc,
-  type Proyecto,
-  type TareoCcDia,
-  type TareoCcGrilla,
-} from '@/types/construccion'
+import type { PeriodoCc, Proyecto, TareoCcGrilla } from '@/types/construccion'
+import { mesesCatalogo, periodoLabel } from '@/types/nomina'
 
-const inputClass =
-  'h-8 w-full rounded border border-slate-200 bg-white px-1.5 text-xs text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
-const selectClass = inputClass
+const selectClass =
+  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,29 +30,18 @@ const periodoId = ref<number | null>(null)
 const grilla = ref<TareoCcGrilla | null>(null)
 const loading = ref(true)
 const saving = ref(false)
-const creating = ref(false)
-const form = reactive({
-  cadencia: 'SEMANAL' as CadenciaPeriodoCc,
-  fechaDesde: lunesDe(new Date()),
-  fechaHasta: domingoDe(new Date()),
-})
+const listo = ref(false)
+
+const hoy = new Date()
+const mes = ref(hoy.getMonth() + 1)
+const anio = ref(hoy.getFullYear())
+const anioInput = ref<string | number>(hoy.getFullYear())
+const meses = mesesCatalogo()
+let cargaSeq = 0
 
 const periodoActual = computed(() => periodos.value.find((item) => item.id === periodoId.value) ?? null)
 const cerrado = computed(() => periodoActual.value?.estado === 'CERRADO')
-
-function lunesDe(fecha: Date): string {
-  const copy = new Date(fecha)
-  const day = copy.getDay()
-  const diff = day === 0 ? -6 : 1 - day
-  copy.setDate(copy.getDate() + diff)
-  return iso(copy)
-}
-
-function domingoDe(fecha: Date): string {
-  const lunes = new Date(`${lunesDe(fecha)}T12:00:00`)
-  lunes.setDate(lunes.getDate() + 6)
-  return iso(lunes)
-}
+const tituloPeriodo = computed(() => periodoLabel(anio.value, mes.value))
 
 function iso(fecha: Date): string {
   const y = fecha.getFullYear()
@@ -75,45 +50,33 @@ function iso(fecha: Date): string {
   return `${y}-${m}-${d}`
 }
 
-function cadenciaLabel(cadencia: CadenciaPeriodoCc | undefined): string {
-  if (cadencia === 'QUINCENAL') return 'Quincena'
-  if (cadencia === 'MENSUAL') return 'Mes'
-  return 'Semana'
+function primerDia(anioSel: number, mesSel: number): string {
+  return iso(new Date(anioSel, mesSel - 1, 1))
 }
 
-function aplicarPreset(cadencia: CadenciaPeriodoCc) {
-  const hoy = new Date()
-  if (cadencia === 'SEMANAL') {
-    form.fechaDesde = lunesDe(hoy)
-    form.fechaHasta = domingoDe(hoy)
+function ultimoDia(anioSel: number, mesSel: number): string {
+  return iso(new Date(anioSel, mesSel, 0))
+}
+
+function periodoMensualDe(lista: PeriodoCc[], anioSel: number, mesSel: number): PeriodoCc | undefined {
+  const desde = primerDia(anioSel, mesSel)
+  return lista.find((item) => item.cadencia === 'MENSUAL' && item.fechaDesde === desde)
+}
+
+function commitAnio() {
+  const n = Number(anioInput.value)
+  if (!Number.isFinite(n) || n < 2000 || n > 2100) {
+    anioInput.value = anio.value
     return
   }
-  if (cadencia === 'QUINCENAL') {
-    const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() <= 15 ? 1 : 16)
-    const fin = hoy.getDate() <= 15
-      ? new Date(hoy.getFullYear(), hoy.getMonth(), 15)
-      : new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
-    form.fechaDesde = iso(inicio)
-    form.fechaHasta = iso(fin)
-    return
-  }
-  form.fechaDesde = iso(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
-  form.fechaHasta = iso(new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0))
+  anio.value = n
 }
 
-function clave(personaId: number, fecha: string): string {
-  return `${personaId}|${fecha}`
-}
-
-function diaDe(personaId: number, fecha: string): TareoCcDia | undefined {
-  return grilla.value?.dias.find((item) => item.personaId === personaId && item.fecha === fecha)
-}
-
-function etiquetaFecha(fecha: string): string {
-  const [y, m, d] = fecha.split('-')
-  const date = new Date(Number(y), Number(m) - 1, Number(d))
-  const dia = date.toLocaleDateString('es-PE', { weekday: 'short' })
-  return `${dia} ${d}/${m}`
+function cambiarMes(delta: number) {
+  const siguiente = new Date(anio.value, mes.value - 1 + delta, 1)
+  anio.value = siguiente.getFullYear()
+  mes.value = siguiente.getMonth() + 1
+  anioInput.value = anio.value
 }
 
 async function loadProyecto() {
@@ -124,10 +87,6 @@ async function loadPeriodos(preferId?: number) {
   periodos.value = await listarPeriodosCc(proyectoId.value)
   if (preferId && periodos.value.some((item) => item.id === preferId)) {
     periodoId.value = preferId
-    return
-  }
-  if (!periodoId.value && periodos.value.length) {
-    periodoId.value = periodos.value[0]?.id ?? null
   }
 }
 
@@ -139,66 +98,82 @@ async function loadTareo() {
   grilla.value = await obtenerTareo(proyectoId.value, periodoId.value)
 }
 
+async function asegurarPeriodoMensual() {
+  const seq = ++cargaSeq
+  const anioSel = anio.value
+  const mesSel = mes.value
+  const vigente = () => seq === cargaSeq && anio.value === anioSel && mes.value === mesSel
+  const existente = periodoMensualDe(periodos.value, anioSel, mesSel)
+  if (existente) {
+    if (!vigente()) {
+      return
+    }
+    periodoId.value = existente.id
+    await loadTareo()
+    return
+  }
+  try {
+    const creado = await crearPeriodoCc(proyectoId.value, {
+      fechaDesde: primerDia(anioSel, mesSel),
+      fechaHasta: ultimoDia(anioSel, mesSel),
+      cadencia: 'MENSUAL',
+    })
+    if (!vigente()) {
+      return
+    }
+    await loadPeriodos(creado.id)
+    if (!vigente()) {
+      return
+    }
+    await loadTareo()
+  } catch (err) {
+    if (!vigente()) {
+      return
+    }
+    await loadPeriodos()
+    const recuperado = periodoMensualDe(periodos.value, anioSel, mesSel)
+    if (recuperado) {
+      periodoId.value = recuperado.id
+      await loadTareo()
+      return
+    }
+    periodoId.value = null
+    grilla.value = null
+    toast.error(err instanceof Error ? err.message : 'No se pudo crear el periodo mensual.')
+  }
+}
+
 async function load() {
   loading.value = true
   try {
     await loadProyecto()
     await loadPeriodos()
-    await loadTareo()
+    await asegurarPeriodoMensual()
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar el tareo.')
   } finally {
     loading.value = false
+    listo.value = true
   }
 }
 
-watch(periodoId, async (id, prev) => {
-  if (id && id !== prev && !loading.value) {
-    try {
-      await loadTareo()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'No se pudo cargar el tareo.')
-    }
+watch([anio, mes], async () => {
+  if (!listo.value) {
+    return
+  }
+  loading.value = true
+  try {
+    await asegurarPeriodoMensual()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo cargar el tareo.')
+  } finally {
+    loading.value = false
   }
 })
 
 onMounted(() => {
   void load()
 })
-
-async function onCrearPeriodo() {
-  if (!form.fechaDesde || !form.fechaHasta || form.fechaHasta < form.fechaDesde) {
-    toast.error('Ingrese un rango de fechas válido.')
-    return
-  }
-  creating.value = true
-  try {
-    const creado = await crearPeriodoCc(proyectoId.value, {
-      fechaDesde: form.fechaDesde,
-      fechaHasta: form.fechaHasta,
-      cadencia: form.cadencia,
-    })
-    toast.success('Periodo creado.')
-    await loadPeriodos(creado.id)
-    await loadTareo()
-  } catch (err) {
-    toast.error(err instanceof Error ? err.message : 'No se pudo crear el periodo.')
-  } finally {
-    creating.value = false
-  }
-}
-
-function onCodigoChange(personaId: number, fecha: string, codigo: string) {
-  const dia = diaDe(personaId, fecha)
-  if (!dia) {
-    return
-  }
-  dia.codigo = codigo as CodigoTareoCc
-  if (codigo === 'F' || codigo === 'DSC') {
-    dia.horasOrd = 0
-    dia.movilidad = false
-  }
-}
 
 async function onGuardar() {
   if (!periodoId.value || !grilla.value) {
@@ -227,11 +202,11 @@ async function onGuardar() {
   <section>
     <p class="text-xs font-semibold uppercase tracking-widest text-palette-royal">Proyectos</p>
     <h2 class="mt-2 text-2xl font-bold tracking-tight text-palette-navy sm:text-3xl">
-      Tareo {{ proyecto ? `· ${proyecto.codigo}` : '' }}
+      Parte diario {{ proyecto ? `· ${proyecto.codigo}` : '' }}
     </h2>
     <p class="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500">
-      Marque horas y códigos por día para el personal RCC asignado a esta obra. El dominical se
-      calcula por semana ISO (horas lunes a sábado / 6). En quincena o mes, desplácese la grilla.
+      Matriz mensual de asistencia RCC (1 al último día del mes). Ord, +60% y +100% por día.
+      El dominical se calcula por semana ISO (horas lunes a sábado / 6).
     </p>
     <div
       v-if="proyecto?.alertaUit"
@@ -254,174 +229,86 @@ async function onGuardar() {
 
     <div class="mt-6 space-y-5 rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <label class="text-sm font-medium text-slate-700" for="tareo-periodo">Periodo</label>
-            <select id="tareo-periodo" v-model.number="periodoId" :class="selectClass + ' mt-1.5 h-10'">
-              <option :value="null">Sin periodos</option>
-              <option v-for="item in periodos" :key="item.id" :value="item.id">
-                {{ cadenciaLabel(item.cadencia) }} · {{ item.fechaDesde }} → {{ item.fechaHasta }}
-                ({{ item.estado === 'CERRADO' ? 'Cerrado' : 'Borrador' }})
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-slate-700" for="tareo-cadencia">Cadencia</label>
-            <select
-              id="tareo-cadencia"
-              v-model="form.cadencia"
-              :class="selectClass + ' mt-1.5 h-10'"
-              @change="aplicarPreset(form.cadencia)"
-            >
-              <option value="SEMANAL">Semanal (L-D)</option>
-              <option value="QUINCENAL">Quincenal (1-15 / 16-fin)</option>
-              <option value="MENSUAL">Mensual (mes calendario)</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-slate-700" for="tareo-desde">Desde</label>
-            <input id="tareo-desde" v-model="form.fechaDesde" type="date" :class="inputClass + ' mt-1.5 h-10'" />
-          </div>
-          <div>
-            <label class="text-sm font-medium text-slate-700" for="tareo-hasta">Hasta</label>
-            <input id="tareo-hasta" v-model="form.fechaHasta" type="date" :class="inputClass + ' mt-1.5 h-10'" />
-          </div>
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <Button variant="outline" type="button" :disabled="creating" @click="onCrearPeriodo">
-            Nuevo periodo
-          </Button>
+        <div class="flex flex-wrap items-end gap-2">
           <Button
-            class="bg-palette-navy text-white hover:bg-palette-royal"
+            variant="outline"
+            size="icon"
+            class="h-8 w-8"
             type="button"
-            :disabled="saving || cerrado || !grilla"
-            @click="onGuardar"
+            :disabled="loading || saving"
+            aria-label="Mes anterior"
+            @click="cambiarMes(-1)"
           >
-            Guardar tareo
+            <ChevronLeftIcon class="cn-rtl-flip size-4" />
           </Button>
+          <div>
+            <label class="text-[10px] font-medium text-slate-600" for="tareo-mes">Mes</label>
+            <select
+              id="tareo-mes"
+              v-model.number="mes"
+              :class="selectClass"
+              class="mt-0.5 min-w-28"
+              :disabled="loading || saving"
+            >
+              <option v-for="item in meses" :key="item.value" :value="item.value">{{ item.label }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] font-medium text-slate-600" for="tareo-anio">Año</label>
+            <Input
+              id="tareo-anio"
+              v-model="anioInput"
+              class="mt-0.5 w-20"
+              type="number"
+              min="2000"
+              max="2100"
+              :disabled="loading || saving"
+              @change="commitAnio"
+              @blur="commitAnio"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            class="h-8 w-8"
+            type="button"
+            :disabled="loading || saving"
+            aria-label="Mes siguiente"
+            @click="cambiarMes(1)"
+          >
+            <ChevronRightIcon class="cn-rtl-flip size-4" />
+          </Button>
+          <p class="pb-1 text-sm font-medium text-palette-navy">{{ tituloPeriodo }}</p>
         </div>
+        <Button
+          class="bg-palette-navy text-white hover:bg-palette-royal"
+          type="button"
+          :disabled="saving || cerrado || !grilla"
+          @click="onGuardar"
+        >
+          Guardar tareo
+        </Button>
       </div>
 
       <p v-if="cerrado" class="text-sm text-amber-700">El periodo está cerrado. El tareo es de solo lectura.</p>
 
-      <div v-if="loading" class="space-y-3">
+      <div v-if="loading && !grilla" class="space-y-3">
         <Skeleton class="h-10 w-full" />
         <Skeleton class="h-24 w-full" />
       </div>
 
-      <div v-else-if="!grilla" class="text-sm text-slate-500">Cree un periodo para registrar el tareo.</div>
-
-      <div v-else class="overflow-x-auto rounded-lg border border-palette-cyan/60">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead class="sticky left-0 z-10 bg-white min-w-48">Trabajador</TableHead>
-              <TableHead v-for="fecha in grilla.fechas" :key="fecha" class="min-w-36 text-center">
-                {{ etiquetaFecha(fecha) }}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableEmpty v-if="!grilla.personal.length" :colspan="1 + grilla.fechas.length">
-              No hay personal RCC asignado a esta obra. Asígnalo en el alta de contrato.
-            </TableEmpty>
-            <TableRow v-for="persona in grilla.personal" v-else :key="persona.personaId">
-              <TableCell class="sticky left-0 z-10 bg-white align-top">
-                <p class="font-medium">{{ persona.apellidos }}, {{ persona.nombres }}</p>
-                <p class="text-xs text-slate-500">{{ persona.numeroDocumento }} · {{ persona.categoria }}</p>
-              </TableCell>
-              <TableCell v-for="fecha in grilla.fechas" :key="clave(persona.personaId, fecha)" class="align-top">
-                <div v-if="diaDe(persona.personaId, fecha)" class="grid gap-1">
-                  <select
-                    :value="diaDe(persona.personaId, fecha)!.codigo"
-                    :disabled="cerrado"
-                    :class="selectClass"
-                    @change="onCodigoChange(persona.personaId, fecha, ($event.target as HTMLSelectElement).value)"
-                  >
-                    <option v-for="item in CODIGOS_TAREO" :key="item.codigo" :value="item.codigo">
-                      {{ item.label }}
-                    </option>
-                  </select>
-                  <input
-                    v-model.number="diaDe(persona.personaId, fecha)!.horasOrd"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    :disabled="cerrado"
-                    :class="inputClass"
-                    aria-label="Horas ordinarias"
-                  />
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.bae" type="checkbox" :disabled="cerrado" />
-                    BAE
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.movilidad" type="checkbox" :disabled="cerrado" />
-                    Mov.
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.altura" type="checkbox" :disabled="cerrado" />
-                    Altura
-                  </label>
-                  <input
-                    v-model.number="diaDe(persona.personaId, fecha)!.pisos"
-                    type="number"
-                    min="0"
-                    :disabled="cerrado"
-                    :class="inputClass"
-                    placeholder="Pisos"
-                    aria-label="Pisos"
-                  />
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.altitud" type="checkbox" :disabled="cerrado" />
-                    Altitud
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.cotaCero" type="checkbox" :disabled="cerrado" />
-                    Cota 0
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.altasTemp" type="checkbox" :disabled="cerrado" />
-                    Temp.
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.agua" type="checkbox" :disabled="cerrado" />
-                    Agua
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.aguasServidas" type="checkbox" :disabled="cerrado" />
-                    A. serv.
-                  </label>
-                  <label class="flex items-center gap-1 text-[10px] text-slate-600">
-                    <input v-model="diaDe(persona.personaId, fecha)!.nocturno" type="checkbox" :disabled="cerrado" />
-                    Noct.
-                  </label>
-                  <input
-                    v-model.number="diaDe(persona.personaId, fecha)!.he60"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    :disabled="cerrado"
-                    :class="inputClass"
-                    placeholder="HE 60%"
-                    aria-label="Horas extras 60%"
-                  />
-                  <input
-                    v-model.number="diaDe(persona.personaId, fecha)!.he100"
-                    type="number"
-                    min="0"
-                    step="0.5"
-                    :disabled="cerrado"
-                    :class="inputClass"
-                    placeholder="HE 100%"
-                    aria-label="Horas extras 100%"
-                  />
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+      <div v-else-if="!grilla" class="text-sm text-slate-500">
+        No hay un periodo mensual para {{ tituloPeriodo }}.
       </div>
+
+      <ParteDiarioRccGrid
+        v-else
+        :grilla="grilla"
+        :cerrado="cerrado"
+        :loading="loading"
+        :anio="anio"
+        :mes="mes"
+      />
     </div>
   </section>
 </template>

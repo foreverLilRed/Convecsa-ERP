@@ -52,6 +52,8 @@ export type PersonalObra = {
   hijosEscolaridad: number
   afiliadoSindical: boolean
   centroCosto: string | null
+  fechaIngreso: string | null
+  fechaCese: string | null
 }
 
 export type PeriodoCc = {
