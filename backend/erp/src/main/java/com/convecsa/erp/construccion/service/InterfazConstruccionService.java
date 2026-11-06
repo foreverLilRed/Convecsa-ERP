@@ -3,10 +3,14 @@ package com.convecsa.erp.construccion.service;
 import com.convecsa.erp.construccion.dto.BoletaCcDTO;
 import com.convecsa.erp.construccion.dto.BoletaCcExtrasRequest;
 import com.convecsa.erp.construccion.dto.BoletaCcResumenDTO;
+import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.ConstruccionCatalogosDTO;
+import com.convecsa.erp.construccion.dto.PartidaPresupuestoRequest;
 import com.convecsa.erp.construccion.dto.PeriodoCcDTO;
 import com.convecsa.erp.construccion.dto.PeriodoCcRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoVersionRequest;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
 import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
@@ -34,6 +38,16 @@ public interface InterfazConstruccionService {
     List<ResponsableObraDTO> listarResponsables(Long proyectoId);
 
     List<ResponsableObraDTO> guardarResponsables(Long proyectoId, List<ProyectoResponsableRequest> request);
+
+    PresupuestoDTO obtenerPresupuesto(Long proyectoId, Long versionId);
+
+    PresupuestoDTO crearVersionPresupuesto(Long proyectoId, PresupuestoVersionRequest request);
+
+    PresupuestoDTO guardarPartidasPresupuesto(Long proyectoId, Long versionId, List<PartidaPresupuestoRequest> request);
+
+    PresupuestoDTO vigentarPresupuesto(Long proyectoId, Long versionId);
+
+    ComparativoPresupuestoDTO comparativoPresupuesto(Long proyectoId);
 
     List<PersonalObraDTO> listarPersonal(Long proyectoId);
 

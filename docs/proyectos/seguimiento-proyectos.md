@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento). Faltan presupuesto, materiales, avances/valorizaciones, financiamiento/factoring y el tablero de rentabilidad.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU** y el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida). Faltan avances/valorizaciones, financiamiento/factoring y el tablero de rentabilidad.
 
 ```mermaid
 flowchart LR
@@ -48,9 +48,10 @@ flowchart TB
     Tareo --> Planilla[PlanillaRCC]
     Planilla --> Dispersion[DispersionBancaria]
     Planilla --> Asiento[AsientoRCC]
+    Presupuesto[PresupuestoYAPU]
+    Presupuesto --> Materiales[MaterialesYAlmacen]
   end
   subgraph pendiente [Pendiente]
-    Presupuesto[PresupuestoYAPU] --> Materiales[MaterialesYAlmacen]
     Presupuesto --> Avances[AvancesFisicos]
     Avances --> Valorizacion[ValorizacionCliente]
     Valorizacion --> Factoring[Factoring]
@@ -64,14 +65,14 @@ flowchart TB
 | 2 | Maestro de Obras | Hecho |
 | 3 | Asignación de recursos | Parcial |
 | 4 | Parte diario y mano de obra | Hecho |
-| 5 | Presupuesto y costeo meta | Pendiente |
-| 6 | Materiales y almacén | Pendiente |
+| 5 | Presupuesto y costeo meta | Parcial |
+| 6 | Materiales y almacén | Hecho |
 | 7 | Avances y valorizaciones | Pendiente |
 | 8 | Financiamiento de obra (incluye factoring) | Pendiente |
 | 9 | Integración contable y rentabilidad | Parcial |
 | 10 | Transversales | Parcial |
 
-Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo y Planilla viven como pestañas de esa ficha.
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto y Almacén viven como pestañas de esa ficha.
 
 Rutas Vue:
 
@@ -79,6 +80,8 @@ Rutas Vue:
 - `/proyectos/:id` → [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) (tab Resumen)
 - `/proyectos/:id/tareo` → misma ficha, tab Tareo ([`ProyectoTareoPage.vue`](../../frontend/src/pages/proyectos/ProyectoTareoPage.vue))
 - `/proyectos/:id/planilla` → misma ficha, tab Planilla ([`ProyectoPlanillaPage.vue`](../../frontend/src/pages/proyectos/ProyectoPlanillaPage.vue))
+- `/proyectos/:id/presupuesto` → misma ficha, tab Presupuesto ([`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue))
+- `/proyectos/:id/almacen` → misma ficha, tab Almacén ([`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue))
 
 API base: [`ConstruccionController`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/controller/ConstruccionController.java) en `/api/proyectos`.
 
@@ -249,72 +252,78 @@ PLAME: códigos `REINTEGRO=0121`, `DESCUENTO_MANUAL=0701`. La declaración mensu
 
 ---
 
-## 5. Presupuesto y costeo meta — Pendiente
+## 5. Presupuesto y costeo meta — Parcial
 
 El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra el cual se comparará el costo real.
 
 ### Objetivos
 
-- [ ] Importar o cargar presupuesto por partidas (capítulo, partida, unidad, metrado, precio unitario, total)
-- [ ] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
+- [x] Cargar presupuesto por partidas (capítulo, partida, unidad, metrado, precio unitario, total) desde la ficha
+- [ ] Importar presupuesto desde Excel
+- [x] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
 - [ ] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
-- [ ] Costo objetivo por obra y por centro de costo / cuadrilla
-- [ ] Comparativo meta vs real (mano de obra ya disponible; materiales y equipos cuando existan)
-- [ ] Versiones de presupuesto (inicial, actualizado, adicional)
-- [ ] Bloqueo de presupuesto vigente para no editarlo sin una nueva versión
+- [x] Costo objetivo por obra y por centro de costo (cuadrilla sigue pendiente)
+- [x] Comparativo meta vs real de mano de obra RCC y de materiales (vales de salida); equipos aún sin dato
+- [x] Versiones de presupuesto (inicial, actualizado, adicional)
+- [x] Bloqueo de presupuesto vigente: solo se edita un borrador; vigentar pasa el anterior a histórico
 
-### Cómo funciona (objetivo)
+### Cómo funciona (hoy)
 
-Al ganar la licitación se carga el presupuesto contractual. Cada partida tiene metrado y APU. Durante la obra, el costo real (tareo, kardex, equipos, subcontratos) se acumula contra esas partidas. El tablero muestra desviación en soles y en porcentaje. Un adicional de obra genera una versión nueva, no pisa la inicial.
+En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida, agrupado por centro de costo.
 
-### Desglose técnico (propuesto)
+### Desglose técnico (hecho)
 
-| Capa | Propuesta |
+| Capa | Ubicación |
 | --- | --- |
-| Entidades | `PresupuestoObra`, `PartidaPresupuesto`, `ApuPartida`, `PresupuestoVersion` |
-| Endpoints | `GET/POST /api/proyectos/{id}/presupuesto`, `GET/PUT /api/proyectos/{id}/presupuesto/partidas`, `POST .../presupuesto/versiones` |
-| UI | `ProyectoPresupuestoPage.vue`, componente `PartidaPresupuestoTable.vue` (shadcn Table) |
-| Relación | `PartidaPresupuesto.centroCosto` alinea con `ContratoCc.centroCosto` y con movimientos de almacén |
+| Entidades | [`PresupuestoVersion.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/PresupuestoVersion.java), [`PartidaPresupuesto.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/PartidaPresupuesto.java), [`ApuPartida.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ApuPartida.java) |
+| Dominio | `TipoVersionPresupuesto`, `EstadoVersionPresupuesto`, `TipoRecursoApu` |
+| Endpoints | `GET /api/proyectos/{id}/presupuesto`, `POST .../presupuesto/versiones`, `PUT .../versiones/{versionId}/partidas`, `POST .../vigentar`, `GET .../presupuesto/comparativo` |
+| UI | tab Presupuesto de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue) |
+| Migración | `V48` |
+| Relación | `PartidaPresupuesto.centroCosto` alinea con `ContratoCc.centroCosto` (fallback: centro de la obra) |
 
 ---
 
-## 6. Materiales y almacén — Pendiente
+## 6. Materiales y almacén — Hecho
 
 Ciclo de abastecimiento de la obra: pedido, compra, recepción, kardex y consumo por partida.
 
 ### Objetivos
 
-- [ ] Catálogo de materiales (código, unidad, familia, stock mínimo)
-- [ ] Requerimiento de materiales emitido por la obra / cuadrilla, ligado a partida
-- [ ] Orden de compra (proveedor, precio, plazo) y su estado (borrador, emitida, recepcionada, cerrada)
-- [ ] Guía de remisión / recepción en almacén de obra, con diferencias
-- [ ] Kardex por almacén de obra (entradas, salidas, ajustes) y costo promedio
-- [ ] Vale de salida / consumo imputado a partida y a centro de costo
-- [ ] Valorización de inventario al cierre de mes
-- [ ] Alerta de quiebre de stock y de materiales críticos
-- [ ] Devoluciones a almacén central o a proveedor
+- [x] Catálogo de materiales (código, unidad, familia, stock mínimo)
+- [x] Requerimiento de materiales emitido por la obra, ligado a partida (cuadrilla queda fuera de fase)
+- [x] Orden de compra (proveedor en columnas, precio, plazo) y su estado (borrador, emitida, recepcionada, cerrada)
+- [x] Recepción en almacén de obra contra la OC, con diferencias (pendiente vs recibido); `numeroGuia` texto, sin GRE/SUNAT
+- [x] Kardex por almacén de obra (entradas, salidas, ajustes) y costo promedio ponderado
+- [x] Vale de salida / consumo imputado a partida y a centro de costo
+- [x] Valorización de inventario al cierre de mes (snapshot; sin asiento de existencias)
+- [x] Alerta de quiebre de stock y de materiales críticos
+- [x] Devoluciones a almacén de obra (desde vale) y a proveedor. Descartado: almacén central
 
-### Cómo funciona (objetivo)
+### Cómo funciona (hoy)
 
-El residente (o almacenero) arma un requerimiento a partir del APU y del metrado pendiente. Compras genera la OC. Al llegar el material se recepciona contra la OC y entra al kardex del almacén de esa obra. El consumo diario (vale de salida) descuenta stock y carga costo a la partida. El costo real de materiales del mes alimenta rentabilidad (sección 9) y el asiento de existencias.
+En **Obras → Abrir → Almacén** hay un catálogo empresa y un almacén por obra (se crea al primer acceso). El residente arma un requerimiento (borrador → aprobado), opcionalmente sugerido desde APU `MATERIAL` de la vigente. Compras genera la OC (proveedor razón/RUC, no maestro) y al emitir cubre el requerimiento. La recepción entra al kardex al precio de la OC y recalcula CMP. El vale de salida descuenta stock al CMP e imputa costo a la partida vigente. El comparativo de presupuesto toma el real de materiales de esos vales. El asiento de existencias queda para Fase F.
 
 ```mermaid
 flowchart LR
-  Req[RequerimientoObra] --> Oc[OrdenDeCompra]
+  Catalogo[Material] --> Req[RequerimientoObra]
+  Req --> Oc[OrdenCompra]
   Oc --> Recepcion[RecepcionAlmacen]
-  Recepcion --> Kardex[KardexObra]
-  Kardex --> Vale[ValeDeSalida]
+  Recepcion --> Kardex[MovimientoAlmacen]
+  Kardex --> Vale[ValeSalida]
   Vale --> Partida[CostoPorPartida]
 ```
 
-### Desglose técnico (propuesto)
+### Desglose técnico (hecho)
 
-| Capa | Propuesta |
+| Capa | Ubicación |
 | --- | --- |
-| Entidades | `Material`, `AlmacenObra`, `RequerimientoObra`, `RequerimientoItem`, `OrdenCompra`, `OrdenCompraItem`, `MovimientoAlmacen` |
-| Endpoints | `/api/proyectos/{id}/materiales`, `/api/proyectos/{id}/requerimientos`, `/api/proyectos/{id}/compras`, `/api/proyectos/{id}/almacen` |
-| UI | `ProyectoMaterialesPage.vue`, `ProyectoRequerimientosPage.vue`, `ProyectoAlmacenPage.vue` |
-| Nota | Las OC pueden nacer a nivel empresa y destinarse a una obra; el documento asume destino = obra |
+| Entidades | [`Material.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/Material.java), [`AlmacenObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AlmacenObra.java), [`RequerimientoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/RequerimientoObra.java), [`OrdenCompra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/OrdenCompra.java), [`RecepcionAlmacen.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/RecepcionAlmacen.java), [`ValeSalida.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ValeSalida.java), [`MovimientoAlmacen.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/MovimientoAlmacen.java), [`InventarioCierre.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/InventarioCierre.java) |
+| Servicio | [`AlmacenServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/AlmacenServiceImpl.java) |
+| Endpoints | `GET/POST /api/proyectos/materiales`, `GET /api/proyectos/{id}/almacen`, requerimientos, compras, vales, kardex, cierre |
+| UI | tab Almacén de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue) |
+| Migración | `V49` |
+| Nota | Un almacén por obra. Proveedor = columnas en la OC. Sin cuadrillas, sin GRE electrónica, sin asiento de existencias |
 
 ---
 
@@ -440,8 +449,8 @@ Cortes que aplican a todas las secciones anteriores.
 
 ### Objetivos
 
-- [x] Ficha de obra (hub) con pestañas Resumen, Tareo y Planilla
-- [ ] Pestañas Presupuesto, Materiales, Avances, Financiamiento y Documentos
+- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto y Almacén
+- [ ] Pestañas Avances, Financiamiento y Documentos
 - [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex)
 - [ ] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura)
 - [ ] Adjuntos: contrato de obra, planos, actas, valorizaciones firmadas, cesiones de factoring
@@ -454,7 +463,7 @@ Cortes que aplican a todas las secciones anteriores.
 | Capa | Ubicación |
 | --- | --- |
 | Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
-| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla` anidadas bajo `/proyectos/:id` |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen` anidadas bajo `/proyectos/:id` |
 
 ### Desglose técnico (propuesto)
 
@@ -481,16 +490,16 @@ Dependencias: ninguna. Desbloquea el resto de pantallas.
 
 ### Fase B — Presupuesto y costeo meta
 
-- [ ] Presupuesto por partidas y versiones
-- [ ] APU (mano de obra, materiales, equipos)
-- [ ] Comparativo meta vs real de mano de obra (el único costo real que ya existe)
+- [x] Presupuesto por partidas y versiones
+- [x] APU (mano de obra, materiales, equipos)
+- [x] Comparativo meta vs real de mano de obra RCC (materiales se completan en Fase C)
 
 Dependencias: Fase A. Desbloquea imputación de materiales y avances.
 
 ### Fase C — Materiales y almacén
 
-- [ ] Catálogo, requerimiento, OC, recepción, kardex, vale de salida
-- [ ] Costo de materiales por partida y por mes
+- [x] Catálogo, requerimiento, OC, recepción, kardex, vale de salida
+- [x] Costo de materiales por partida y por mes
 
 Dependencias: Fase B (partida destino). Desbloquea rentabilidad más completa.
 
@@ -539,6 +548,31 @@ Base: `/api/proyectos`.
 | GET | `/{id}` | Detalle |
 | PUT | `/{id}` | Editar obra |
 | GET/PUT | `/{id}/responsables` | Responsables (reemplazo del set) |
+| GET | `/{id}/presupuesto` | Presupuesto (versiones + partidas/APU) |
+| POST | `/{id}/presupuesto/versiones` | Nueva versión (borrador) |
+| PUT | `/{id}/presupuesto/versiones/{versionId}/partidas` | Reemplazo de partidas/APU |
+| POST | `/{id}/presupuesto/versiones/{versionId}/vigentar` | Marcar vigente |
+| GET | `/{id}/presupuesto/comparativo` | Meta vs real de mano de obra y materiales |
+| GET/POST | `/materiales` | Catálogo empresa |
+| PUT | `/materiales/{materialId}` | Editar material |
+| GET | `/{id}/almacen` | Almacén de obra + stock y alertas |
+| GET | `/{id}/almacen/kardex` | Movimientos |
+| POST | `/{id}/almacen/ajustes` | Ajuste de inventario |
+| POST | `/{id}/almacen/cierre` | Cierre mensual de inventario |
+| GET | `/{id}/almacen/cierres` | Historial de cierres |
+| GET/POST | `/{id}/almacen/vales` | Vales de salida |
+| POST | `/{id}/almacen/vales/{valeId}/devolver` | Devolución a almacén |
+| GET/POST | `/{id}/requerimientos` | Requerimientos de obra |
+| GET | `/{id}/requerimientos/sugeridos-apu` | Sugerencias desde APU MATERIAL |
+| PUT | `/{id}/requerimientos/{reqId}` | Editar borrador |
+| POST | `/{id}/requerimientos/{reqId}/aprobar` | Aprobar |
+| POST | `/{id}/requerimientos/{reqId}/anular` | Anular |
+| GET/POST | `/{id}/compras` | Órdenes de compra |
+| PUT | `/{id}/compras/{ocId}` | Editar borrador |
+| POST | `/{id}/compras/{ocId}/emitir` | Emitir |
+| POST | `/{id}/compras/{ocId}/cerrar` | Cerrar |
+| POST | `/{id}/compras/{ocId}/recepciones` | Recepción contra OC |
+| POST | `/{id}/compras/{ocId}/devolver` | Devolución a proveedor |
 | GET | `/{id}/personal` | Obreros RCC activos |
 | GET/POST | `/{id}/periodos` | Periodos de planilla |
 | GET | `/{id}/periodos/{periodoId}` | Detalle de periodo |

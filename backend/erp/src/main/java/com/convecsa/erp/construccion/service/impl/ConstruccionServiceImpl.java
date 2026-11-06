@@ -8,7 +8,10 @@ import com.convecsa.erp.common.exception.ProyectoCodigoDuplicadoException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
 import com.convecsa.erp.construccion.domain.CadenciaPeriodoCc;
 import com.convecsa.erp.construccion.domain.EstadoObra;
+import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
 import com.convecsa.erp.construccion.domain.RolResponsableObra;
+import com.convecsa.erp.construccion.domain.TipoRecursoApu;
+import com.convecsa.erp.construccion.domain.TipoVersionPresupuesto;
 import com.convecsa.erp.construccion.domain.CategoriaObrera;
 import com.convecsa.erp.construccion.domain.CodigoConceptoCc;
 import com.convecsa.erp.construccion.domain.CodigoTareoCc;
@@ -17,11 +20,21 @@ import com.convecsa.erp.construccion.domain.SemestreGrati;
 import com.convecsa.erp.construccion.dto.BoletaCcConceptoDTO;
 import com.convecsa.erp.construccion.dto.BoletaCcDTO;
 import com.convecsa.erp.construccion.dto.BoletaCcExtrasRequest;
+import com.convecsa.erp.construccion.dto.ApuPartidaDTO;
+import com.convecsa.erp.construccion.dto.ApuPartidaRequest;
 import com.convecsa.erp.construccion.dto.BoletaCcResumenDTO;
+import com.convecsa.erp.construccion.dto.ComparativoCentroDTO;
+import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.ConstruccionCatalogosDTO;
+import com.convecsa.erp.construccion.dto.PartidaPresupuestoDTO;
+import com.convecsa.erp.construccion.dto.PartidaPresupuestoRequest;
 import com.convecsa.erp.construccion.dto.PeriodoCcDTO;
 import com.convecsa.erp.construccion.dto.PeriodoCcRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoVersionDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoVersionRequest;
+import com.convecsa.erp.construccion.dto.PresupuestoVersionResumenDTO;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
 import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
@@ -36,18 +49,25 @@ import com.convecsa.erp.construccion.entity.CcCategoriaJornal;
 import com.convecsa.erp.construccion.entity.CcEspecialidadBae;
 import com.convecsa.erp.construccion.entity.CcParametroAnual;
 import com.convecsa.erp.construccion.entity.ContratoCc;
+import com.convecsa.erp.construccion.entity.ApuPartida;
+import com.convecsa.erp.construccion.entity.PartidaPresupuesto;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
+import com.convecsa.erp.construccion.entity.PresupuestoVersion;
 import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.entity.ProyectoResponsable;
 import com.convecsa.erp.construccion.entity.TareoCcDia;
+import com.convecsa.erp.construccion.entity.ValeSalidaItem;
 import com.convecsa.erp.construccion.repository.BoletaCcEnvioCorreoRepository;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
 import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.ContratoCcRepository;
+import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
+import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.construccion.repository.TareoCcDiaRepository;
+import com.convecsa.erp.construccion.repository.ValeSalidaItemRepository;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.construccion.support.BoletaCcPlantillaService;
 import com.convecsa.erp.construccion.support.CalculoNominaCcService;
@@ -106,12 +126,15 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
 
     private final ProyectoRepository proyectoRepository;
     private final ProyectoResponsableRepository proyectoResponsableRepository;
+    private final PresupuestoVersionRepository presupuestoVersionRepository;
+    private final PartidaPresupuestoRepository partidaPresupuestoRepository;
     private final PersonaRepository personaRepository;
     private final CcParametroAnualRepository parametroRepository;
     private final ContratoCcRepository contratoCcRepository;
     private final PeriodoCcRepository periodoCcRepository;
     private final TareoCcDiaRepository tareoCcDiaRepository;
     private final BoletaCcRepository boletaCcRepository;
+    private final ValeSalidaItemRepository valeSalidaItemRepository;
     private final BoletaCcEnvioCorreoRepository boletaCcEnvioCorreoRepository;
     private final CalculoNominaCcService calculoNominaCcService;
     private final RentaQuintaProyeccionService rentaQuintaProyeccionService;
@@ -225,6 +248,193 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             proyectoResponsableRepository.save(responsable);
         }
         return listarResponsables(proyectoId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PresupuestoDTO obtenerPresupuesto(Long proyectoId, Long versionId) {
+        buscarProyecto(proyectoId);
+        List<PresupuestoVersion> versiones = presupuestoVersionRepository.findByProyectoIdOrderByNumeroDesc(proyectoId);
+        List<PresupuestoVersionResumenDTO> resumen = versiones.stream()
+                .map(this::toVersionResumen)
+                .toList();
+        if (versiones.isEmpty()) {
+            return PresupuestoDTO.builder().versiones(resumen).version(null).build();
+        }
+        PresupuestoVersion seleccionada = resolverVersion(proyectoId, versionId, versiones);
+        return PresupuestoDTO.builder()
+                .versiones(resumen)
+                .version(toVersionDto(seleccionada))
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PresupuestoDTO crearVersionPresupuesto(Long proyectoId, PresupuestoVersionRequest request) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        if (presupuestoVersionRepository.existsByProyectoIdAndEstado(proyectoId, EstadoVersionPresupuesto.BORRADOR)) {
+            throw new IllegalArgumentException("Ya existe un presupuesto en borrador");
+        }
+        List<PresupuestoVersion> existentes = presupuestoVersionRepository.findByProyectoIdOrderByNumeroDesc(proyectoId);
+        PresupuestoVersion version = new PresupuestoVersion();
+        version.setProyecto(proyecto);
+        version.setEstado(EstadoVersionPresupuesto.BORRADOR);
+        if (existentes.isEmpty()) {
+            version.setTipo(TipoVersionPresupuesto.INICIAL);
+            version.setNumero(1);
+        } else {
+            PresupuestoVersion vigente = presupuestoVersionRepository
+                    .findByProyectoIdAndEstado(proyectoId, EstadoVersionPresupuesto.VIGENTE)
+                    .orElseThrow(() -> new IllegalArgumentException("No hay un presupuesto vigente para copiar"));
+            TipoVersionPresupuesto tipo = request == null || request.getTipo() == null
+                    ? TipoVersionPresupuesto.ACTUALIZADO
+                    : request.getTipo();
+            if (tipo == TipoVersionPresupuesto.INICIAL) {
+                throw new IllegalArgumentException("Ya existe un presupuesto inicial");
+            }
+            version.setTipo(tipo);
+            version.setNumero(existentes.get(0).getNumero() + 1);
+            copiarPartidas(vigente, version);
+        }
+        presupuestoVersionRepository.save(version);
+        return obtenerPresupuesto(proyectoId, version.getId());
+    }
+
+    @Override
+    @Transactional
+    public PresupuestoDTO guardarPartidasPresupuesto(
+            Long proyectoId, Long versionId, List<PartidaPresupuestoRequest> request) {
+        PresupuestoVersion version = buscarVersion(proyectoId, versionId);
+        asegurarBorrador(version);
+        List<PartidaPresupuestoRequest> filas = request == null ? List.of() : request;
+        validarPartidas(filas);
+        List<PartidaPresupuesto> actuales = partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(versionId);
+        if (!actuales.isEmpty()) {
+            partidaPresupuestoRepository.deleteAll(actuales);
+            partidaPresupuestoRepository.flush();
+        }
+        int orden = 0;
+        for (PartidaPresupuestoRequest fila : filas) {
+            PartidaPresupuesto partida = new PartidaPresupuesto();
+            partida.setVersion(version);
+            partida.setCodigo(fila.getCodigo().trim());
+            partida.setCapitulo(blankToNull(fila.getCapitulo()));
+            partida.setDescripcion(fila.getDescripcion().trim());
+            partida.setUnidad(blankToNull(fila.getUnidad()));
+            partida.setMetrado(qty(fila.getMetrado()));
+            partida.setCentroCosto(blankToNull(fila.getCentroCosto()));
+            partida.setOrden(orden++);
+            aplicarApu(partida, fila.getApu(), fila.getPrecioUnitario());
+            partidaPresupuestoRepository.save(partida);
+        }
+        return obtenerPresupuesto(proyectoId, versionId);
+    }
+
+    @Override
+    @Transactional
+    public PresupuestoDTO vigentarPresupuesto(Long proyectoId, Long versionId) {
+        PresupuestoVersion version = buscarVersion(proyectoId, versionId);
+        asegurarBorrador(version);
+        if (partidaPresupuestoRepository.countByVersionId(versionId) == 0) {
+            throw new IllegalArgumentException("No se puede vigentar un presupuesto sin partidas");
+        }
+        presupuestoVersionRepository
+                .findByProyectoIdAndEstado(proyectoId, EstadoVersionPresupuesto.VIGENTE)
+                .ifPresent(vigente -> vigente.setEstado(EstadoVersionPresupuesto.HISTORICO));
+        version.setEstado(EstadoVersionPresupuesto.VIGENTE);
+        presupuestoVersionRepository.save(version);
+        return obtenerPresupuesto(proyectoId, versionId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ComparativoPresupuestoDTO comparativoPresupuesto(Long proyectoId) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        PresupuestoVersion vigente = presupuestoVersionRepository
+                .findByProyectoIdAndEstado(proyectoId, EstadoVersionPresupuesto.VIGENTE)
+                .orElse(null);
+        Map<String, BigDecimal> metaPorCentro = new LinkedHashMap<>();
+        Map<String, BigDecimal> metaMatPorCentro = new LinkedHashMap<>();
+        if (vigente != null) {
+            for (PartidaPresupuesto partida : partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(vigente.getId())) {
+                String centro = centroDe(partida.getCentroCosto(), proyecto.getCentroCosto());
+                BigDecimal moUnit = partida.getApu().stream()
+                        .filter(item -> item.getTipo() == TipoRecursoApu.MANO_OBRA)
+                        .map(item -> nz(item.getParcial()))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal matUnit = partida.getApu().stream()
+                        .filter(item -> item.getTipo() == TipoRecursoApu.MATERIAL)
+                        .map(item -> nz(item.getParcial()))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                acumular(metaPorCentro, centro, money(moUnit.multiply(nz(partida.getMetrado()))));
+                acumular(metaMatPorCentro, centro, money(matUnit.multiply(nz(partida.getMetrado()))));
+            }
+        }
+        Map<String, BigDecimal> realPorCentro = new LinkedHashMap<>();
+        List<PeriodoCc> periodos = periodoCcRepository.findByProyectoIdOrderByFechaDesdeDesc(proyectoId);
+        if (!periodos.isEmpty()) {
+            List<Long> periodoIds = periodos.stream().map(PeriodoCc::getId).toList();
+            for (BoletaCc boleta : boletaCcRepository.findByPeriodoIdIn(periodoIds)) {
+                String centro = contratoCcRepository.findByContratoId(boleta.getContrato().getId())
+                        .map(cc -> centroDe(cc.getCentroCosto(), proyecto.getCentroCosto()))
+                        .orElseGet(() -> centroDe(null, proyecto.getCentroCosto()));
+                BigDecimal costo = nz(boleta.getTotalHaberes()).add(nz(boleta.getTotalAportesEmpleador()));
+                acumular(realPorCentro, centro, money(costo));
+            }
+        }
+        Map<String, BigDecimal> realMatPorCentro = new LinkedHashMap<>();
+        for (ValeSalidaItem item : valeSalidaItemRepository.findByValeAlmacenProyectoId(proyectoId)) {
+            String centro = centroDe(item.getVale().getCentroCosto(), proyecto.getCentroCosto());
+            acumular(realMatPorCentro, centro, money(item.getCostoTotal()));
+        }
+        List<String> centros = new ArrayList<>();
+        for (Map<String, BigDecimal> mapa : List.of(metaPorCentro, realPorCentro, metaMatPorCentro, realMatPorCentro)) {
+            for (String clave : mapa.keySet()) {
+                if (!centros.contains(clave)) {
+                    centros.add(clave);
+                }
+            }
+        }
+        List<ComparativoCentroDTO> filas = centros.stream()
+                .map(centro -> {
+                    BigDecimal meta = money(metaPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal real = money(realPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal metaMat = money(metaMatPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal realMat = money(realMatPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    return ComparativoCentroDTO.builder()
+                            .centroCosto(centro)
+                            .metaMo(meta)
+                            .realMo(real)
+                            .desvio(money(real.subtract(meta)))
+                            .metaMaterial(metaMat)
+                            .realMaterial(realMat)
+                            .desvioMaterial(money(realMat.subtract(metaMat)))
+                            .build();
+                })
+                .toList();
+        BigDecimal metaMo = filas.stream().map(ComparativoCentroDTO::getMetaMo).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal realMo = filas.stream().map(ComparativoCentroDTO::getRealMo).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal desvio = money(realMo.subtract(metaMo));
+        BigDecimal desvioPct = metaMo.signum() == 0
+                ? BigDecimal.ZERO
+                : desvio.multiply(new BigDecimal("100")).divide(metaMo, 2, RoundingMode.HALF_UP);
+        BigDecimal metaMaterial = filas.stream().map(ComparativoCentroDTO::getMetaMaterial).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal realMaterial = filas.stream().map(ComparativoCentroDTO::getRealMaterial).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal desvioMaterial = money(realMaterial.subtract(metaMaterial));
+        BigDecimal desvioPctMaterial = metaMaterial.signum() == 0
+                ? BigDecimal.ZERO
+                : desvioMaterial.multiply(new BigDecimal("100")).divide(metaMaterial, 2, RoundingMode.HALF_UP);
+        return ComparativoPresupuestoDTO.builder()
+                .metaMo(money(metaMo))
+                .realMo(money(realMo))
+                .desvio(desvio)
+                .desvioPct(desvioPct)
+                .metaMaterial(money(metaMaterial))
+                .realMaterial(money(realMaterial))
+                .desvioMaterial(desvioMaterial)
+                .desvioPctMaterial(desvioPctMaterial)
+                .centros(filas)
+                .build();
     }
 
     @Override
@@ -818,6 +1028,184 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .buc(buc)
                 .bae(bae)
                 .build();
+    }
+
+    private PresupuestoVersion buscarVersion(Long proyectoId, Long versionId) {
+        buscarProyecto(proyectoId);
+        return presupuestoVersionRepository.findByIdAndProyectoId(versionId, proyectoId)
+                .orElseThrow(() -> new IllegalArgumentException("No se encontró la versión de presupuesto"));
+    }
+
+    private PresupuestoVersion resolverVersion(
+            Long proyectoId, Long versionId, List<PresupuestoVersion> versiones) {
+        if (versionId != null) {
+            return buscarVersion(proyectoId, versionId);
+        }
+        return presupuestoVersionRepository
+                .findByProyectoIdAndEstado(proyectoId, EstadoVersionPresupuesto.VIGENTE)
+                .orElse(versiones.get(0));
+    }
+
+    private static void asegurarBorrador(PresupuestoVersion version) {
+        if (version.getEstado() != EstadoVersionPresupuesto.BORRADOR) {
+            throw new IllegalArgumentException("Solo se puede editar un presupuesto en borrador");
+        }
+    }
+
+    private static void validarPartidas(List<PartidaPresupuestoRequest> filas) {
+        Set<String> codigos = new HashSet<>();
+        for (PartidaPresupuestoRequest fila : filas) {
+            if (fila.getCodigo() == null || fila.getCodigo().isBlank()) {
+                throw new IllegalArgumentException("Cada partida requiere código");
+            }
+            if (fila.getDescripcion() == null || fila.getDescripcion().isBlank()) {
+                throw new IllegalArgumentException("Cada partida requiere descripción");
+            }
+            String codigo = fila.getCodigo().trim();
+            if (!codigos.add(codigo)) {
+                throw new IllegalArgumentException("Hay códigos de partida duplicados");
+            }
+            if (nz(fila.getMetrado()).signum() < 0 || nz(fila.getPrecioUnitario()).signum() < 0) {
+                throw new IllegalArgumentException("Metrado y precio unitario no pueden ser negativos");
+            }
+            for (ApuPartidaRequest recurso : fila.getApu() == null ? List.<ApuPartidaRequest>of() : fila.getApu()) {
+                if (recurso.getTipo() == null || recurso.getDescripcion() == null || recurso.getDescripcion().isBlank()) {
+                    throw new IllegalArgumentException("Cada recurso APU requiere tipo y descripción");
+                }
+                if (nz(recurso.getCantidad()).signum() < 0 || nz(recurso.getPrecioUnitario()).signum() < 0) {
+                    throw new IllegalArgumentException("Cantidad y precio APU no pueden ser negativos");
+                }
+            }
+        }
+    }
+
+    private static void aplicarApu(
+            PartidaPresupuesto partida, List<ApuPartidaRequest> recursos, BigDecimal precioManual) {
+        List<ApuPartidaRequest> filas = recursos == null ? List.of() : recursos;
+        int orden = 0;
+        BigDecimal sumaApu = BigDecimal.ZERO;
+        for (ApuPartidaRequest fila : filas) {
+            ApuPartida apu = new ApuPartida();
+            apu.setPartida(partida);
+            apu.setTipo(fila.getTipo());
+            apu.setCodigo(blankToNull(fila.getCodigo()));
+            apu.setDescripcion(fila.getDescripcion().trim());
+            apu.setUnidad(blankToNull(fila.getUnidad()));
+            apu.setCantidad(qty(fila.getCantidad()));
+            apu.setPrecioUnitario(money(fila.getPrecioUnitario()));
+            apu.setParcial(money(apu.getCantidad().multiply(apu.getPrecioUnitario())));
+            apu.setOrden(orden++);
+            partida.getApu().add(apu);
+            sumaApu = sumaApu.add(apu.getParcial());
+        }
+        BigDecimal pu = filas.isEmpty() ? money(precioManual) : money(sumaApu);
+        partida.setPrecioUnitario(pu);
+        partida.setTotal(money(qty(partida.getMetrado()).multiply(pu)));
+    }
+
+    private void copiarPartidas(PresupuestoVersion origen, PresupuestoVersion destino) {
+        for (PartidaPresupuesto partida : partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(origen.getId())) {
+            PartidaPresupuesto copia = new PartidaPresupuesto();
+            copia.setVersion(destino);
+            copia.setCodigo(partida.getCodigo());
+            copia.setCapitulo(partida.getCapitulo());
+            copia.setDescripcion(partida.getDescripcion());
+            copia.setUnidad(partida.getUnidad());
+            copia.setMetrado(partida.getMetrado());
+            copia.setPrecioUnitario(partida.getPrecioUnitario());
+            copia.setTotal(partida.getTotal());
+            copia.setCentroCosto(partida.getCentroCosto());
+            copia.setOrden(partida.getOrden());
+            for (ApuPartida apu : partida.getApu()) {
+                ApuPartida copiaApu = new ApuPartida();
+                copiaApu.setPartida(copia);
+                copiaApu.setTipo(apu.getTipo());
+                copiaApu.setCodigo(apu.getCodigo());
+                copiaApu.setDescripcion(apu.getDescripcion());
+                copiaApu.setUnidad(apu.getUnidad());
+                copiaApu.setCantidad(apu.getCantidad());
+                copiaApu.setPrecioUnitario(apu.getPrecioUnitario());
+                copiaApu.setParcial(apu.getParcial());
+                copiaApu.setOrden(apu.getOrden());
+                copia.getApu().add(copiaApu);
+            }
+            destino.getPartidas().add(copia);
+        }
+    }
+
+    private PresupuestoVersionResumenDTO toVersionResumen(PresupuestoVersion version) {
+        return PresupuestoVersionResumenDTO.builder()
+                .id(version.getId())
+                .tipo(version.getTipo())
+                .estado(version.getEstado())
+                .numero(version.getNumero())
+                .createdAt(version.getCreatedAt())
+                .cantidadPartidas(partidaPresupuestoRepository.countByVersionId(version.getId()))
+                .build();
+    }
+
+    private PartidaPresupuestoDTO toPartidaDto(PartidaPresupuesto partida) {
+        return PartidaPresupuestoDTO.builder()
+                .id(partida.getId())
+                .codigo(partida.getCodigo())
+                .capitulo(partida.getCapitulo())
+                .descripcion(partida.getDescripcion())
+                .unidad(partida.getUnidad())
+                .metrado(partida.getMetrado())
+                .precioUnitario(partida.getPrecioUnitario())
+                .total(partida.getTotal())
+                .centroCosto(partida.getCentroCosto())
+                .orden(partida.getOrden())
+                .apu(partida.getApu().stream().map(ConstruccionServiceImpl::toApuDto).toList())
+                .build();
+    }
+
+    private PresupuestoVersionDTO toVersionDto(PresupuestoVersion version) {
+        List<PartidaPresupuesto> partidas = partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(version.getId());
+        return PresupuestoVersionDTO.builder()
+                .id(version.getId())
+                .proyectoId(version.getProyecto().getId())
+                .tipo(version.getTipo())
+                .estado(version.getEstado())
+                .numero(version.getNumero())
+                .createdAt(version.getCreatedAt())
+                .partidas(partidas.stream().map(this::toPartidaDto).toList())
+                .build();
+    }
+
+    private static ApuPartidaDTO toApuDto(ApuPartida apu) {
+        return ApuPartidaDTO.builder()
+                .id(apu.getId())
+                .tipo(apu.getTipo())
+                .codigo(apu.getCodigo())
+                .descripcion(apu.getDescripcion())
+                .unidad(apu.getUnidad())
+                .cantidad(apu.getCantidad())
+                .precioUnitario(apu.getPrecioUnitario())
+                .parcial(apu.getParcial())
+                .orden(apu.getOrden())
+                .build();
+    }
+
+    private static void acumular(Map<String, BigDecimal> destinos, String clave, BigDecimal monto) {
+        destinos.merge(clave, monto, BigDecimal::add);
+    }
+
+    private static String centroDe(String propio, String fallback) {
+        String valor = blankToNull(propio);
+        if (valor != null) {
+            return valor;
+        }
+        String obra = blankToNull(fallback);
+        return obra == null ? "SIN_CENTRO" : obra;
+    }
+
+    private static BigDecimal money(BigDecimal valor) {
+        return nz(valor).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal qty(BigDecimal valor) {
+        return nz(valor).setScale(4, RoundingMode.HALF_UP);
     }
 
     private Proyecto buscarProyecto(Long id) {

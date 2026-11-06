@@ -59,6 +59,104 @@ export type ProyectoResponsableRequest = {
   rol: RolResponsableObra
 }
 
+export type TipoVersionPresupuesto = 'INICIAL' | 'ACTUALIZADO' | 'ADICIONAL'
+
+export type EstadoVersionPresupuesto = 'BORRADOR' | 'VIGENTE' | 'HISTORICO'
+
+export type TipoRecursoApu = 'MANO_OBRA' | 'MATERIAL' | 'EQUIPO' | 'SUBCONTRATO' | 'GASTOS_GENERALES'
+
+export type ApuPartida = {
+  id: number | null
+  tipo: TipoRecursoApu
+  codigo: string | null
+  descripcion: string
+  unidad: string | null
+  cantidad: number
+  precioUnitario: number
+  parcial: number
+  orden: number
+}
+
+export type PartidaPresupuesto = {
+  id: number | null
+  codigo: string
+  capitulo: string | null
+  descripcion: string
+  unidad: string | null
+  metrado: number
+  precioUnitario: number
+  total: number
+  centroCosto: string | null
+  orden: number
+  apu: ApuPartida[]
+}
+
+export type PresupuestoVersionResumen = {
+  id: number
+  tipo: TipoVersionPresupuesto
+  estado: EstadoVersionPresupuesto
+  numero: number
+  createdAt: string
+  cantidadPartidas: number
+}
+
+export type PresupuestoVersion = {
+  id: number
+  proyectoId: number
+  tipo: TipoVersionPresupuesto
+  estado: EstadoVersionPresupuesto
+  numero: number
+  createdAt: string
+  partidas: PartidaPresupuesto[]
+}
+
+export type Presupuesto = {
+  versiones: PresupuestoVersionResumen[]
+  version: PresupuestoVersion | null
+}
+
+export type ApuPartidaRequest = {
+  tipo: TipoRecursoApu
+  codigo?: string | null
+  descripcion: string
+  unidad?: string | null
+  cantidad?: number | null
+  precioUnitario?: number | null
+}
+
+export type PartidaPresupuestoRequest = {
+  codigo: string
+  capitulo?: string | null
+  descripcion: string
+  unidad?: string | null
+  metrado?: number | null
+  precioUnitario?: number | null
+  centroCosto?: string | null
+  apu?: ApuPartidaRequest[]
+}
+
+export type ComparativoCentro = {
+  centroCosto: string
+  metaMo: number
+  realMo: number
+  desvio: number
+  metaMaterial: number
+  realMaterial: number
+  desvioMaterial: number
+}
+
+export type ComparativoPresupuesto = {
+  metaMo: number
+  realMo: number
+  desvio: number
+  desvioPct: number
+  metaMaterial: number
+  realMaterial: number
+  desvioMaterial: number
+  desvioPctMaterial: number
+  centros: ComparativoCentro[]
+}
+
 export type ConstruccionCatalogos = {
   categorias: { id: number; codigo: string; label: string }[]
   especialidadesBae: { id: number; codigo: string; label: string }[]
@@ -173,6 +271,252 @@ export type BoletaCc = {
   tarifaHora: number
   createdAt: string
   conceptos: BoletaCcConcepto[]
+}
+
+export type EstadoRequerimientoObra = 'BORRADOR' | 'APROBADO' | 'ATENDIDO' | 'ANULADO'
+
+export type EstadoOrdenCompra = 'BORRADOR' | 'EMITIDA' | 'RECEPCIONADA' | 'CERRADA'
+
+export type TipoMovimientoAlmacen =
+  | 'ENTRADA'
+  | 'SALIDA'
+  | 'AJUSTE'
+  | 'DEVOLUCION_PROVEEDOR'
+  | 'DEVOLUCION_ALMACEN'
+
+export type MaterialCatalogo = {
+  id: number
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  familia: string | null
+  stockMinimo: number
+  critico: boolean
+  activo: boolean
+}
+
+export type MaterialRequest = {
+  codigo: string
+  descripcion: string
+  unidad?: string | null
+  familia?: string | null
+  stockMinimo?: number | null
+  critico?: boolean
+  activo?: boolean
+}
+
+export type StockItem = {
+  materialId: number
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  familia: string | null
+  stockMinimo: number
+  critico: boolean
+  activo: boolean
+  cantidad: number
+  costoPromedio: number
+  valor: number
+  quiebre: boolean
+  criticoSinStock: boolean
+}
+
+export type AlmacenObra = {
+  id: number
+  proyectoId: number
+  nombre: string
+  quiebres: number
+  criticosSinStock: number
+  stock: StockItem[]
+}
+
+export type MovimientoAlmacen = {
+  id: number
+  materialId: number
+  codigoMaterial: string
+  descripcionMaterial: string
+  tipo: TipoMovimientoAlmacen
+  cantidad: number
+  costoUnitario: number
+  costoTotal: number
+  saldoCantidad: number
+  costoPromedio: number
+  partidaId: number | null
+  codigoPartida: string | null
+  centroCosto: string | null
+  recepcionId: number | null
+  valeId: number | null
+  ordenCompraId: number | null
+  fecha: string
+  observaciones: string | null
+  createdAt: string
+}
+
+export type RequerimientoItem = {
+  id: number
+  materialId: number
+  codigoMaterial: string
+  descripcionMaterial: string
+  unidad: string | null
+  partidaId: number | null
+  codigoPartida: string | null
+  descripcionPartida: string | null
+  centroCosto: string | null
+  cantidad: number
+  cantidadAtendida: number
+}
+
+export type RequerimientoObra = {
+  id: number
+  proyectoId: number
+  numero: number
+  estado: EstadoRequerimientoObra
+  fecha: string
+  observaciones: string | null
+  createdAt: string
+  items: RequerimientoItem[]
+}
+
+export type RequerimientoItemRequest = {
+  materialId: number
+  partidaId?: number | null
+  cantidad: number
+}
+
+export type RequerimientoRequest = {
+  fecha?: string | null
+  observaciones?: string | null
+  items: RequerimientoItemRequest[]
+}
+
+export type SugeridoApu = {
+  materialId: number | null
+  codigo: string | null
+  descripcion: string
+  unidad: string | null
+  partidaId: number
+  codigoPartida: string
+  descripcionPartida: string
+  centroCosto: string
+  cantidad: number
+}
+
+export type OrdenCompraItem = {
+  id: number
+  materialId: number
+  codigoMaterial: string
+  descripcionMaterial: string
+  unidad: string | null
+  requerimientoItemId: number | null
+  cantidad: number
+  precioUnitario: number
+  cantidadRecibida: number
+  cantidadPendiente: number
+}
+
+export type RecepcionItem = {
+  id: number
+  ordenCompraItemId: number
+  materialId: number
+  codigoMaterial: string
+  cantidad: number
+}
+
+export type RecepcionAlmacen = {
+  id: number
+  numeroGuia: string | null
+  fecha: string
+  observaciones: string | null
+  createdAt: string
+  items: RecepcionItem[]
+}
+
+export type OrdenCompra = {
+  id: number
+  proyectoId: number
+  numero: number
+  estado: EstadoOrdenCompra
+  proveedorRazon: string | null
+  proveedorRuc: string | null
+  plazoEntrega: string | null
+  observaciones: string | null
+  createdAt: string
+  items: OrdenCompraItem[]
+  recepciones: RecepcionAlmacen[]
+}
+
+export type OrdenCompraItemRequest = {
+  materialId: number
+  requerimientoItemId?: number | null
+  cantidad: number
+  precioUnitario?: number | null
+}
+
+export type OrdenCompraRequest = {
+  requerimientoId?: number | null
+  proveedorRazon?: string | null
+  proveedorRuc?: string | null
+  plazoEntrega?: string | null
+  observaciones?: string | null
+  items: OrdenCompraItemRequest[]
+}
+
+export type RecepcionRequest = {
+  numeroGuia?: string | null
+  fecha?: string | null
+  observaciones?: string | null
+  items: { ordenCompraItemId: number; cantidad: number }[]
+}
+
+export type ValeSalidaItem = {
+  id: number
+  materialId: number
+  codigoMaterial: string
+  descripcionMaterial: string
+  unidad: string | null
+  cantidad: number
+  costoUnitario: number
+  costoTotal: number
+}
+
+export type ValeSalida = {
+  id: number
+  almacenId: number
+  numero: number
+  fecha: string
+  partidaId: number | null
+  codigoPartida: string | null
+  descripcionPartida: string | null
+  centroCosto: string | null
+  observaciones: string | null
+  createdAt: string
+  costoTotal: number
+  items: ValeSalidaItem[]
+}
+
+export type ValeSalidaRequest = {
+  fecha?: string | null
+  partidaId: number
+  observaciones?: string | null
+  items: { materialId: number; cantidad: number }[]
+}
+
+export type InventarioCierreItem = {
+  materialId: number
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  cantidad: number
+  costoPromedio: number
+  valor: number
+}
+
+export type InventarioCierre = {
+  anio: number
+  mes: number
+  createdAt: string | null
+  valorTotal: number
+  items: InventarioCierreItem[]
 }
 
 export const CODIGOS_TAREO: { codigo: CodigoTareoCc; label: string }[] = [

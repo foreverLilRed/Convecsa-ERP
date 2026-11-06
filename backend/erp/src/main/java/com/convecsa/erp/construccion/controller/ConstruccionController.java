@@ -3,17 +3,39 @@ package com.convecsa.erp.construccion.controller;
 import com.convecsa.erp.construccion.dto.BoletaCcDTO;
 import com.convecsa.erp.construccion.dto.BoletaCcExtrasRequest;
 import com.convecsa.erp.construccion.dto.BoletaCcResumenDTO;
+import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.ConstruccionCatalogosDTO;
+import com.convecsa.erp.construccion.dto.PartidaPresupuestoRequest;
+import com.convecsa.erp.construccion.dto.PartidasPresupuestoGuardarRequest;
 import com.convecsa.erp.construccion.dto.PeriodoCcDTO;
 import com.convecsa.erp.construccion.dto.PeriodoCcRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoDTO;
+import com.convecsa.erp.construccion.dto.PresupuestoVersionRequest;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
 import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
 import com.convecsa.erp.construccion.dto.ProyectoResponsablesGuardarRequest;
 import com.convecsa.erp.construccion.dto.ResponsableObraDTO;
+import com.convecsa.erp.construccion.dto.AjusteAlmacenRequest;
+import com.convecsa.erp.construccion.dto.AlmacenDTO;
+import com.convecsa.erp.construccion.dto.CierreInventarioRequest;
+import com.convecsa.erp.construccion.dto.DevolucionRequest;
+import com.convecsa.erp.construccion.dto.InventarioCierreDTO;
+import com.convecsa.erp.construccion.dto.MaterialDTO;
+import com.convecsa.erp.construccion.dto.MaterialRequest;
+import com.convecsa.erp.construccion.dto.MovimientoAlmacenDTO;
+import com.convecsa.erp.construccion.dto.OrdenCompraDTO;
+import com.convecsa.erp.construccion.dto.OrdenCompraRequest;
+import com.convecsa.erp.construccion.dto.RecepcionRequest;
+import com.convecsa.erp.construccion.dto.RequerimientoDTO;
+import com.convecsa.erp.construccion.dto.RequerimientoRequest;
+import com.convecsa.erp.construccion.dto.SugeridoApuDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGrillaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
+import com.convecsa.erp.construccion.dto.ValeSalidaDTO;
+import com.convecsa.erp.construccion.dto.ValeSalidaRequest;
+import com.convecsa.erp.construccion.service.InterfazAlmacenService;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
@@ -44,6 +66,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ConstruccionController {
 
     private final InterfazConstruccionService construccionService;
+    private final InterfazAlmacenService almacenService;
 
     @GetMapping("/catalogos")
     public ConstruccionCatalogosDTO catalogos() {
@@ -83,6 +106,196 @@ public class ConstruccionController {
         List<ProyectoResponsableRequest> filas =
                 request.getResponsables() == null ? List.of() : request.getResponsables();
         return construccionService.guardarResponsables(id, filas);
+    }
+
+    @GetMapping("/{id:\\d+}/presupuesto")
+    public PresupuestoDTO presupuesto(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long versionId) {
+        return construccionService.obtenerPresupuesto(id, versionId);
+    }
+
+    @PostMapping("/{id:\\d+}/presupuesto/versiones")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PresupuestoDTO crearVersion(
+            @PathVariable Long id,
+            @RequestBody(required = false) PresupuestoVersionRequest request) {
+        return construccionService.crearVersionPresupuesto(id, request == null ? new PresupuestoVersionRequest() : request);
+    }
+
+    @PutMapping("/{id:\\d+}/presupuesto/versiones/{versionId}/partidas")
+    public PresupuestoDTO guardarPartidas(
+            @PathVariable Long id,
+            @PathVariable Long versionId,
+            @Valid @RequestBody PartidasPresupuestoGuardarRequest request) {
+        List<PartidaPresupuestoRequest> filas =
+                request.getPartidas() == null ? List.of() : request.getPartidas();
+        return construccionService.guardarPartidasPresupuesto(id, versionId, filas);
+    }
+
+    @PostMapping("/{id:\\d+}/presupuesto/versiones/{versionId}/vigentar")
+    public PresupuestoDTO vigentar(@PathVariable Long id, @PathVariable Long versionId) {
+        return construccionService.vigentarPresupuesto(id, versionId);
+    }
+
+    @GetMapping("/{id:\\d+}/presupuesto/comparativo")
+    public ComparativoPresupuestoDTO comparativo(@PathVariable Long id) {
+        return construccionService.comparativoPresupuesto(id);
+    }
+
+    @GetMapping("/materiales")
+    public List<MaterialDTO> materiales() {
+        return almacenService.listarMateriales();
+    }
+
+    @PostMapping("/materiales")
+    @ResponseStatus(HttpStatus.CREATED)
+    public MaterialDTO crearMaterial(@Valid @RequestBody MaterialRequest request) {
+        return almacenService.crearMaterial(request);
+    }
+
+    @PutMapping("/materiales/{materialId}")
+    public MaterialDTO actualizarMaterial(
+            @PathVariable Long materialId,
+            @Valid @RequestBody MaterialRequest request) {
+        return almacenService.actualizarMaterial(materialId, request);
+    }
+
+    @GetMapping("/{id:\\d+}/almacen")
+    public AlmacenDTO almacen(@PathVariable Long id) {
+        return almacenService.obtenerAlmacen(id);
+    }
+
+    @GetMapping("/{id:\\d+}/almacen/kardex")
+    public List<MovimientoAlmacenDTO> kardex(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long materialId) {
+        return almacenService.listarKardex(id, materialId);
+    }
+
+    @PostMapping("/{id:\\d+}/almacen/ajustes")
+    public AlmacenDTO ajuste(@PathVariable Long id, @Valid @RequestBody AjusteAlmacenRequest request) {
+        return almacenService.registrarAjuste(id, request);
+    }
+
+    @PostMapping("/{id:\\d+}/almacen/cierre")
+    public InventarioCierreDTO cierre(@PathVariable Long id, @Valid @RequestBody CierreInventarioRequest request) {
+        return almacenService.cerrarInventario(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/almacen/cierres")
+    public List<InventarioCierreDTO> cierres(@PathVariable Long id) {
+        return almacenService.listarCierres(id);
+    }
+
+    @GetMapping("/{id:\\d+}/almacen/vales")
+    public List<ValeSalidaDTO> vales(@PathVariable Long id) {
+        return almacenService.listarVales(id);
+    }
+
+    @PostMapping("/{id:\\d+}/almacen/vales")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ValeSalidaDTO crearVale(@PathVariable Long id, @Valid @RequestBody ValeSalidaRequest request) {
+        return almacenService.crearVale(id, request);
+    }
+
+    @PostMapping("/{id:\\d+}/almacen/vales/{valeId}/devolver")
+    public ValeSalidaDTO devolverVale(
+            @PathVariable Long id,
+            @PathVariable Long valeId,
+            @RequestBody(required = false) DevolucionRequest request) {
+        return almacenService.devolverVale(id, valeId, request == null ? new DevolucionRequest() : request);
+    }
+
+    @GetMapping("/{id:\\d+}/requerimientos/sugeridos-apu")
+    public List<SugeridoApuDTO> sugeridosApu(@PathVariable Long id) {
+        return almacenService.sugeridosApu(id);
+    }
+
+    @GetMapping("/{id:\\d+}/requerimientos")
+    public List<RequerimientoDTO> requerimientos(@PathVariable Long id) {
+        return almacenService.listarRequerimientos(id);
+    }
+
+    @PostMapping("/{id:\\d+}/requerimientos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public RequerimientoDTO crearRequerimiento(
+            @PathVariable Long id,
+            @Valid @RequestBody RequerimientoRequest request) {
+        return almacenService.crearRequerimiento(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/requerimientos/{reqId}")
+    public RequerimientoDTO requerimiento(@PathVariable Long id, @PathVariable Long reqId) {
+        return almacenService.obtenerRequerimiento(id, reqId);
+    }
+
+    @PutMapping("/{id:\\d+}/requerimientos/{reqId}")
+    public RequerimientoDTO guardarRequerimiento(
+            @PathVariable Long id,
+            @PathVariable Long reqId,
+            @Valid @RequestBody RequerimientoRequest request) {
+        return almacenService.guardarRequerimiento(id, reqId, request);
+    }
+
+    @PostMapping("/{id:\\d+}/requerimientos/{reqId}/aprobar")
+    public RequerimientoDTO aprobarRequerimiento(@PathVariable Long id, @PathVariable Long reqId) {
+        return almacenService.aprobarRequerimiento(id, reqId);
+    }
+
+    @PostMapping("/{id:\\d+}/requerimientos/{reqId}/anular")
+    public RequerimientoDTO anularRequerimiento(@PathVariable Long id, @PathVariable Long reqId) {
+        return almacenService.anularRequerimiento(id, reqId);
+    }
+
+    @GetMapping("/{id:\\d+}/compras")
+    public List<OrdenCompraDTO> compras(@PathVariable Long id) {
+        return almacenService.listarOrdenesCompra(id);
+    }
+
+    @PostMapping("/{id:\\d+}/compras")
+    @ResponseStatus(HttpStatus.CREATED)
+    public OrdenCompraDTO crearCompra(@PathVariable Long id, @Valid @RequestBody OrdenCompraRequest request) {
+        return almacenService.crearOrdenCompra(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/compras/{ocId}")
+    public OrdenCompraDTO compra(@PathVariable Long id, @PathVariable Long ocId) {
+        return almacenService.obtenerOrdenCompra(id, ocId);
+    }
+
+    @PutMapping("/{id:\\d+}/compras/{ocId}")
+    public OrdenCompraDTO guardarCompra(
+            @PathVariable Long id,
+            @PathVariable Long ocId,
+            @Valid @RequestBody OrdenCompraRequest request) {
+        return almacenService.guardarOrdenCompra(id, ocId, request);
+    }
+
+    @PostMapping("/{id:\\d+}/compras/{ocId}/emitir")
+    public OrdenCompraDTO emitirCompra(@PathVariable Long id, @PathVariable Long ocId) {
+        return almacenService.emitirOrdenCompra(id, ocId);
+    }
+
+    @PostMapping("/{id:\\d+}/compras/{ocId}/cerrar")
+    public OrdenCompraDTO cerrarCompra(@PathVariable Long id, @PathVariable Long ocId) {
+        return almacenService.cerrarOrdenCompra(id, ocId);
+    }
+
+    @PostMapping("/{id:\\d+}/compras/{ocId}/recepciones")
+    public OrdenCompraDTO recepcionar(
+            @PathVariable Long id,
+            @PathVariable Long ocId,
+            @Valid @RequestBody RecepcionRequest request) {
+        return almacenService.recepcionar(id, ocId, request);
+    }
+
+    @PostMapping("/{id:\\d+}/compras/{ocId}/devolver")
+    public OrdenCompraDTO devolverProveedor(
+            @PathVariable Long id,
+            @PathVariable Long ocId,
+            @Valid @RequestBody DevolucionRequest request) {
+        return almacenService.devolverProveedor(id, ocId, request);
     }
 
     @GetMapping("/{id:\\d+}/personal")

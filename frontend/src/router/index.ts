@@ -27,6 +27,8 @@ import ProyectosPage from '@/pages/proyectos/ProyectosPage.vue'
 import ProyectoFichaPage from '@/pages/proyectos/ProyectoFichaPage.vue'
 import ProyectoTareoPage from '@/pages/proyectos/ProyectoTareoPage.vue'
 import ProyectoPlanillaPage from '@/pages/proyectos/ProyectoPlanillaPage.vue'
+import ProyectoPresupuestoPage from '@/pages/proyectos/ProyectoPresupuestoPage.vue'
+import ProyectoAlmacenPage from '@/pages/proyectos/ProyectoAlmacenPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -173,6 +175,16 @@ const router = createRouter({
               path: 'planilla',
               name: 'proyecto-planilla',
               component: ProyectoPlanillaPage,
+            },
+            {
+              path: 'presupuesto',
+              name: 'proyecto-presupuesto',
+              component: ProyectoPresupuestoPage,
+            },
+            {
+              path: 'almacen',
+              name: 'proyecto-almacen',
+              component: ProyectoAlmacenPage,
             },
           ],
         },

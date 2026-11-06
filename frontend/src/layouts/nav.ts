@@ -97,6 +97,14 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'Planilla RCC'
   }
 
+  if (name === 'proyecto-presupuesto') {
+    return 'Presupuesto'
+  }
+
+  if (name === 'proyecto-almacen') {
+    return 'Almacén'
+  }
+
   for (const item of navItems) {
     if (item.kind === 'link' && item.name === name) {
       return item.label
@@ -122,7 +130,13 @@ export function getGroupIdForRouteName(name: string | symbol | null | undefined)
     return 'gestion-humana'
   }
 
-  if (name === 'proyecto-ficha' || name === 'proyecto-tareo' || name === 'proyecto-planilla') {
+  if (
+    name === 'proyecto-ficha'
+    || name === 'proyecto-tareo'
+    || name === 'proyecto-planilla'
+    || name === 'proyecto-presupuesto'
+    || name === 'proyecto-almacen'
+  ) {
     return 'proyectos'
   }
 

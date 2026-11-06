@@ -30,7 +30,7 @@ import { listarPersonas } from '@/services/persona/personaService'
 import type { EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -69,6 +69,8 @@ const proyectoId = computed(() => Number(route.params.id))
 const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-tareo') return 'tareo'
   if (route.name === 'proyecto-planilla') return 'planilla'
+  if (route.name === 'proyecto-presupuesto') return 'presupuesto'
+  if (route.name === 'proyecto-almacen') return 'almacen'
   return 'resumen'
 })
 
@@ -193,6 +195,14 @@ function onTab(value: string | number) {
   }
   if (siguiente === 'planilla') {
     void router.push({ name: 'proyecto-planilla', params: { id } })
+    return
+  }
+  if (siguiente === 'presupuesto') {
+    void router.push({ name: 'proyecto-presupuesto', params: { id } })
+    return
+  }
+  if (siguiente === 'almacen') {
+    void router.push({ name: 'proyecto-almacen', params: { id } })
     return
   }
   void router.push({ name: 'proyecto-ficha', params: { id } })
@@ -403,6 +413,18 @@ onUnmounted(() => {
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Planilla
+        </TabsTrigger>
+        <TabsTrigger
+          value="presupuesto"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Presupuesto
+        </TabsTrigger>
+        <TabsTrigger
+          value="almacen"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Almacén
         </TabsTrigger>
       </TabsList>
     </Tabs>
