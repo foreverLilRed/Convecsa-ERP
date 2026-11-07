@@ -2,7 +2,7 @@
 
 Documento vivo de seguimiento para la gestión de obras en el ERP Convecsa. Sirve como checklist de implementación: se marcan objetivos a medida que se cierran. Lo marcado como **Hecho** cita archivos reales; lo **Pendiente** propone nombres de entidades, endpoints y páginas Vue como guía de implementación, no como contrato cerrado.
 
-Última revisión: 2026-11-06.
+Última revisión: 2026-11-07.
 
 ## Leyenda
 
@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU** y el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida). Faltan avances/valorizaciones, financiamiento/factoring y el tablero de rentabilidad.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna) y el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado). Falta el tablero de rentabilidad.
 
 ```mermaid
 flowchart LR
@@ -50,11 +50,12 @@ flowchart TB
     Planilla --> Asiento[AsientoRCC]
     Presupuesto[PresupuestoYAPU]
     Presupuesto --> Materiales[MaterialesYAlmacen]
-  end
-  subgraph pendiente [Pendiente]
     Presupuesto --> Avances[AvancesFisicos]
     Avances --> Valorizacion[ValorizacionCliente]
     Valorizacion --> Factoring[Factoring]
+  end
+  subgraph pendiente [Pendiente]
+    Factoring --> Rentabilidad[TableroRentabilidad]
   end
 ```
 
@@ -67,12 +68,12 @@ flowchart TB
 | 4 | Parte diario y mano de obra | Hecho |
 | 5 | Presupuesto y costeo meta | Parcial |
 | 6 | Materiales y almacén | Hecho |
-| 7 | Avances y valorizaciones | Pendiente |
-| 8 | Financiamiento de obra (incluye factoring) | Pendiente |
+| 7 | Avances y valorizaciones | Hecho |
+| 8 | Financiamiento de obra (incluye factoring) | Hecho |
 | 9 | Integración contable y rentabilidad | Parcial |
 | 10 | Transversales | Parcial |
 
-Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto y Almacén viven como pestañas de esa ficha.
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Avances y Financiamiento viven como pestañas de esa ficha.
 
 Rutas Vue:
 
@@ -82,6 +83,8 @@ Rutas Vue:
 - `/proyectos/:id/planilla` → misma ficha, tab Planilla ([`ProyectoPlanillaPage.vue`](../../frontend/src/pages/proyectos/ProyectoPlanillaPage.vue))
 - `/proyectos/:id/presupuesto` → misma ficha, tab Presupuesto ([`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue))
 - `/proyectos/:id/almacen` → misma ficha, tab Almacén ([`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue))
+- `/proyectos/:id/avances` → misma ficha, tab Avances ([`ProyectoAvancesPage.vue`](../../frontend/src/pages/proyectos/ProyectoAvancesPage.vue))
+- `/proyectos/:id/financiamiento` → misma ficha, tab Financiamiento ([`ProyectoFinanciamientoPage.vue`](../../frontend/src/pages/proyectos/ProyectoFinanciamientoPage.vue))
 
 API base: [`ConstruccionController`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/controller/ConstruccionController.java) en `/api/proyectos`.
 
@@ -106,7 +109,7 @@ Catálogo de obras de construcción civil. Cada obra es un `Proyecto` con códig
 
 El usuario entra a **Obras**, ve la tabla y abre el modal **Nueva obra**. Completa código, nombre, ubicación, centro de costo, valor, nivel de riesgo y tasas SCTR. El alta nace en `EN_EJECUCION`. El backend valida código duplicado, normaliza el código a mayúsculas y calcula `alertaUit` contra la UIT vigente. Esa alerta se muestra en el listado y en la ficha, pero no impide operar.
 
-**Abrir** entra a la ficha: en Resumen se editan los mismos campos más cliente, RUC (11 dígitos si no va vacío), fechas de vigencia (`fecha_fin >= fecha_inicio`) y estado de obra. `activo` (baja lógica) convive con `estadoObra`. El código único se valida ignorando el propio id.
+**Abrir** entra a la ficha: en Resumen se editan los mismos campos más cliente, RUC (11 dígitos si no va vacío), fechas de vigencia (`fecha_fin >= fecha_inicio`), estado de obra y retención porcentual (0–100, se aplica a cada valorización). `activo` (baja lógica) convive con `estadoObra`. El código único se valida ignorando el propio id.
 
 El centro de costo de la obra es el fallback cuando el obrero no tiene centro propio en su contrato RCC.
 
@@ -120,7 +123,7 @@ El centro de costo de la obra es el fallback cuando el obrero no tiene centro pr
 | Alerta UIT | [`UitObraAlerta.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/UitObraAlerta.java) |
 | Endpoints | `GET /api/proyectos`, `GET /api/proyectos?activo=`, `POST /api/proyectos`, `GET /api/proyectos/{id}`, `PUT /api/proyectos/{id}`, `GET /api/proyectos/catalogos` |
 | UI | [`ProyectosPage.vue`](../../frontend/src/pages/proyectos/ProyectosPage.vue), tab Resumen de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) |
-| Migraciones | `V42` (tabla `proyecto`), `V44` (`valor_obra`), `V45` (`nivel_riesgo`, tasas SCTR), `V47` (cliente, vigencia, `estado_obra`) |
+| Migraciones | `V42` (tabla `proyecto`), `V44` (`valor_obra`), `V45` (`nivel_riesgo`, tasas SCTR), `V47` (cliente, vigencia, `estado_obra`), `V50` (`porcentaje_retencion`) |
 
 ---
 
@@ -261,7 +264,7 @@ El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra e
 - [x] Cargar presupuesto por partidas (capítulo, partida, unidad, metrado, precio unitario, total) desde la ficha
 - [ ] Importar presupuesto desde Excel
 - [x] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
-- [ ] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
+- [x] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
 - [x] Costo objetivo por obra y por centro de costo (cuadrilla sigue pendiente)
 - [x] Comparativo meta vs real de mano de obra RCC y de materiales (vales de salida); equipos aún sin dato
 - [x] Versiones de presupuesto (inicial, actualizado, adicional)
@@ -269,7 +272,7 @@ El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra e
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida, agrupado por centro de costo.
+En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida, agrupado por centro de costo. El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
 
 ### Desglose técnico (hecho)
 
@@ -327,85 +330,101 @@ flowchart LR
 
 ---
 
-## 7. Avances y valorizaciones — Pendiente
+## 7. Avances y valorizaciones — Hecho
 
-Avance físico de partidas, cronograma y cobro al cliente (valorización).
+Avance físico de partidas, cronograma y cobro al cliente (valorización mensual con retención, adicionales/deductivos, curva S y factura interna).
 
 ### Objetivos
 
-- [ ] Registro de avance físico por partida (metrado ejecutado del periodo y acumulado)
-- [ ] Cronograma (inicio/fin por partida o por hito) y desviación de plazo
-- [ ] Valorización mensual al cliente: metrados del periodo × precios del presupuesto vigente
-- [ ] Adicionales y deductivos, con su propia valorización
-- [ ] Curva S (programado vs ejecutado, físico y económico)
-- [ ] Retención / fondo de garantía descontada en la valorización
-- [ ] Aprobación de valorización (borrador → presentada → observada → aprobada)
-- [ ] Generación de factura a partir de valorización aprobada (alimenta la sección 8)
+- [x] Registro de avance físico por partida (metrado ejecutado del periodo y acumulado)
+- [x] Cronograma (inicio/fin por partida) y desviación de plazo
+- [x] Valorización mensual al cliente: metrados del periodo × precios del presupuesto vigente
+- [x] Adicionales y deductivos, con su propia valorización
+- [x] Curva S (programado vs ejecutado, físico y económico)
+- [x] Retención / fondo de garantía descontada en la valorización (`proyecto.porcentaje_retencion`; saldo/liberación/carta fianza en la sección 8)
+- [x] Aprobación de valorización (borrador → presentada → observada → aprobada)
+- [x] Generación de factura interna a partir de valorización aprobada (la cobranza y el factoring están en la sección 8; no es CPE/SUNAT)
 
-### Cómo funciona (objetivo)
+### Cómo funciona (hoy)
 
-Cada mes el residente declara metrados ejecutados. El sistema arma la valorización (periodo, acumulado, anterior, actual) usando el presupuesto vigente. Se descuenta la retención pactada. Una vez aprobada por el cliente se emite la factura. La curva S compara lo programado en el cronograma con lo ejecutado y lo valorizado.
+En **Obras → Abrir → Avances** hay tres pestañas internas. **Avance** pide presupuesto vigente: el residente declara el metrado del mes por partida; el acumulado es la suma de periodos anteriores más el actual (puede superar la meta; se muestra el desvío). Un avance por obra/año/mes; cerrar el mes lo deja ineditable. El cronograma guarda `fechaInicio`/`fechaFin` por partida vigente (si faltan, se usan las fechas de la obra). **Valorizaciones** arma un documento `REGULAR` desde el avance cerrado: anterior = acumulado de la última REGULAR `APROBADA`, periodo = metrado del mes, P.U. de la vigente. Bruto = Σ total_periodo; retención = bruto × % de la obra (congelado en el documento); neto = bruto − retención. Solo hay una REGULAR por mes. `BORRADOR`/`OBSERVADA` se regeneran; `PRESENTADA` no se edita; `APROBADA` habilita factura. Adicional/deductivo es entidad propia (`AdicionalObra`), no una versión de presupuesto; se valorizan en un documento `ADICIONAL` o `DEDUCTIVO`. **Curva S** prorratea en lineal el metrado/total de cada partida entre sus fechas; ejecutado físico = acumulado de avances; ejecutado económico = Σ bruto de valorizaciones `APROBADA`. La factura interna copia cliente de la obra, usa el neto como subtotal e IGV 18 %.
 
-### Desglose técnico (propuesto)
+```mermaid
+flowchart LR
+  Vigente[PresupuestoVigente] --> Avance[AvanceObra]
+  Cronograma[CronogramaPartida] --> CurvaS[CurvaS]
+  Avance --> Valorizacion[Valorizacion]
+  Adicional[AdicionalObra] --> Valorizacion
+  Valorizacion --> Aprobacion[Aprobada]
+  Aprobacion --> Factura[FacturaObra]
+  Avance --> CurvaS
+  Aprobacion --> CurvaS
+```
 
-| Capa | Propuesta |
+### Desglose técnico (hecho)
+
+| Capa | Ubicación |
 | --- | --- |
-| Entidades | `AvanceObra`, `AvancePartida`, `Valorizacion`, `ValorizacionItem`, `AdicionalObra` |
-| Endpoints | `/api/proyectos/{id}/avances`, `/api/proyectos/{id}/valorizaciones`, `/api/proyectos/{id}/adicionales` |
-| UI | `ProyectoAvancesPage.vue`, `ProyectoValorizacionesPage.vue` |
-| Relación | `Valorizacion` → `Factura` (sección 8); `AvancePartida.metrado` vs `PartidaPresupuesto.metrado` |
+| Entidades | [`CronogramaPartida.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/CronogramaPartida.java), [`AvanceObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AvanceObra.java), [`AvancePartida.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AvancePartida.java), [`AdicionalObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AdicionalObra.java), [`Valorizacion.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/Valorizacion.java), [`ValorizacionItem.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ValorizacionItem.java), [`FacturaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/FacturaObra.java) |
+| Servicio | [`ValorizacionServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/ValorizacionServiceImpl.java) |
+| Endpoints | `GET/PUT /{id}/cronograma`, `GET/PUT /{id}/avances`, `POST /{id}/avances/{avanceId}/cerrar`, adicionales, valorizaciones (presentar/observar/aprobar/facturar), `GET /{id}/curva-s` |
+| UI | tab Avances de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoAvancesPage.vue`](../../frontend/src/pages/proyectos/ProyectoAvancesPage.vue) |
+| Migración | `V50` |
+| Nota | Presupuesto vigente obligatorio. Una REGULAR por obra/año/mes. Factura interna, no CPE. Retención % en la obra; cobranza y carta fianza en la sección 8 |
 
 ---
 
-## 8. Financiamiento de obra — Pendiente
+## 8. Financiamiento de obra — Hecho
 
-Cómo se paga la obra: cobranzas, retenciones, líneas de crédito y **factoring**.
+Cómo se cobra y financia la obra: cartera de facturas internas, retenciones y **factoring**. El flujo de caja es ejecutado (no proyectado).
 
 ### Objetivos
 
 Flujo de caja y cobranzas:
 
-- [ ] Flujo de caja proyectado vs ejecutado por obra (ingresos por valorización/factura, egresos de planilla, materiales, equipos, subcontratos)
-- [ ] Facturación ligada a valorización aprobada
-- [ ] Cobranzas (fecha, banco, importe, detracción si aplica)
-- [ ] Retenciones y fondo de garantía: saldo, liberación, carta fianza
-- [ ] Líneas de crédito / préstamos de capital de trabajo imputados a la obra
+- [x] Flujo de caja ejecutado por obra (ingresos por cobro/adelanto, egresos de planilla RCC cerrada y vales de salida)
+- [x] Facturación ligada a valorización aprobada (emisión en la sección 7; cartera aquí)
+- [x] Cobranzas (fecha, banco, importe, detracción como monto)
+- [x] Retenciones y fondo de garantía: saldo, liberación, carta fianza
+- [ ] Líneas de crédito / préstamos de capital de trabajo imputados a la obra. Descartado en este corte: no hay `LineaCreditoObra`.
 
 Factoring:
 
-- [ ] Cesión de factura a entidad financiera (banco o factor)
-- [ ] Tasa de descuento, comisión, IGV de la comisión si aplica
-- [ ] Adelanto recibido (neto = valor factura − descuento − comisiones)
-- [ ] Fecha de pago del obligado (cliente) al factor
-- [ ] Conciliación: el cliente paga al factor, no a Convecsa; se cierra la cuenta por cobrar cedida
-- [ ] Estado de la operación: cedida, adelantada, cobrada, impaga, revertida
-- [ ] Tope de línea de factoring por entidad y utilización
+- [x] Cesión de factura a entidad financiera (razón y RUC como columnas)
+- [x] Tasa de descuento, comisión, IGV de la comisión (18 %)
+- [x] Adelanto recibido (neto = valor factura − descuento − comisión − IGV comisión)
+- [x] Fecha de pago del obligado (cliente) al factor
+- [x] Conciliación: el cliente paga al factor, no a Convecsa; se cierra la CxC cedida
+- [x] Estado de la operación: cedida, adelantada, cobrada, impaga, revertida
+- [ ] Tope de línea de factoring por entidad y utilización. Descartado en este corte: no hay maestro `EntidadFactoring`.
 
-### Cómo funciona (objetivo)
+### Cómo funciona (hoy)
 
-La valorización aprobada genera una factura por cobrar. Tesorería decide: esperar el pago del cliente o ceder la factura (factoring) para adelantar liquidez. En factoring, Convecsa recibe un neto inmediato; el cliente paga al factor en la fecha de vencimiento. El costo financiero (descuento + comisiones) es gasto de la obra y entra al flujo de caja y a la rentabilidad.
+En **Obras → Abrir → Financiamiento** hay cuatro pestañas. **Facturas** lista la cartera (`EMITIDA` / `PARCIAL` / `COBRADA` / `CEDIDA`) con saldo calculado; se registran cobros parciales (`importe + detracción` no puede superar el saldo). **Factoring** cede una factura `EMITIDA` sin cobros; el adelanto registra el neto y el costo financiero; revertir solo si aún no hubo adelanto. **Retenciones** acumula `montoRetencion` de valorizaciones `APROBADA` y descuenta liberaciones en efectivo o carta fianza. **Caja** agrupa por mes cobranzas, adelantos, planilla RCC cerrada (`neto + aportes empleador`) y costo de vales.
 
 ```mermaid
 flowchart LR
-  Valorizacion[ValorizacionAprobada] --> Factura[EmisionFactura]
-  Factura --> Decision{Ceder}
-  Decision -->|no| CobroCliente[CobroDelCliente]
-  Decision -->|si| Cesion[CesionAlFactor]
-  Cesion --> Adelanto[AdelantoNeto]
-  Cesion --> CobroFactor[ClientePagaAlFactor]
-  CobroFactor --> Liquidacion[CierreDeCxC]
-  Adelanto --> Flujo[FlujoDeCajaObra]
-  CobroCliente --> Flujo
+  Factura[FacturaEmitida] --> Decision{Ceder}
+  Decision -->|no| Cobro[CobranzaObra]
+  Cobro --> Saldo[SaldoCero]
+  Saldo --> Cobrada[Cobrada]
+  Decision -->|si| Cesion[OperacionFactoring]
+  Cesion --> Adelanto[Adelantada]
+  Adelanto --> Factor[ClientePagaAlFactor]
+  Factor --> Cerrada[OperacionCobrada]
+  Cesion --> Revertir[RevertidaSiSinAdelanto]
 ```
 
-### Desglose técnico (propuesto)
+### Desglose técnico (hecho)
 
-| Capa | Propuesta |
+| Capa | Ubicación |
 | --- | --- |
-| Entidades | `FinanciamientoObra`, `FacturaObra`, `CobranzaObra`, `RetencionObra`, `LineaCreditoObra`, `OperacionFactoring`, `EntidadFactoring` |
-| Endpoints | `/api/proyectos/{id}/financiamiento`, `/api/proyectos/{id}/facturas`, `/api/proyectos/{id}/cobranzas`, `/api/proyectos/{id}/factoring` |
-| UI | `ProyectoFinanciamientoPage.vue` con pestañas Caja, Facturas, Factoring, Retenciones |
-| Campos mínimos de `OperacionFactoring` | `facturaId`, `entidad`, `fechaCesion`, `tasaDescuento`, `comision`, `importeNominal`, `importeNeto`, `fechaPagoEsperada`, `estado` |
+| Entidades | [`FacturaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/FacturaObra.java), [`CobranzaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/CobranzaObra.java), [`LiberacionRetencion.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/LiberacionRetencion.java), [`OperacionFactoring.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/OperacionFactoring.java) |
+| Servicio | [`FinanciamientoServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/FinanciamientoServiceImpl.java) |
+| Endpoints | `GET/PUT /{id}/facturas`, `GET/POST /{id}/cobranzas`, `GET /{id}/retenciones`, `POST /{id}/retenciones/liberar`, `GET/POST /{id}/factoring` (adelantar/cobrar/impagar/revertir), `GET /{id}/flujo-caja` |
+| UI | tab Financiamiento de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoFinanciamientoPage.vue`](../../frontend/src/pages/proyectos/ProyectoFinanciamientoPage.vue) |
+| Migración | `V51` |
+| Nota | Factura interna de Fase D. Detracción = monto, no SUNAT. Entidad factor = columnas. Sin préstamos ni tope de línea |
 
 ---
 
@@ -449,8 +468,8 @@ Cortes que aplican a todas las secciones anteriores.
 
 ### Objetivos
 
-- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto y Almacén
-- [ ] Pestañas Avances, Financiamiento y Documentos
+- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Avances y Financiamiento
+- [ ] Pestaña Documentos
 - [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex)
 - [ ] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura)
 - [ ] Adjuntos: contrato de obra, planos, actas, valorizaciones firmadas, cesiones de factoring
@@ -463,7 +482,7 @@ Cortes que aplican a todas las secciones anteriores.
 | Capa | Ubicación |
 | --- | --- |
 | Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
-| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen` anidadas bajo `/proyectos/:id` |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-avances`, `proyecto-financiamiento` anidadas bajo `/proyectos/:id` |
 
 ### Desglose técnico (propuesto)
 
@@ -505,17 +524,17 @@ Dependencias: Fase B (partida destino). Desbloquea rentabilidad más completa.
 
 ### Fase D — Avances y valorizaciones
 
-- [ ] Avance físico por partida
-- [ ] Valorización mensual, adicionales/deductivos, curva S
-- [ ] Factura a partir de valorización aprobada
+- [x] Avance físico por partida
+- [x] Valorización mensual, adicionales/deductivos, curva S
+- [x] Factura a partir de valorización aprobada
 
 Dependencias: Fase B. Desbloquea financiamiento.
 
 ### Fase E — Financiamiento y factoring
 
-- [ ] Flujo de caja de obra, cobranzas, retenciones
-- [ ] Operación de factoring (cesión → adelanto → cobro → cierre de CxC)
-- [ ] Costo financiero imputado a la obra
+- [x] Flujo de caja de obra, cobranzas, retenciones
+- [x] Operación de factoring (cesión → adelanto → cobro → cierre de CxC)
+- [x] Costo financiero imputado a la obra
 
 Dependencias: Fase D (factura). Es el hito de liquidez.
 
@@ -573,6 +592,32 @@ Base: `/api/proyectos`.
 | POST | `/{id}/compras/{ocId}/cerrar` | Cerrar |
 | POST | `/{id}/compras/{ocId}/recepciones` | Recepción contra OC |
 | POST | `/{id}/compras/{ocId}/devolver` | Devolución a proveedor |
+| GET/PUT | `/{id}/cronograma` | Fechas por partida vigente |
+| GET/PUT | `/{id}/avances?anio=&mes=` | Grilla de avance del mes |
+| POST | `/{id}/avances/{avanceId}/cerrar` | Cerrar mes de avance |
+| GET/POST | `/{id}/adicionales` | Adicionales y deductivos |
+| PUT | `/{id}/adicionales/{adicionalId}` | Editar borrador |
+| POST | `/{id}/adicionales/{adicionalId}/vigentar` | Vigentar |
+| POST | `/{id}/adicionales/{adicionalId}/anular` | Anular |
+| GET/POST | `/{id}/valorizaciones` | Listar / generar borrador |
+| GET | `/{id}/valorizaciones/{valId}` | Detalle |
+| POST | `.../presentar` | Presentar |
+| POST | `.../observar` | Observar |
+| POST | `.../aprobar` | Aprobar |
+| POST | `.../facturar` | Factura interna |
+| GET | `/{id}/curva-s` | Curva S mensual |
+| GET | `/{id}/facturas` | Cartera de facturas internas |
+| GET | `/{id}/facturas/{facturaId}` | Detalle con saldo y cobros |
+| PUT | `/{id}/facturas/{facturaId}` | Fecha de vencimiento |
+| GET/POST | `/{id}/cobranzas` | Cobros (importe + detracción) |
+| GET | `/{id}/retenciones` | Saldo de fondo de garantía |
+| POST | `/{id}/retenciones/liberar` | Liberación o carta fianza |
+| GET/POST | `/{id}/factoring` | Listar / ceder factura |
+| POST | `.../adelantar` | Registrar adelanto |
+| POST | `.../cobrar` | Cliente pagó al factor |
+| POST | `.../impagar` | Marcar impaga |
+| POST | `.../revertir` | Revertir cesión sin adelanto |
+| GET | `/{id}/flujo-caja` | Flujo ejecutado mensual |
 | GET | `/{id}/personal` | Obreros RCC activos |
 | GET/POST | `/{id}/periodos` | Periodos de planilla |
 | GET | `/{id}/periodos/{periodoId}` | Detalle de periodo |

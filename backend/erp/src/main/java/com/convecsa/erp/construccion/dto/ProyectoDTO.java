@@ -25,6 +25,7 @@ public class ProyectoDTO {
     private final LocalDate fechaInicio;
     private final LocalDate fechaFin;
     private final EstadoObra estadoObra;
+    private final BigDecimal porcentajeRetencion;
     private final boolean activo;
     private final boolean alertaUit;
     private final int uitAnio;

@@ -29,6 +29,8 @@ import ProyectoTareoPage from '@/pages/proyectos/ProyectoTareoPage.vue'
 import ProyectoPlanillaPage from '@/pages/proyectos/ProyectoPlanillaPage.vue'
 import ProyectoPresupuestoPage from '@/pages/proyectos/ProyectoPresupuestoPage.vue'
 import ProyectoAlmacenPage from '@/pages/proyectos/ProyectoAlmacenPage.vue'
+import ProyectoAvancesPage from '@/pages/proyectos/ProyectoAvancesPage.vue'
+import ProyectoFinanciamientoPage from '@/pages/proyectos/ProyectoFinanciamientoPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -185,6 +187,16 @@ const router = createRouter({
               path: 'almacen',
               name: 'proyecto-almacen',
               component: ProyectoAlmacenPage,
+            },
+            {
+              path: 'avances',
+              name: 'proyecto-avances',
+              component: ProyectoAvancesPage,
+            },
+            {
+              path: 'financiamiento',
+              name: 'proyecto-financiamiento',
+              component: ProyectoFinanciamientoPage,
             },
           ],
         },

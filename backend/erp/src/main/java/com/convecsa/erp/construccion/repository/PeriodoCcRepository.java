@@ -11,6 +11,8 @@ public interface PeriodoCcRepository extends JpaRepository<PeriodoCc, Long> {
 
     List<PeriodoCc> findByProyectoIdOrderByFechaDesdeDesc(Long proyectoId);
 
+    List<PeriodoCc> findByProyectoIdAndEstado(Long proyectoId, EstadoPeriodoCc estado);
+
     Optional<PeriodoCc> findByIdAndProyectoId(Long id, Long proyectoId);
 
     boolean existsByProyectoIdAndFechaDesdeAndFechaHasta(Long proyectoId, LocalDate fechaDesde, LocalDate fechaHasta);

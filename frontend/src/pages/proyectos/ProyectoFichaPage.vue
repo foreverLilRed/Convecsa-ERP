@@ -30,7 +30,7 @@ import { listarPersonas } from '@/services/persona/personaService'
 import type { EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'avances' | 'financiamiento'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -71,6 +71,8 @@ const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-planilla') return 'planilla'
   if (route.name === 'proyecto-presupuesto') return 'presupuesto'
   if (route.name === 'proyecto-almacen') return 'almacen'
+  if (route.name === 'proyecto-avances') return 'avances'
+  if (route.name === 'proyecto-financiamiento') return 'financiamiento'
   return 'resumen'
 })
 
@@ -88,6 +90,7 @@ const form = reactive({
   fechaInicio: '',
   fechaFin: '',
   estadoObra: 'EN_EJECUCION' as EstadoObra,
+  porcentajeRetencion: '0',
   activo: true,
 })
 
@@ -205,6 +208,14 @@ function onTab(value: string | number) {
     void router.push({ name: 'proyecto-almacen', params: { id } })
     return
   }
+  if (siguiente === 'avances') {
+    void router.push({ name: 'proyecto-avances', params: { id } })
+    return
+  }
+  if (siguiente === 'financiamiento') {
+    void router.push({ name: 'proyecto-financiamiento', params: { id } })
+    return
+  }
   void router.push({ name: 'proyecto-ficha', params: { id } })
 }
 
@@ -234,6 +245,7 @@ async function load() {
     form.fechaInicio = proyecto.fechaInicio ?? ''
     form.fechaFin = proyecto.fechaFin ?? ''
     form.estadoObra = proyecto.estadoObra ?? 'EN_EJECUCION'
+    form.porcentajeRetencion = proyecto.porcentajeRetencion == null ? '0' : String(proyecto.porcentajeRetencion)
     form.activo = proyecto.activo
     alertaUit.value = proyecto.alertaUit
     uitAnio.value = proyecto.uitAnio
@@ -298,6 +310,16 @@ async function onGuardar() {
     toast.error(formError.value)
     return
   }
+  const retencionTexto = form.porcentajeRetencion.trim().replace(',', '.')
+  let porcentajeRetencion = 0
+  if (retencionTexto) {
+    porcentajeRetencion = Number(retencionTexto)
+    if (!Number.isFinite(porcentajeRetencion) || porcentajeRetencion < 0 || porcentajeRetencion > 100) {
+      formError.value = 'La retención debe estar entre 0 y 100%.'
+      toast.error(formError.value)
+      return
+    }
+  }
   submitting.value = true
   try {
     const actualizado = await actualizarProyecto(proyectoId.value, {
@@ -314,6 +336,7 @@ async function onGuardar() {
       fechaInicio: form.fechaInicio || null,
       fechaFin: form.fechaFin || null,
       estadoObra: form.estadoObra,
+      porcentajeRetencion,
       activo: form.activo,
     })
     const filas = ROLES.flatMap(({ rol }) => {
@@ -326,6 +349,8 @@ async function onGuardar() {
     form.codigo = actualizado.codigo
     form.nombre = actualizado.nombre
     form.estadoObra = actualizado.estadoObra
+    form.porcentajeRetencion =
+      actualizado.porcentajeRetencion == null ? '0' : String(actualizado.porcentajeRetencion)
     form.activo = actualizado.activo
     if (actualizado.alertaUit) {
       toast.warning(
@@ -426,6 +451,18 @@ onUnmounted(() => {
         >
           Almacén
         </TabsTrigger>
+        <TabsTrigger
+          value="avances"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Avances
+        </TabsTrigger>
+        <TabsTrigger
+          value="financiamiento"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Financiamiento
+        </TabsTrigger>
       </TabsList>
     </Tabs>
 
@@ -476,6 +513,16 @@ onUnmounted(() => {
             <option value="PARALIZADA">Paralizada</option>
             <option value="LIQUIDADA">Liquidada</option>
           </select>
+        </div>
+        <div>
+          <label class="text-sm font-medium text-slate-700" for="ficha-retencion">Retención (%)</label>
+          <Input
+            id="ficha-retencion"
+            v-model="form.porcentajeRetencion"
+            inputmode="decimal"
+            placeholder="0"
+            :class="inputClass"
+          />
         </div>
         <div>
           <label class="text-sm font-medium text-slate-700" for="ficha-riesgo">Nivel de riesgo SCTR</label>

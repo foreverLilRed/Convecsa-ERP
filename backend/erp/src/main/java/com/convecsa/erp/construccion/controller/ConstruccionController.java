@@ -35,14 +35,35 @@ import com.convecsa.erp.construccion.dto.TareoCcGrillaDTO;
 import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
 import com.convecsa.erp.construccion.dto.ValeSalidaDTO;
 import com.convecsa.erp.construccion.dto.ValeSalidaRequest;
+import com.convecsa.erp.construccion.dto.AdicionalObraDTO;
+import com.convecsa.erp.construccion.dto.AdicionalObraRequest;
+import com.convecsa.erp.construccion.dto.AvanceGuardarRequest;
+import com.convecsa.erp.construccion.dto.AvanceObraDTO;
+import com.convecsa.erp.construccion.dto.CronogramaGuardarRequest;
+import com.convecsa.erp.construccion.dto.CronogramaPartidaDTO;
+import com.convecsa.erp.construccion.dto.CurvaSDTO;
+import com.convecsa.erp.construccion.dto.ValorizacionCrearRequest;
+import com.convecsa.erp.construccion.dto.ValorizacionDTO;
+import com.convecsa.erp.construccion.dto.CobranzaObraDTO;
+import com.convecsa.erp.construccion.dto.CobranzaObraRequest;
+import com.convecsa.erp.construccion.dto.FacturaObraDTO;
+import com.convecsa.erp.construccion.dto.FacturaVencimientoRequest;
+import com.convecsa.erp.construccion.dto.FlujoCajaDTO;
+import com.convecsa.erp.construccion.dto.LiberacionRetencionRequest;
+import com.convecsa.erp.construccion.dto.OperacionFactoringDTO;
+import com.convecsa.erp.construccion.dto.OperacionFactoringRequest;
+import com.convecsa.erp.construccion.dto.RetencionesDTO;
 import com.convecsa.erp.construccion.service.InterfazAlmacenService;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
+import com.convecsa.erp.construccion.service.InterfazFinanciamientoService;
+import com.convecsa.erp.construccion.service.InterfazValorizacionService;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.nomina.dto.BoletaEnvioResumenDTO;
 import com.convecsa.erp.nomina.dto.BoletaLoteRequest;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -67,6 +88,8 @@ public class ConstruccionController {
 
     private final InterfazConstruccionService construccionService;
     private final InterfazAlmacenService almacenService;
+    private final InterfazValorizacionService valorizacionService;
+    private final InterfazFinanciamientoService financiamientoService;
 
     @GetMapping("/catalogos")
     public ConstruccionCatalogosDTO catalogos() {
@@ -296,6 +319,196 @@ public class ConstruccionController {
             @PathVariable Long ocId,
             @Valid @RequestBody DevolucionRequest request) {
         return almacenService.devolverProveedor(id, ocId, request);
+    }
+
+    @GetMapping("/{id:\\d+}/cronograma")
+    public List<CronogramaPartidaDTO> cronograma(@PathVariable Long id) {
+        return valorizacionService.listarCronograma(id);
+    }
+
+    @PutMapping("/{id:\\d+}/cronograma")
+    public List<CronogramaPartidaDTO> guardarCronograma(
+            @PathVariable Long id,
+            @Valid @RequestBody CronogramaGuardarRequest request) {
+        return valorizacionService.guardarCronograma(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/avances")
+    public AvanceObraDTO avance(
+            @PathVariable Long id,
+            @RequestParam int anio,
+            @RequestParam int mes) {
+        return valorizacionService.obtenerAvance(id, anio, mes);
+    }
+
+    @PutMapping("/{id:\\d+}/avances")
+    public AvanceObraDTO guardarAvance(
+            @PathVariable Long id,
+            @Valid @RequestBody AvanceGuardarRequest request) {
+        return valorizacionService.guardarAvance(id, request);
+    }
+
+    @PostMapping("/{id:\\d+}/avances/{avanceId}/cerrar")
+    public AvanceObraDTO cerrarAvance(@PathVariable Long id, @PathVariable Long avanceId) {
+        return valorizacionService.cerrarAvance(id, avanceId);
+    }
+
+    @GetMapping("/{id:\\d+}/adicionales")
+    public List<AdicionalObraDTO> adicionales(@PathVariable Long id) {
+        return valorizacionService.listarAdicionales(id);
+    }
+
+    @PostMapping("/{id:\\d+}/adicionales")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AdicionalObraDTO crearAdicional(
+            @PathVariable Long id,
+            @Valid @RequestBody AdicionalObraRequest request) {
+        return valorizacionService.crearAdicional(id, request);
+    }
+
+    @PutMapping("/{id:\\d+}/adicionales/{adicionalId}")
+    public AdicionalObraDTO guardarAdicional(
+            @PathVariable Long id,
+            @PathVariable Long adicionalId,
+            @Valid @RequestBody AdicionalObraRequest request) {
+        return valorizacionService.guardarAdicional(id, adicionalId, request);
+    }
+
+    @PostMapping("/{id:\\d+}/adicionales/{adicionalId}/vigentar")
+    public AdicionalObraDTO vigentarAdicional(@PathVariable Long id, @PathVariable Long adicionalId) {
+        return valorizacionService.vigentarAdicional(id, adicionalId);
+    }
+
+    @PostMapping("/{id:\\d+}/adicionales/{adicionalId}/anular")
+    public AdicionalObraDTO anularAdicional(@PathVariable Long id, @PathVariable Long adicionalId) {
+        return valorizacionService.anularAdicional(id, adicionalId);
+    }
+
+    @GetMapping("/{id:\\d+}/valorizaciones")
+    public List<ValorizacionDTO> valorizaciones(@PathVariable Long id) {
+        return valorizacionService.listarValorizaciones(id);
+    }
+
+    @PostMapping("/{id:\\d+}/valorizaciones")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ValorizacionDTO crearValorizacion(
+            @PathVariable Long id,
+            @Valid @RequestBody ValorizacionCrearRequest request) {
+        return valorizacionService.crearValorizacion(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/valorizaciones/{valId}")
+    public ValorizacionDTO valorizacion(@PathVariable Long id, @PathVariable Long valId) {
+        return valorizacionService.obtenerValorizacion(id, valId);
+    }
+
+    @PostMapping("/{id:\\d+}/valorizaciones/{valId}/presentar")
+    public ValorizacionDTO presentar(@PathVariable Long id, @PathVariable Long valId) {
+        return valorizacionService.presentarValorizacion(id, valId);
+    }
+
+    @PostMapping("/{id:\\d+}/valorizaciones/{valId}/observar")
+    public ValorizacionDTO observar(@PathVariable Long id, @PathVariable Long valId) {
+        return valorizacionService.observarValorizacion(id, valId);
+    }
+
+    @PostMapping("/{id:\\d+}/valorizaciones/{valId}/aprobar")
+    public ValorizacionDTO aprobar(@PathVariable Long id, @PathVariable Long valId) {
+        return valorizacionService.aprobarValorizacion(id, valId);
+    }
+
+    @PostMapping("/{id:\\d+}/valorizaciones/{valId}/facturar")
+    public ValorizacionDTO facturar(@PathVariable Long id, @PathVariable Long valId) {
+        return valorizacionService.facturarValorizacion(id, valId);
+    }
+
+    @GetMapping("/{id:\\d+}/curva-s")
+    public CurvaSDTO curvaS(@PathVariable Long id) {
+        return valorizacionService.curvaS(id);
+    }
+
+    @GetMapping("/{id:\\d+}/facturas")
+    public List<FacturaObraDTO> facturas(@PathVariable Long id) {
+        return financiamientoService.listarFacturas(id);
+    }
+
+    @GetMapping("/{id:\\d+}/facturas/{facturaId}")
+    public FacturaObraDTO factura(@PathVariable Long id, @PathVariable Long facturaId) {
+        return financiamientoService.obtenerFactura(id, facturaId);
+    }
+
+    @PutMapping("/{id:\\d+}/facturas/{facturaId}")
+    public FacturaObraDTO actualizarFactura(
+            @PathVariable Long id,
+            @PathVariable Long facturaId,
+            @RequestBody FacturaVencimientoRequest request) {
+        return financiamientoService.actualizarVencimiento(id, facturaId, request);
+    }
+
+    @GetMapping("/{id:\\d+}/cobranzas")
+    public List<CobranzaObraDTO> cobranzas(@PathVariable Long id) {
+        return financiamientoService.listarCobranzas(id);
+    }
+
+    @PostMapping("/{id:\\d+}/cobranzas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public FacturaObraDTO crearCobranza(
+            @PathVariable Long id,
+            @Valid @RequestBody CobranzaObraRequest request) {
+        return financiamientoService.registrarCobranza(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/retenciones")
+    public RetencionesDTO retenciones(@PathVariable Long id) {
+        return financiamientoService.obtenerRetenciones(id);
+    }
+
+    @PostMapping("/{id:\\d+}/retenciones/liberar")
+    public RetencionesDTO liberarRetencion(
+            @PathVariable Long id,
+            @Valid @RequestBody LiberacionRetencionRequest request) {
+        return financiamientoService.liberarRetencion(id, request);
+    }
+
+    @GetMapping("/{id:\\d+}/factoring")
+    public List<OperacionFactoringDTO> factoring(@PathVariable Long id) {
+        return financiamientoService.listarFactoring(id);
+    }
+
+    @PostMapping("/{id:\\d+}/factoring")
+    @ResponseStatus(HttpStatus.CREATED)
+    public OperacionFactoringDTO ceder(
+            @PathVariable Long id,
+            @Valid @RequestBody OperacionFactoringRequest request) {
+        return financiamientoService.cederFactura(id, request);
+    }
+
+    @PostMapping("/{id:\\d+}/factoring/{opId}/adelantar")
+    public OperacionFactoringDTO adelantar(@PathVariable Long id, @PathVariable Long opId) {
+        return financiamientoService.adelantarFactoring(id, opId);
+    }
+
+    @PostMapping("/{id:\\d+}/factoring/{opId}/cobrar")
+    public OperacionFactoringDTO cobrarFactor(@PathVariable Long id, @PathVariable Long opId) {
+        return financiamientoService.cobrarFactoring(id, opId);
+    }
+
+    @PostMapping("/{id:\\d+}/factoring/{opId}/impagar")
+    public OperacionFactoringDTO impagar(@PathVariable Long id, @PathVariable Long opId) {
+        return financiamientoService.impagarFactoring(id, opId);
+    }
+
+    @PostMapping("/{id:\\d+}/factoring/{opId}/revertir")
+    public OperacionFactoringDTO revertir(@PathVariable Long id, @PathVariable Long opId) {
+        return financiamientoService.revertirFactoring(id, opId);
+    }
+
+    @GetMapping("/{id:\\d+}/flujo-caja")
+    public FlujoCajaDTO flujoCaja(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        return financiamientoService.flujoCaja(id, desde, hasta);
     }
 
     @GetMapping("/{id:\\d+}/personal")

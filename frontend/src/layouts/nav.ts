@@ -105,6 +105,14 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'Almacén'
   }
 
+  if (name === 'proyecto-avances') {
+    return 'Avances'
+  }
+
+  if (name === 'proyecto-financiamiento') {
+    return 'Financiamiento'
+  }
+
   for (const item of navItems) {
     if (item.kind === 'link' && item.name === name) {
       return item.label
@@ -136,6 +144,8 @@ export function getGroupIdForRouteName(name: string | symbol | null | undefined)
     || name === 'proyecto-planilla'
     || name === 'proyecto-presupuesto'
     || name === 'proyecto-almacen'
+    || name === 'proyecto-avances'
+    || name === 'proyecto-financiamiento'
   ) {
     return 'proyectos'
   }

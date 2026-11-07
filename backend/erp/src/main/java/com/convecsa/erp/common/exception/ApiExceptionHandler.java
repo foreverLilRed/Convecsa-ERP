@@ -143,7 +143,13 @@ public class ApiExceptionHandler {
         MaterialNoEncontradoException.class,
         RequerimientoObraNoEncontradoException.class,
         OrdenCompraNoEncontradaException.class,
-        ValeSalidaNoEncontradoException.class
+        ValeSalidaNoEncontradoException.class,
+        AvanceNoEncontradoException.class,
+        ValorizacionNoEncontradaException.class,
+        FacturaObraNoEncontradaException.class,
+        AdicionalObraNoEncontradoException.class,
+        CobranzaNoEncontradaException.class,
+        OperacionFactoringNoEncontradaException.class
     })
     public ResponseEntity<Map<String, Object>> handleNotFound(RuntimeException exception) {
         Map<String, Object> body = new LinkedHashMap<>();

@@ -155,6 +155,7 @@ class ConstruccionServiceImplTest {
         request.setFechaInicio(LocalDate.of(2026, 2, 1));
         request.setFechaFin(LocalDate.of(2026, 11, 30));
         request.setEstadoObra(EstadoObra.PARALIZADA);
+        request.setPorcentajeRetencion(new BigDecimal("10"));
 
         ProyectoDTO dto = servicio.actualizarProyecto(7L, request);
 
@@ -164,6 +165,7 @@ class ConstruccionServiceImplTest {
         assertEquals(LocalDate.of(2026, 2, 1), dto.getFechaInicio());
         assertEquals(LocalDate.of(2026, 11, 30), dto.getFechaFin());
         assertEquals(EstadoObra.PARALIZADA, dto.getEstadoObra());
+        assertEquals(new BigDecimal("10.00"), dto.getPorcentajeRetencion());
         assertTrue(dto.isActivo());
     }
 

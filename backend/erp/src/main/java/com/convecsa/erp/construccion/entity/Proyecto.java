@@ -68,6 +68,9 @@ public class Proyecto {
     @Column(name = "estado_obra", nullable = false, length = 20)
     private EstadoObra estadoObra = EstadoObra.EN_EJECUCION;
 
+    @Column(name = "porcentaje_retencion", nullable = false, precision = 5, scale = 2)
+    private BigDecimal porcentajeRetencion = BigDecimal.ZERO;
+
     @Column(nullable = false)
     private boolean activo = true;
 }

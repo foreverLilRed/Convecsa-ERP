@@ -3,6 +3,7 @@ package com.convecsa.erp.construccion.dto;
 import com.convecsa.erp.construccion.domain.EstadoObra;
 import com.convecsa.erp.construccion.domain.NivelRiesgoObra;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -55,6 +56,11 @@ public class ProyectoRequest {
     private LocalDate fechaFin;
 
     private EstadoObra estadoObra;
+
+    @DecimalMin(value = "0.00")
+    @Digits(integer = 3, fraction = 2)
+    @DecimalMax("100.00")
+    private BigDecimal porcentajeRetencion;
 
     private Boolean activo;
 

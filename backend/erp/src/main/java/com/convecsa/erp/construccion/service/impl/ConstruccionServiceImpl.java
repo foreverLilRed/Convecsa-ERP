@@ -1306,6 +1306,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .fechaInicio(proyecto.getFechaInicio())
                 .fechaFin(proyecto.getFechaFin())
                 .estadoObra(proyecto.getEstadoObra())
+                .porcentajeRetencion(proyecto.getPorcentajeRetencion())
                 .activo(proyecto.isActivo())
                 .alertaUit(UitObraAlerta.supera(proyecto.getValorObra(), parametros.getUit()))
                 .uitAnio(parametros.getAnio())
@@ -1339,6 +1340,11 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         proyecto.setFechaInicio(request.getFechaInicio());
         proyecto.setFechaFin(request.getFechaFin());
         proyecto.setEstadoObra(request.getEstadoObra() == null ? EstadoObra.EN_EJECUCION : request.getEstadoObra());
+        BigDecimal retencion = nz(request.getPorcentajeRetencion());
+        if (retencion.compareTo(new BigDecimal("100")) > 0) {
+            throw new IllegalArgumentException("La retención no puede superar 100%");
+        }
+        proyecto.setPorcentajeRetencion(retencion.setScale(2, RoundingMode.HALF_UP));
         if (request.getActivo() != null) {
             proyecto.setActivo(request.getActivo());
         } else if (proyecto.getId() == null) {

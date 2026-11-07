@@ -23,6 +23,7 @@ export type Proyecto = {
   fechaInicio: string | null
   fechaFin: string | null
   estadoObra: EstadoObra
+  porcentajeRetencion: number
   activo: boolean
   alertaUit: boolean
   uitAnio: number
@@ -42,6 +43,7 @@ export type ProyectoRequest = {
   fechaInicio?: string | null
   fechaFin?: string | null
   estadoObra?: EstadoObra
+  porcentajeRetencion?: number | null
   activo?: boolean
 }
 
@@ -517,6 +519,246 @@ export type InventarioCierre = {
   createdAt: string | null
   valorTotal: number
   items: InventarioCierreItem[]
+}
+
+export type EstadoAvanceObra = 'BORRADOR' | 'CERRADO'
+
+export type TipoAdicionalObra = 'ADICIONAL' | 'DEDUCTIVO'
+
+export type EstadoAdicionalObra = 'BORRADOR' | 'VIGENTE' | 'ANULADO'
+
+export type TipoValorizacion = 'REGULAR' | 'ADICIONAL' | 'DEDUCTIVO'
+
+export type EstadoValorizacion = 'BORRADOR' | 'PRESENTADA' | 'OBSERVADA' | 'APROBADA'
+
+export type EstadoFacturaObra = 'EMITIDA' | 'PARCIAL' | 'COBRADA' | 'CEDIDA'
+
+export type TipoLiberacionRetencion = 'EFECTIVO' | 'CARTA_FIANZA'
+
+export type EstadoFactoring = 'CEDIDA' | 'ADELANTADA' | 'COBRADA' | 'IMPAGA' | 'REVERTIDA'
+
+export type CronogramaPartida = {
+  partidaId: number
+  codigo: string
+  descripcion: string
+  metradoMeta: number
+  fechaInicio: string | null
+  fechaFin: string | null
+  desvioPlazoPct: number
+}
+
+export type AvancePartida = {
+  partidaId: number
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  centroCosto: string | null
+  metradoMeta: number
+  metradoAnterior: number
+  metradoPeriodo: number
+  metradoAcumulado: number
+  desvio: number
+}
+
+export type AvanceObra = {
+  id: number | null
+  proyectoId: number
+  anio: number
+  mes: number
+  estado: EstadoAvanceObra
+  createdAt: string | null
+  closedAt: string | null
+  items: AvancePartida[]
+}
+
+export type AdicionalObra = {
+  id: number
+  proyectoId: number
+  tipo: TipoAdicionalObra
+  estado: EstadoAdicionalObra
+  partidaId: number | null
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  metrado: number
+  precioUnitario: number
+  total: number
+  createdAt: string | null
+}
+
+export type AdicionalObraRequest = {
+  tipo: TipoAdicionalObra
+  partidaId?: number | null
+  codigo: string
+  descripcion: string
+  unidad?: string | null
+  metrado: number
+  precioUnitario: number
+}
+
+export type FacturaObra = {
+  id: number
+  valorizacionId: number
+  numero: number
+  fecha: string
+  fechaVencimiento: string | null
+  clienteRazon: string | null
+  clienteRuc: string | null
+  subtotal: number
+  igv: number
+  total: number
+  saldo: number | null
+  estado: EstadoFacturaObra
+  createdAt: string | null
+  cobranzas?: CobranzaObra[] | null
+  factoring?: OperacionFactoring | null
+}
+
+export type CobranzaObra = {
+  id: number
+  proyectoId: number
+  facturaId: number
+  facturaNumero: number
+  fecha: string
+  banco: string | null
+  numeroOperacion: string | null
+  importe: number
+  detraccion: number
+  aplicado: number
+  observaciones: string | null
+  createdAt: string | null
+}
+
+export type CobranzaObraRequest = {
+  facturaId: number
+  fecha: string
+  banco?: string | null
+  numeroOperacion?: string | null
+  importe: number
+  detraccion?: number
+  observaciones?: string | null
+}
+
+export type LiberacionRetencion = {
+  id: number
+  proyectoId: number
+  tipo: TipoLiberacionRetencion
+  fecha: string
+  importe: number
+  entidad: string | null
+  numeroDocumento: string | null
+  observaciones: string | null
+  createdAt: string | null
+}
+
+export type RetencionesObra = {
+  retenidoAcumulado: number
+  liberado: number
+  cartaFianza: number
+  saldo: number
+  movimientos: LiberacionRetencion[]
+}
+
+export type OperacionFactoring = {
+  id: number
+  proyectoId: number
+  facturaId: number
+  facturaNumero: number
+  entidadRazon: string
+  entidadRuc: string | null
+  fechaCesion: string
+  tasaDescuento: number
+  comision: number
+  igvComision: number
+  importeNominal: number
+  descuento: number
+  importeNeto: number
+  fechaPagoEsperada: string | null
+  fechaAdelanto: string | null
+  estado: EstadoFactoring
+  createdAt: string | null
+}
+
+export type OperacionFactoringRequest = {
+  facturaId: number
+  entidadRazon: string
+  entidadRuc?: string | null
+  fechaCesion: string
+  tasaDescuento: number
+  comision: number
+  fechaPagoEsperada?: string | null
+}
+
+export type FlujoCajaPunto = {
+  anio: number
+  mes: number
+  ingresos: number
+  egresos: number
+  costoFactoring: number
+  neto: number
+}
+
+export type FlujoCaja = {
+  porCobrar: number
+  retenido: number
+  cedido: number
+  ingresos: number
+  egresos: number
+  costoFactoring: number
+  neto: number
+  puntos: FlujoCajaPunto[]
+}
+
+export type ValorizacionItem = {
+  id: number | null
+  partidaId: number | null
+  adicionalId: number | null
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  centroCosto: string | null
+  metradoAnterior: number
+  metradoPeriodo: number
+  metradoAcumulado: number
+  precioUnitario: number
+  totalPeriodo: number
+  totalAcumulado: number
+}
+
+export type Valorizacion = {
+  id: number
+  proyectoId: number
+  numero: number
+  tipo: TipoValorizacion
+  estado: EstadoValorizacion
+  anio: number
+  mes: number
+  porcentajeRetencion: number
+  montoBruto: number
+  montoRetencion: number
+  montoNeto: number
+  observaciones: string | null
+  createdAt: string | null
+  items: ValorizacionItem[]
+  factura: FacturaObra | null
+}
+
+export type CurvaSPunto = {
+  anio: number
+  mes: number
+  programadoFisico: number
+  ejecutadoFisico: number
+  programadoEconomico: number
+  ejecutadoEconomico: number
+  desvioFisico: number
+  desvioEconomico: number
+}
+
+export type CurvaS = {
+  metradoMeta: number
+  montoMeta: number
+  desvioPlazoPct: number
+  puntos: CurvaSPunto[]
 }
 
 export const CODIGOS_TAREO: { codigo: CodigoTareoCc; label: string }[] = [

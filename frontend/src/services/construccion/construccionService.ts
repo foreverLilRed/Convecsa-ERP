@@ -1,12 +1,17 @@
 import { apiRequest, downloadAuthenticatedRequest, openAuthenticatedDocument, openAuthenticatedRequest } from '@/services/http'
 import type { BoletaEnvioResumen } from '@/types/nomina'
 import type {
+  AdicionalObra,
+  AdicionalObraRequest,
   AlmacenObra,
+  AvanceObra,
   BancoDispersion,
   BoletaCc,
   BoletaCcResumen,
   ComparativoPresupuesto,
   ConstruccionCatalogos,
+  CronogramaPartida,
+  CurvaS,
   InventarioCierre,
   MaterialCatalogo,
   MaterialRequest,
@@ -28,9 +33,18 @@ import type {
   SugeridoApu,
   TareoCcDia,
   TareoCcGrilla,
+  TipoValorizacion,
   TipoVersionPresupuesto,
   ValeSalida,
   ValeSalidaRequest,
+  Valorizacion,
+  CobranzaObra,
+  CobranzaObraRequest,
+  FacturaObra,
+  FlujoCaja,
+  OperacionFactoring,
+  OperacionFactoringRequest,
+  RetencionesObra,
 } from '@/types/construccion'
 
 export type TareoCcGuardar = {
@@ -423,4 +437,227 @@ export function abrirLoteBoletasCcPdf(
     `/api/proyectos/${proyectoId}/periodos/${periodoId}/boletas/pdf?descarga=false`,
     { method: 'POST', body: loteBody(boletaIds) },
   )
+}
+
+export function listarCronograma(proyectoId: number): Promise<CronogramaPartida[]> {
+  return apiRequest<CronogramaPartida[]>(`/api/proyectos/${proyectoId}/cronograma`)
+}
+
+export function guardarCronograma(
+  proyectoId: number,
+  partidas: { partidaId: number; fechaInicio: string | null; fechaFin: string | null }[],
+): Promise<CronogramaPartida[]> {
+  return apiRequest<CronogramaPartida[]>(`/api/proyectos/${proyectoId}/cronograma`, {
+    method: 'PUT',
+    body: JSON.stringify({ partidas }),
+  })
+}
+
+export function obtenerAvance(proyectoId: number, anio: number, mes: number): Promise<AvanceObra> {
+  return apiRequest<AvanceObra>(`/api/proyectos/${proyectoId}/avances?anio=${anio}&mes=${mes}`)
+}
+
+export function guardarAvance(
+  proyectoId: number,
+  anio: number,
+  mes: number,
+  items: { partidaId: number; metradoPeriodo: number }[],
+): Promise<AvanceObra> {
+  return apiRequest<AvanceObra>(`/api/proyectos/${proyectoId}/avances`, {
+    method: 'PUT',
+    body: JSON.stringify({ anio, mes, items }),
+  })
+}
+
+export function cerrarAvance(proyectoId: number, avanceId: number): Promise<AvanceObra> {
+  return apiRequest<AvanceObra>(`/api/proyectos/${proyectoId}/avances/${avanceId}/cerrar`, {
+    method: 'POST',
+  })
+}
+
+export function listarAdicionalesObra(proyectoId: number): Promise<AdicionalObra[]> {
+  return apiRequest<AdicionalObra[]>(`/api/proyectos/${proyectoId}/adicionales`)
+}
+
+export function crearAdicionalObra(
+  proyectoId: number,
+  request: AdicionalObraRequest,
+): Promise<AdicionalObra> {
+  return apiRequest<AdicionalObra>(`/api/proyectos/${proyectoId}/adicionales`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function guardarAdicionalObra(
+  proyectoId: number,
+  adicionalId: number,
+  request: AdicionalObraRequest,
+): Promise<AdicionalObra> {
+  return apiRequest<AdicionalObra>(`/api/proyectos/${proyectoId}/adicionales/${adicionalId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function vigentarAdicionalObra(proyectoId: number, adicionalId: number): Promise<AdicionalObra> {
+  return apiRequest<AdicionalObra>(`/api/proyectos/${proyectoId}/adicionales/${adicionalId}/vigentar`, {
+    method: 'POST',
+  })
+}
+
+export function anularAdicionalObra(proyectoId: number, adicionalId: number): Promise<AdicionalObra> {
+  return apiRequest<AdicionalObra>(`/api/proyectos/${proyectoId}/adicionales/${adicionalId}/anular`, {
+    method: 'POST',
+  })
+}
+
+export function listarValorizaciones(proyectoId: number): Promise<Valorizacion[]> {
+  return apiRequest<Valorizacion[]>(`/api/proyectos/${proyectoId}/valorizaciones`)
+}
+
+export function obtenerValorizacion(proyectoId: number, valorizacionId: number): Promise<Valorizacion> {
+  return apiRequest<Valorizacion>(`/api/proyectos/${proyectoId}/valorizaciones/${valorizacionId}`)
+}
+
+export function crearValorizacion(
+  proyectoId: number,
+  tipo: TipoValorizacion,
+  anio: number,
+  mes: number,
+): Promise<Valorizacion> {
+  return apiRequest<Valorizacion>(`/api/proyectos/${proyectoId}/valorizaciones`, {
+    method: 'POST',
+    body: JSON.stringify({ tipo, anio, mes }),
+  })
+}
+
+export function presentarValorizacion(proyectoId: number, valorizacionId: number): Promise<Valorizacion> {
+  return apiRequest<Valorizacion>(`/api/proyectos/${proyectoId}/valorizaciones/${valorizacionId}/presentar`, {
+    method: 'POST',
+  })
+}
+
+export function observarValorizacion(proyectoId: number, valorizacionId: number): Promise<Valorizacion> {
+  return apiRequest<Valorizacion>(`/api/proyectos/${proyectoId}/valorizaciones/${valorizacionId}/observar`, {
+    method: 'POST',
+  })
+}
+
+export function aprobarValorizacion(proyectoId: number, valorizacionId: number): Promise<Valorizacion> {
+  return apiRequest<Valorizacion>(`/api/proyectos/${proyectoId}/valorizaciones/${valorizacionId}/aprobar`, {
+    method: 'POST',
+  })
+}
+
+export function facturarValorizacion(proyectoId: number, valorizacionId: number): Promise<Valorizacion> {
+  return apiRequest<Valorizacion>(`/api/proyectos/${proyectoId}/valorizaciones/${valorizacionId}/facturar`, {
+    method: 'POST',
+  })
+}
+
+export function obtenerCurvaS(proyectoId: number): Promise<CurvaS> {
+  return apiRequest<CurvaS>(`/api/proyectos/${proyectoId}/curva-s`)
+}
+
+export function listarFacturasObra(proyectoId: number): Promise<FacturaObra[]> {
+  return apiRequest<FacturaObra[]>(`/api/proyectos/${proyectoId}/facturas`)
+}
+
+export function obtenerFacturaObra(proyectoId: number, facturaId: number): Promise<FacturaObra> {
+  return apiRequest<FacturaObra>(`/api/proyectos/${proyectoId}/facturas/${facturaId}`)
+}
+
+export function actualizarVencimientoFactura(
+  proyectoId: number,
+  facturaId: number,
+  fechaVencimiento: string | null,
+): Promise<FacturaObra> {
+  return apiRequest<FacturaObra>(`/api/proyectos/${proyectoId}/facturas/${facturaId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ fechaVencimiento }),
+  })
+}
+
+export function listarCobranzasObra(proyectoId: number): Promise<CobranzaObra[]> {
+  return apiRequest<CobranzaObra[]>(`/api/proyectos/${proyectoId}/cobranzas`)
+}
+
+export function registrarCobranzaObra(
+  proyectoId: number,
+  request: CobranzaObraRequest,
+): Promise<FacturaObra> {
+  return apiRequest<FacturaObra>(`/api/proyectos/${proyectoId}/cobranzas`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function obtenerRetencionesObra(proyectoId: number): Promise<RetencionesObra> {
+  return apiRequest<RetencionesObra>(`/api/proyectos/${proyectoId}/retenciones`)
+}
+
+export function liberarRetencionObra(
+  proyectoId: number,
+  tipo: 'EFECTIVO' | 'CARTA_FIANZA',
+  fecha: string,
+  importe: number,
+  entidad?: string | null,
+  numeroDocumento?: string | null,
+  observaciones?: string | null,
+): Promise<RetencionesObra> {
+  return apiRequest<RetencionesObra>(`/api/proyectos/${proyectoId}/retenciones/liberar`, {
+    method: 'POST',
+    body: JSON.stringify({ tipo, fecha, importe, entidad, numeroDocumento, observaciones }),
+  })
+}
+
+export function listarFactoring(proyectoId: number): Promise<OperacionFactoring[]> {
+  return apiRequest<OperacionFactoring[]>(`/api/proyectos/${proyectoId}/factoring`)
+}
+
+export function cederFacturaFactoring(
+  proyectoId: number,
+  request: OperacionFactoringRequest,
+): Promise<OperacionFactoring> {
+  return apiRequest<OperacionFactoring>(`/api/proyectos/${proyectoId}/factoring`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function adelantarFactoring(proyectoId: number, operacionId: number): Promise<OperacionFactoring> {
+  return apiRequest<OperacionFactoring>(`/api/proyectos/${proyectoId}/factoring/${operacionId}/adelantar`, {
+    method: 'POST',
+  })
+}
+
+export function cobrarFactoring(proyectoId: number, operacionId: number): Promise<OperacionFactoring> {
+  return apiRequest<OperacionFactoring>(`/api/proyectos/${proyectoId}/factoring/${operacionId}/cobrar`, {
+    method: 'POST',
+  })
+}
+
+export function impagarFactoring(proyectoId: number, operacionId: number): Promise<OperacionFactoring> {
+  return apiRequest<OperacionFactoring>(`/api/proyectos/${proyectoId}/factoring/${operacionId}/impagar`, {
+    method: 'POST',
+  })
+}
+
+export function revertirFactoring(proyectoId: number, operacionId: number): Promise<OperacionFactoring> {
+  return apiRequest<OperacionFactoring>(`/api/proyectos/${proyectoId}/factoring/${operacionId}/revertir`, {
+    method: 'POST',
+  })
+}
+
+export function obtenerFlujoCaja(
+  proyectoId: number,
+  desde?: string,
+  hasta?: string,
+): Promise<FlujoCaja> {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  const query = params.toString()
+  return apiRequest<FlujoCaja>(`/api/proyectos/${proyectoId}/flujo-caja${query ? `?${query}` : ''}`)
 }
