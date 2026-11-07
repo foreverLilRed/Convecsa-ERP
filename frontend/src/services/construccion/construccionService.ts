@@ -1,4 +1,5 @@
-import { apiRequest, downloadAuthenticatedRequest, openAuthenticatedDocument, openAuthenticatedRequest } from '@/services/http'
+import { ApiError, apiRequest, downloadAuthenticatedRequest, openAuthenticatedDocument, openAuthenticatedRequest } from '@/services/http'
+import { clearSession, getSession } from '@/services/auth/session'
 import type { BoletaEnvioResumen } from '@/types/nomina'
 import type {
   AdicionalObra,
@@ -42,8 +43,11 @@ import type {
   CobranzaObraRequest,
   FacturaObra,
   FlujoCaja,
+  AlertaObra,
   AsientosObra,
+  DocumentoObra,
   RentabilidadObra,
+  TipoDocumentoObra,
   OperacionFactoring,
   OperacionFactoringRequest,
   RetencionesObra,
@@ -686,4 +690,70 @@ export function obtenerAsientosObra(
   if (hasta) params.set('hasta', hasta)
   const query = params.toString()
   return apiRequest<AsientosObra>(`/api/proyectos/${proyectoId}/asientos${query ? `?${query}` : ''}`)
+}
+
+export function listarDocumentosObra(proyectoId: number): Promise<DocumentoObra[]> {
+  return apiRequest<DocumentoObra[]>(`/api/proyectos/${proyectoId}/documentos`)
+}
+
+export async function subirDocumentoObra(
+  proyectoId: number,
+  tipo: TipoDocumentoObra,
+  file: File,
+  observaciones?: string | null,
+): Promise<DocumentoObra> {
+  const session = getSession()
+  const headers: Record<string, string> = session?.token ? { Authorization: `Bearer ${session.token}` } : {}
+  const body = new FormData()
+  body.append('tipo', tipo)
+  body.append('file', file)
+  if (observaciones?.trim()) {
+    body.append('observaciones', observaciones.trim())
+  }
+  const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}/api/proyectos/${proyectoId}/documentos`, {
+      method: 'POST',
+      headers,
+      body,
+    })
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor.', 0)
+  }
+  if (response.status === 401) {
+    clearSession()
+    const pathname = window.location.pathname
+    if (pathname !== '/login' && !pathname.startsWith('/invitar/')) {
+      window.location.assign('/login')
+    }
+  }
+  if (!response.ok) {
+    let message = `Error ${response.status}`
+    try {
+      const payload = (await response.json()) as { message?: string }
+      message = payload.message ?? message
+    } catch {
+      // respuesta no JSON
+    }
+    throw new ApiError(message, response.status)
+  }
+  return (await response.json()) as DocumentoObra
+}
+
+export function descargarDocumentoObra(proyectoId: number, documentoId: number, filename: string): Promise<void> {
+  return downloadAuthenticatedRequest(
+    `/api/proyectos/${proyectoId}/documentos/${documentoId}`,
+    filename,
+  )
+}
+
+export function eliminarDocumentoObra(proyectoId: number, documentoId: number): Promise<void> {
+  return apiRequest<void>(`/api/proyectos/${proyectoId}/documentos/${documentoId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function listarAlertasObra(proyectoId: number): Promise<AlertaObra[]> {
+  return apiRequest<AlertaObra[]>(`/api/proyectos/${proyectoId}/alertas`)
 }

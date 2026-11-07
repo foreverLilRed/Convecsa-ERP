@@ -32,6 +32,7 @@ import ProyectoAlmacenPage from '@/pages/proyectos/ProyectoAlmacenPage.vue'
 import ProyectoAvancesPage from '@/pages/proyectos/ProyectoAvancesPage.vue'
 import ProyectoFinanciamientoPage from '@/pages/proyectos/ProyectoFinanciamientoPage.vue'
 import ProyectoRentabilidadPage from '@/pages/proyectos/ProyectoRentabilidadPage.vue'
+import ProyectoDocumentosPage from '@/pages/proyectos/ProyectoDocumentosPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -203,6 +204,11 @@ const router = createRouter({
               path: 'rentabilidad',
               name: 'proyecto-rentabilidad',
               component: ProyectoRentabilidadPage,
+            },
+            {
+              path: 'documentos',
+              name: 'proyecto-documentos',
+              component: ProyectoDocumentosPage,
             },
           ],
         },

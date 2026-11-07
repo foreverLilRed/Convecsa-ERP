@@ -20,6 +20,10 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:1025}
@@ -38,3 +42,5 @@ app:
   nomina:
     mail-enabled: ${APP_NOMINA_MAIL_ENABLED:false}
     mail-from: ${APP_NOMINA_MAIL_FROM:no-reply@convecsa.pe}
+  obras:
+    documentos-dir: ${APP_OBRAS_DOCUMENTOS_DIR:./data/obras-documentos}

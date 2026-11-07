@@ -23,14 +23,15 @@ import {
   actualizarProyecto,
   guardarResponsablesObra,
   listarResponsablesObra,
+  listarAlertasObra,
   obtenerCatalogosConstruccion,
   obtenerProyecto,
 } from '@/services/construccion/construccionService'
 import { listarPersonas } from '@/services/persona/personaService'
-import type { EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
+import type { AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'avances' | 'financiamiento' | 'rentabilidad'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -62,6 +63,7 @@ const formError = ref('')
 const alertaUit = ref(false)
 const uitAnio = ref(new Date().getFullYear())
 const umbralUit = ref(275000)
+const alertas = ref<AlertaObra[]>([])
 const searchTimers: Partial<Record<RolResponsableObra, ReturnType<typeof setTimeout>>> = {}
 
 const proyectoId = computed(() => Number(route.params.id))
@@ -74,6 +76,7 @@ const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-avances') return 'avances'
   if (route.name === 'proyecto-financiamiento') return 'financiamiento'
   if (route.name === 'proyecto-rentabilidad') return 'rentabilidad'
+  if (route.name === 'proyecto-documentos') return 'documentos'
   return 'resumen'
 })
 
@@ -221,6 +224,10 @@ function onTab(value: string | number) {
     void router.push({ name: 'proyecto-rentabilidad', params: { id } })
     return
   }
+  if (siguiente === 'documentos') {
+    void router.push({ name: 'proyecto-documentos', params: { id } })
+    return
+  }
   void router.push({ name: 'proyecto-ficha', params: { id } })
 }
 
@@ -231,11 +238,12 @@ async function load() {
   loading.value = true
   formError.value = ''
   try {
-    const [proyecto, lista, iniciales, catalogos] = await Promise.all([
+    const [proyecto, lista, iniciales, catalogos, listaAlertas] = await Promise.all([
       obtenerProyecto(proyectoId.value),
       listarResponsablesObra(proyectoId.value),
       listarPersonas({ page: 0, size: 15, q: '' }),
       obtenerCatalogosConstruccion(),
+      listarAlertasObra(proyectoId.value),
     ])
     form.codigo = proyecto.codigo
     form.nombre = proyecto.nombre
@@ -255,6 +263,7 @@ async function load() {
     alertaUit.value = proyecto.alertaUit
     uitAnio.value = proyecto.uitAnio
     umbralUit.value = catalogos.umbralUit
+    alertas.value = listaAlertas
     for (const { rol } of ROLES) {
       const slot = responsables[rol]
       slot.personaId = null
@@ -351,6 +360,7 @@ async function onGuardar() {
     await guardarResponsablesObra(proyectoId.value, filas)
     alertaUit.value = actualizado.alertaUit
     uitAnio.value = actualizado.uitAnio
+    alertas.value = await listarAlertasObra(proyectoId.value)
     form.codigo = actualizado.codigo
     form.nombre = actualizado.nombre
     form.estadoObra = actualizado.estadoObra
@@ -416,12 +426,17 @@ onUnmounted(() => {
       <Button variant="outline" type="button" @click="router.push({ name: 'proyectos' })">Obras</Button>
     </div>
 
-    <div
-      v-if="alertaUit"
-      class="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950"
-    >
-      El valor de esta obra supera 50 UIT ({{ uitAnio }}). Es una alerta informativa: no bloquea el
-      tareo ni la liquidación.
+    <div v-if="alertas.length" class="mt-4 space-y-2">
+      <div
+        v-for="(alerta, idx) in alertas"
+        :key="`${alerta.codigo}-${idx}`"
+        class="rounded-lg px-4 py-3 text-sm"
+        :class="alerta.severidad === 'CRITICAL'
+          ? 'border border-red-300 bg-red-50 text-red-950'
+          : 'border border-amber-300 bg-amber-50 text-amber-950'"
+      >
+        {{ alerta.mensaje }}
+      </div>
     </div>
 
     <Tabs class="mt-5" :model-value="tab" @update:model-value="onTab">
@@ -473,6 +488,12 @@ onUnmounted(() => {
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Rentabilidad
+        </TabsTrigger>
+        <TabsTrigger
+          value="documentos"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Documentos
         </TabsTrigger>
       </TabsList>
     </Tabs>

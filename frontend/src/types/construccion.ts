@@ -763,6 +763,27 @@ export type AsientosObra = {
   factoring: AsientoObra
 }
 
+export type TipoDocumentoObra = 'CONTRATO' | 'PLANO' | 'ACTA' | 'VALORIZACION' | 'CESION_FACTORING'
+
+export type DocumentoObra = {
+  id: number
+  proyectoId: number
+  tipo: TipoDocumentoObra
+  nombreOriginal: string
+  mime: string
+  tamanoBytes: number
+  observaciones: string | null
+  createdAt: string
+}
+
+export type SeveridadAlertaObra = 'INFO' | 'WARNING' | 'CRITICAL'
+
+export type AlertaObra = {
+  codigo: string
+  severidad: SeveridadAlertaObra
+  mensaje: string
+}
+
 export type ValorizacionItem = {
   id: number | null
   partidaId: number | null

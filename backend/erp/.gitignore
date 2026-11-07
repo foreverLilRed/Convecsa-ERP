@@ -36,5 +36,8 @@ out/
 .env
 .env.local
 
+### Documentos de obra ###
+data/obras-documentos/
+
 ### VS Code ###
 .vscode/

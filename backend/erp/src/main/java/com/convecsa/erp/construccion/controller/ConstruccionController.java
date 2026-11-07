@@ -53,12 +53,16 @@ import com.convecsa.erp.construccion.dto.LiberacionRetencionRequest;
 import com.convecsa.erp.construccion.dto.OperacionFactoringDTO;
 import com.convecsa.erp.construccion.dto.OperacionFactoringRequest;
 import com.convecsa.erp.construccion.dto.RetencionesDTO;
+import com.convecsa.erp.construccion.dto.AlertaObraDTO;
 import com.convecsa.erp.construccion.dto.AsientosObraDTO;
+import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
 import com.convecsa.erp.construccion.dto.RentabilidadObraDTO;
+import com.convecsa.erp.construccion.domain.TipoDocumentoObra;
 import com.convecsa.erp.construccion.service.InterfazAlmacenService;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.construccion.service.InterfazFinanciamientoService;
 import com.convecsa.erp.construccion.service.InterfazRentabilidadObraService;
+import com.convecsa.erp.construccion.service.InterfazTransversalObraService;
 import com.convecsa.erp.construccion.service.InterfazValorizacionService;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
@@ -74,6 +78,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -83,6 +88,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/proyectos")
@@ -94,6 +100,7 @@ public class ConstruccionController {
     private final InterfazValorizacionService valorizacionService;
     private final InterfazFinanciamientoService financiamientoService;
     private final InterfazRentabilidadObraService rentabilidadService;
+    private final InterfazTransversalObraService transversalService;
 
     @GetMapping("/catalogos")
     public ConstruccionCatalogosDTO catalogos() {
@@ -529,6 +536,37 @@ public class ConstruccionController {
             @RequestParam(required = false) LocalDate desde,
             @RequestParam(required = false) LocalDate hasta) {
         return rentabilidadService.asientos(id, desde, hasta);
+    }
+
+    @GetMapping("/{id:\\d+}/documentos")
+    public List<DocumentoObraDTO> documentos(@PathVariable Long id) {
+        return transversalService.listarDocumentos(id);
+    }
+
+    @PostMapping(value = "/{id:\\d+}/documentos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public DocumentoObraDTO subirDocumento(
+            @PathVariable Long id,
+            @RequestParam TipoDocumentoObra tipo,
+            @RequestParam MultipartFile file,
+            @RequestParam(required = false) String observaciones) {
+        return transversalService.subirDocumento(id, tipo, file, observaciones);
+    }
+
+    @GetMapping("/{id:\\d+}/documentos/{docId}")
+    public ResponseEntity<byte[]> descargarDocumento(@PathVariable Long id, @PathVariable Long docId) {
+        return archivo(transversalService.descargarDocumento(id, docId));
+    }
+
+    @DeleteMapping("/{id:\\d+}/documentos/{docId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarDocumento(@PathVariable Long id, @PathVariable Long docId) {
+        transversalService.eliminarDocumento(id, docId);
+    }
+
+    @GetMapping("/{id:\\d+}/alertas")
+    public List<AlertaObraDTO> alertas(@PathVariable Long id) {
+        return transversalService.listarAlertas(id);
     }
 
     @GetMapping("/{id:\\d+}/personal")
