@@ -30,6 +30,8 @@ import com.convecsa.erp.construccion.entity.ApuPartida;
 import com.convecsa.erp.construccion.entity.BoletaCc;
 import com.convecsa.erp.construccion.entity.CcParametroAnual;
 import com.convecsa.erp.construccion.entity.ContratoCc;
+import com.convecsa.erp.construccion.entity.CuadrillaMiembro;
+import com.convecsa.erp.construccion.entity.CuadrillaObra;
 import com.convecsa.erp.construccion.entity.PartidaPresupuesto;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.PresupuestoVersion;
@@ -37,6 +39,8 @@ import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
 import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.ContratoCcRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaMiembroRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaObraRepository;
 import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.entity.ImputacionEquipo;
@@ -112,6 +116,12 @@ class ConstruccionServiceImplTest {
 
     @Mock
     private SubcontratoAvanceRepository subcontratoAvanceRepository;
+
+    @Mock
+    private CuadrillaObraRepository cuadrillaObraRepository;
+
+    @Mock
+    private CuadrillaMiembroRepository cuadrillaMiembroRepository;
 
     @InjectMocks
     private ConstruccionServiceImpl servicio;
@@ -553,6 +563,104 @@ class ConstruccionServiceImplTest {
         assertEquals("CC-1", dto.getCentros().get(0).getCentroCosto());
         assertEquals(new BigDecimal("20.00"), dto.getCentros().get(0).getMetaEquipo());
         assertEquals(new BigDecimal("8.00"), dto.getCentros().get(0).getRealEquipo());
+    }
+
+    @Test
+    void comparativoPresupuestoAgrupaRealMoPorCuadrillaActual() {
+        Proyecto proyecto = proyectoExistente();
+        proyecto.setCentroCosto("CC-OBRA");
+        when(proyectoRepository.findById(7L)).thenReturn(Optional.of(proyecto));
+        when(presupuestoVersionRepository.findByProyectoIdAndEstado(7L, EstadoVersionPresupuesto.VIGENTE))
+                .thenReturn(Optional.empty());
+
+        PeriodoCc periodo = new PeriodoCc();
+        periodo.setId(4L);
+        when(periodoCcRepository.findByProyectoIdOrderByFechaDesdeDesc(7L)).thenReturn(List.of(periodo));
+
+        Persona ana = new Persona();
+        ana.setId(11L);
+        Persona luis = new Persona();
+        luis.setId(12L);
+        Contrato contratoAna = new Contrato();
+        contratoAna.setId(22L);
+        contratoAna.setPersona(ana);
+        Contrato contratoLuis = new Contrato();
+        contratoLuis.setId(23L);
+        contratoLuis.setPersona(luis);
+
+        BoletaCc boletaAna = new BoletaCc();
+        boletaAna.setPersona(ana);
+        boletaAna.setContrato(contratoAna);
+        boletaAna.setTotalHaberes(new BigDecimal("8.00"));
+        boletaAna.setTotalAportesEmpleador(new BigDecimal("2.00"));
+        BoletaCc boletaLuis = new BoletaCc();
+        boletaLuis.setPersona(luis);
+        boletaLuis.setContrato(contratoLuis);
+        boletaLuis.setTotalHaberes(new BigDecimal("4.00"));
+        boletaLuis.setTotalAportesEmpleador(new BigDecimal("1.00"));
+        when(boletaCcRepository.findByPeriodoIdIn(List.of(4L))).thenReturn(List.of(boletaAna, boletaLuis));
+        when(contratoCcRepository.findByContratoId(22L)).thenReturn(Optional.of(new ContratoCc()));
+        when(contratoCcRepository.findByContratoId(23L)).thenReturn(Optional.of(new ContratoCc()));
+
+        CuadrillaObra estructura = new CuadrillaObra();
+        estructura.setId(1L);
+        estructura.setCodigo("EST");
+        estructura.setNombre("Estructura");
+        estructura.setCentroCosto("CC-EST");
+        CuadrillaObra acabados = new CuadrillaObra();
+        acabados.setId(2L);
+        acabados.setCodigo("ACA");
+        acabados.setNombre("Acabados");
+        when(cuadrillaObraRepository.findByProyectoIdOrderByCodigoAsc(7L)).thenReturn(List.of(acabados, estructura));
+
+        CuadrillaMiembro miembroAna = new CuadrillaMiembro();
+        miembroAna.setCuadrilla(estructura);
+        miembroAna.setPersona(ana);
+        CuadrillaMiembro miembroLuis = new CuadrillaMiembro();
+        miembroLuis.setCuadrilla(acabados);
+        miembroLuis.setPersona(luis);
+        when(cuadrillaMiembroRepository.findByProyectoId(7L)).thenReturn(List.of(miembroAna, miembroLuis));
+
+        ComparativoPresupuestoDTO dto = servicio.comparativoPresupuesto(7L);
+
+        assertEquals(new BigDecimal("15.00"), dto.getRealMo());
+        assertEquals(2, dto.getCuadrillas().size());
+        assertEquals("ACA", dto.getCuadrillas().get(0).getCodigo());
+        assertEquals(new BigDecimal("5.00"), dto.getCuadrillas().get(0).getRealMo());
+        assertEquals(1, dto.getCuadrillas().get(0).getMiembros());
+        assertEquals("EST", dto.getCuadrillas().get(1).getCodigo());
+        assertEquals(new BigDecimal("10.00"), dto.getCuadrillas().get(1).getRealMo());
+        assertEquals(1, dto.getCuadrillas().get(1).getMiembros());
+    }
+
+    @Test
+    void comparativoPresupuestoSinMembresiaVaASinCuadrilla() {
+        Proyecto proyecto = proyectoExistente();
+        when(proyectoRepository.findById(7L)).thenReturn(Optional.of(proyecto));
+        when(presupuestoVersionRepository.findByProyectoIdAndEstado(7L, EstadoVersionPresupuesto.VIGENTE))
+                .thenReturn(Optional.empty());
+
+        PeriodoCc periodo = new PeriodoCc();
+        periodo.setId(4L);
+        when(periodoCcRepository.findByProyectoIdOrderByFechaDesdeDesc(7L)).thenReturn(List.of(periodo));
+
+        Contrato contrato = new Contrato();
+        contrato.setId(22L);
+        BoletaCc boleta = new BoletaCc();
+        boleta.setContrato(contrato);
+        boleta.setTotalHaberes(new BigDecimal("8.00"));
+        boleta.setTotalAportesEmpleador(new BigDecimal("2.00"));
+        when(boletaCcRepository.findByPeriodoIdIn(List.of(4L))).thenReturn(List.of(boleta));
+        when(contratoCcRepository.findByContratoId(22L)).thenReturn(Optional.of(new ContratoCc()));
+        when(cuadrillaObraRepository.findByProyectoIdOrderByCodigoAsc(7L)).thenReturn(List.of());
+        when(cuadrillaMiembroRepository.findByProyectoId(7L)).thenReturn(List.of());
+
+        ComparativoPresupuestoDTO dto = servicio.comparativoPresupuesto(7L);
+
+        assertEquals(1, dto.getCuadrillas().size());
+        assertNull(dto.getCuadrillas().get(0).getCuadrillaId());
+        assertEquals("Sin cuadrilla", dto.getCuadrillas().get(0).getNombre());
+        assertEquals(new BigDecimal("10.00"), dto.getCuadrillas().get(0).getRealMo());
     }
 
     private static Proyecto proyectoExistente() {

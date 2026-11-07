@@ -57,6 +57,9 @@ import com.convecsa.erp.construccion.dto.AlertaObraDTO;
 import com.convecsa.erp.construccion.dto.AsientosObraDTO;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoRequest;
+import com.convecsa.erp.construccion.dto.CuadrillaMiembroRequest;
+import com.convecsa.erp.construccion.dto.CuadrillaObraDTO;
+import com.convecsa.erp.construccion.dto.CuadrillaObraRequest;
 import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoRequest;
@@ -676,6 +679,48 @@ public class ConstruccionController {
     public void eliminarAvanceSubcontrato(
             @PathVariable Long id, @PathVariable Long subId, @PathVariable Long avId) {
         recursosService.eliminarAvance(id, subId, avId);
+    }
+
+    @GetMapping("/{id:\\d+}/cuadrillas")
+    public List<CuadrillaObraDTO> cuadrillas(@PathVariable Long id) {
+        return recursosService.listarCuadrillas(id);
+    }
+
+    @PostMapping("/{id:\\d+}/cuadrillas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CuadrillaObraDTO crearCuadrilla(
+            @PathVariable Long id, @Valid @RequestBody CuadrillaObraRequest request) {
+        return recursosService.crearCuadrilla(id, request);
+    }
+
+    @PutMapping("/{id:\\d+}/cuadrillas/{cuadrillaId}")
+    public CuadrillaObraDTO actualizarCuadrilla(
+            @PathVariable Long id,
+            @PathVariable Long cuadrillaId,
+            @Valid @RequestBody CuadrillaObraRequest request) {
+        return recursosService.actualizarCuadrilla(id, cuadrillaId, request);
+    }
+
+    @DeleteMapping("/{id:\\d+}/cuadrillas/{cuadrillaId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarCuadrilla(@PathVariable Long id, @PathVariable Long cuadrillaId) {
+        recursosService.eliminarCuadrilla(id, cuadrillaId);
+    }
+
+    @PostMapping("/{id:\\d+}/cuadrillas/{cuadrillaId}/miembros")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CuadrillaObraDTO agregarMiembro(
+            @PathVariable Long id,
+            @PathVariable Long cuadrillaId,
+            @Valid @RequestBody CuadrillaMiembroRequest request) {
+        return recursosService.agregarMiembro(id, cuadrillaId, request);
+    }
+
+    @DeleteMapping("/{id:\\d+}/cuadrillas/{cuadrillaId}/miembros/{personaId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void quitarMiembro(
+            @PathVariable Long id, @PathVariable Long cuadrillaId, @PathVariable Long personaId) {
+        recursosService.quitarMiembro(id, cuadrillaId, personaId);
     }
 
     @GetMapping("/{id:\\d+}/personal")

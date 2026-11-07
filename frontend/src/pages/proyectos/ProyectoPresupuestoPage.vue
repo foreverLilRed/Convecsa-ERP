@@ -391,6 +391,7 @@ function quitarApu(index: number) {
       <p class="mt-1 text-sm text-slate-500">
         Mano de obra: meta desde APU vigente, real desde boletas RCC. Materiales: meta desde APU vigente, real desde vales de salida.
         Equipos: meta desde APU vigente, real desde imputaciones. Subcontratos: meta desde APU vigente, real desde avances.
+        La meta se agrupa por centro de costo. El real de mano de obra también se desglosa por la cuadrilla actual del obrero.
       </p>
       <div v-if="comparativo" class="mt-4 grid gap-3 sm:grid-cols-3">
         <article class="rounded-lg border border-slate-200 px-4 py-3">
@@ -487,6 +488,25 @@ function quitarApu(index: number) {
             <TableCell>{{ money.format(fila.metaSubcontrato) }}</TableCell>
             <TableCell>{{ money.format(fila.realSubcontrato) }}</TableCell>
             <TableCell>{{ money.format(fila.desvioSubcontrato) }}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+      <h4 v-if="comparativo?.cuadrillas?.length" class="mt-6 text-sm font-semibold text-palette-navy">Por cuadrilla</h4>
+      <Table v-if="comparativo?.cuadrillas?.length" class="mt-2">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Cuadrilla</TableHead>
+            <TableHead>Centro</TableHead>
+            <TableHead>Miembros</TableHead>
+            <TableHead>Real MO</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="fila in comparativo.cuadrillas" :key="fila.cuadrillaId ?? 'sin'">
+            <TableCell>{{ fila.codigo ? `${fila.codigo} — ${fila.nombre}` : fila.nombre }}</TableCell>
+            <TableCell>{{ fila.centroCosto || '—' }}</TableCell>
+            <TableCell>{{ fila.miembros }}</TableCell>
+            <TableCell>{{ money.format(fila.realMo) }}</TableCell>
           </TableRow>
         </TableBody>
       </Table>

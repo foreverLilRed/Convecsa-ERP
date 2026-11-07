@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de equipos y subcontratos** (imputación explícita y avance), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos) y **documentos + alertas** en la ficha. Quedan cuadrillas, permisos por obra, auditoría y bitácora.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de recursos** (cuadrillas, equipos, subcontratos y vista unificada), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos) y **documentos + alertas** en la ficha. Quedan permisos por obra, auditoría y bitácora.
 
 ```mermaid
 flowchart LR
@@ -50,7 +50,7 @@ flowchart TB
     Planilla --> Asiento[AsientoRCC]
     Presupuesto[PresupuestoYAPU]
     Presupuesto --> Materiales[MaterialesYAlmacen]
-    Presupuesto --> Recursos[EquiposYSubcontratos]
+    Presupuesto --> Recursos[CuadrillasEquiposYSubcontratos]
     Presupuesto --> Avances[AvancesFisicos]
     Avances --> Valorizacion[ValorizacionCliente]
     Valorizacion --> Factoring[Factoring]
@@ -63,7 +63,7 @@ flowchart TB
 | # | Subsección | Estado |
 | --- | --- | --- |
 | 2 | Maestro de Obras | Hecho |
-| 3 | Asignación de recursos | Parcial |
+| 3 | Asignación de recursos | Hecho |
 | 4 | Parte diario y mano de obra | Hecho |
 | 5 | Presupuesto y costeo meta | Hecho |
 | 6 | Materiales y almacén | Hecho |
@@ -129,7 +129,7 @@ El centro de costo de la obra es el fallback cuando el obrero no tiene centro pr
 
 ---
 
-## 3. Asignación de recursos — Parcial
+## 3. Asignación de recursos — Hecho
 
 Quién y qué se asigna a la obra: personal, cuadrillas, maquinaria, responsables y subcontratistas.
 
@@ -145,11 +145,11 @@ Personal RCC (hecho):
 
 Resto de recursos:
 
-- [ ] Cuadrillas o frentes de trabajo (estructura, acabados, instalaciones) y asignación de obreros a cuadrilla. Fuera de este corte.
+- [x] Cuadrillas o frentes de trabajo (estructura, acabados, instalaciones) y asignación de obreros a cuadrilla
 - [x] Responsables de obra: residente, maestro de obra, supervisor SSOMA (un responsable por rol, persona del padrón)
 - [x] Asignación de maquinaria y equipos (propios o alquilados) con fecha de ingreso/salida y tarifa/hora o tarifa/día
 - [x] Subcontratistas por especialidad, con monto contratado y avance
-- [ ] Vista de “equipo de obra” unificada (personal + equipos + subcontratos). Fuera de este corte.
+- [x] Vista de “equipo de obra” unificada (personal + equipos + subcontratos)
 
 ### Cómo funciona (hoy)
 
@@ -157,7 +157,7 @@ El vínculo obra–obrero no se da en la pantalla de Obras: se da en **Gestión 
 
 Los responsables (residente, maestro de obra, supervisor SSOMA) se eligen en la ficha, tab Resumen, con Combobox sobre `listarPersonas`. `PUT /api/proyectos/{id}/responsables` reemplaza el set (0 a 3 filas, unique por rol). El cliente sigue siendo campos en la obra.
 
-En **Obras → Abrir → Recursos** se asignan equipos (propios o alquilados: razón/RUC como en la OC) con tarifa por hora o por día. El costo real **no se devenga del calendario** entre ingreso y salida: solo cuentan las imputaciones explícitas (`cantidad × tarifa` snapshot). Un subcontrato tiene especialidad, subcontratista (razón/RUC) y monto contratado; cada avance es un monto devengado en una fecha y no puede superar el saldo. La partida es opcional; si se indica, debe ser del presupuesto vigente. El centro de costo es el de la partida o, en su defecto, el de la obra. Cuadrillas y la vista unificada de “equipo de obra” quedan fuera de este corte.
+En **Obras → Abrir → Recursos** hay cuatro subpestañas. **Equipo de obra** lista personal RCC (alta en Gestión Humana → Contratos), equipos y subcontratos. **Cuadrillas** crea frentes (código/nombre libres; p. ej. Estructura, Acabados, Instalaciones) y asigna obreros: un obrero está en una sola cuadrilla de la obra; si se asigna a otra, se mueve. La membresía es actual (sin historial de fechas). **Equipos** y **Subcontratos** siguen igual: equipos (propios o alquilados: razón/RUC como en la OC) con tarifa por hora o por día; el costo real **no se devenga del calendario** entre ingreso y salida, solo imputaciones explícitas (`cantidad × tarifa` snapshot). Un subcontrato tiene especialidad, subcontratista (razón/RUC) y monto contratado; cada avance es un monto devengado en una fecha y no puede superar el saldo. La partida es opcional; si se indica, debe ser del presupuesto vigente. El centro de costo es el de la partida o, en su defecto, el de la obra.
 
 ### Desglose técnico (hecho)
 
@@ -192,12 +192,17 @@ En **Obras → Abrir → Recursos** se asignan equipos (propios o alquilados: ra
 | Migración | `V53` |
 | Nota | Sin asientos 61/67 de equipos. Sin alertas de desvío de equipo. PUT de cabecera no recalcula imputaciones ya hechas |
 
-### Desglose técnico (propuesto)
+### Desglose técnico (cuadrillas y vista unificada — hecho)
 
-| Recurso | Entidad | Endpoints | UI |
-| --- | --- | --- | --- |
-| Cuadrilla | `CuadrillaObra`, `CuadrillaMiembro` | `/api/proyectos/{id}/cuadrillas` | pestaña en ficha de obra |
-| Vista unificada | — | — | “equipo de obra” (personal + equipos + subcontratos) |
+| Capa | Ubicación |
+| --- | --- |
+| Entidades | [`CuadrillaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/CuadrillaObra.java), [`CuadrillaMiembro.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/CuadrillaMiembro.java) |
+| DTOs | [`CuadrillaObraDTO.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/CuadrillaObraDTO.java), [`CuadrillaMiembroDTO.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/CuadrillaMiembroDTO.java), [`ComparativoCuadrillaDTO.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/dto/ComparativoCuadrillaDTO.java) |
+| Servicio | [`RecursosObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/RecursosObraServiceImpl.java) (CRUD); comparativo en [`ConstruccionServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/ConstruccionServiceImpl.java) |
+| Endpoints | `GET/POST /{id}/cuadrillas`, `PUT/DELETE /{id}/cuadrillas/{cuadrillaId}`, `POST .../miembros`, `DELETE .../miembros/{personaId}` |
+| UI | subpestañas Equipo de obra y Cuadrillas en [`ProyectoRecursosPage.vue`](../../frontend/src/pages/proyectos/ProyectoRecursosPage.vue); tabla “Por cuadrilla” en [`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue) |
+| Migración | `V54` |
+| Nota | Unique `(proyecto_id, persona_id)`. El comparativo atribuye el real MO a la cuadrilla **actual**. La meta sigue por centro de costo. Sin historial de membresía, sin tareo agrupado, sin almacén por cuadrilla |
 
 ---
 
@@ -280,14 +285,14 @@ El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra e
 - [x] Importar presupuesto desde Excel
 - [x] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
 - [x] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
-- [x] Costo objetivo por obra y por centro de costo (cuadrilla sigue pendiente)
+- [x] Costo objetivo por obra y por centro de costo; real MO también por cuadrilla actual
 - [x] Comparativo meta vs real de mano de obra RCC, materiales (vales de salida), equipos (imputaciones) y subcontratos (avances)
 - [x] Versiones de presupuesto (inicial, actualizado, adicional)
 - [x] Bloqueo de presupuesto vigente: solo se edita un borrador; vigentar pasa el anterior a histórico
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. En un borrador se puede **descargar la plantilla** `.xlsx` (hojas `Partidas` y `Apu`) e **importar** un archivo del mismo formato: el import reemplaza todas las partidas del borrador (mismas validaciones que Guardar). No se interpreta S10. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida. El de equipos usa APU `EQUIPO` × metrado frente a las imputaciones. El de subcontratos usa APU `SUBCONTRATO` × metrado frente a los avances. Todo se agrupa por centro de costo. El desglose de meta por cuadrilla sigue pendiente (sección 3). El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
+En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. En un borrador se puede **descargar la plantilla** `.xlsx` (hojas `Partidas` y `Apu`) e **importar** un archivo del mismo formato: el import reemplaza todas las partidas del borrador (mismas validaciones que Guardar). No se interpreta S10. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida. El de equipos usa APU `EQUIPO` × metrado frente a las imputaciones. El de subcontratos usa APU `SUBCONTRATO` × metrado frente a los avances. Todo se agrupa por centro de costo. El real de mano de obra también se desglosa por la cuadrilla actual del obrero (si no tiene, “Sin cuadrilla”); la meta no se parte por cuadrilla porque las partidas no llevan `cuadrilla_id`. El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
 
 ### Desglose técnico (hecho)
 
@@ -300,7 +305,7 @@ En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. 
 | UI | tab Presupuesto de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue) |
 | Migración | `V48` |
 | Relación | `PartidaPresupuesto.centroCosto` alinea con `ContratoCc.centroCosto` (fallback: centro de la obra) |
-| Nota | Import solo en `BORRADOR`. Plantilla de dos hojas (`Partidas`, `Apu`). Sin parser S10. Cuadrilla en la meta sigue en la sección 3 |
+| Nota | Import solo en `BORRADOR`. Plantilla de dos hojas (`Partidas`, `Apu`). Sin parser S10. Real MO por cuadrilla actual; meta sigue por centro de costo |
 
 ---
 
@@ -606,7 +611,7 @@ Dependencias: Fases B–E para que el tablero no quede solo con mano de obra. ET
 - [ ] Exportar parte diario
 - [ ] Aprobación de tareo por residente, independiente del cierre de planilla
 - [x] Equipos y subcontratos (hecho: tab Recursos, imputación y avance, comparativo y P&amp;L)
-- [ ] Cuadrillas (fuera de este corte)
+- [x] Cuadrillas (hecho: tab Recursos, membresía exclusiva actual, comparativo real MO)
 
 ---
 
@@ -628,7 +633,11 @@ Base: `/api/proyectos`.
 | POST | `/{id}/presupuesto/versiones/{versionId}/vigentar` | Marcar vigente |
 | GET | `/{id}/presupuesto/plantilla` | Plantilla `.xlsx` (vacía o con la versión) |
 | POST | `/{id}/presupuesto/versiones/{versionId}/importar` | Importar partidas/APU (multipart, solo borrador) |
-| GET | `/{id}/presupuesto/comparativo` | Meta vs real de MO, materiales, equipos y subcontratos |
+| GET | `/{id}/presupuesto/comparativo` | Meta vs real de MO, materiales, equipos y subcontratos (centros + cuadrillas) |
+| GET/POST | `/{id}/cuadrillas` | Listar / crear cuadrilla |
+| PUT/DELETE | `/{id}/cuadrillas/{cuadrillaId}` | Editar / eliminar cuadrilla (CASCADE miembros) |
+| POST | `/{id}/cuadrillas/{cuadrillaId}/miembros` | Asignar obrero (mueve si ya estaba en otra) |
+| DELETE | `/{id}/cuadrillas/{cuadrillaId}/miembros/{personaId}` | Quitar obrero de la cuadrilla |
 | GET/POST | `/{id}/equipos` | Asignaciones de equipo |
 | PUT | `/{id}/equipos/{eqId}` | Editar cabecera (no recalcula imputaciones) |
 | GET/POST | `/{id}/equipos/{eqId}/imputaciones` | Listar / registrar imputación |

@@ -26,4 +26,5 @@ public class ComparativoPresupuestoDTO {
     private final BigDecimal desvioSubcontrato;
     private final BigDecimal desvioPctSubcontrato;
     private final List<ComparativoCentroDTO> centros;
+    private final List<ComparativoCuadrillaDTO> cuadrillas;
 }

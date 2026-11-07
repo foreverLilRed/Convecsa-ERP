@@ -11,6 +11,9 @@ import type {
   BoletaCcResumen,
   ComparativoPresupuesto,
   ConstruccionCatalogos,
+  CuadrillaMiembroRequest,
+  CuadrillaObra,
+  CuadrillaObraRequest,
   CronogramaPartida,
   CurvaS,
   InventarioCierre,
@@ -906,6 +909,55 @@ export function eliminarAvanceSubcontrato(
   avanceId: number,
 ): Promise<void> {
   return apiRequest<void>(`/api/proyectos/${proyectoId}/subcontratos/${subcontratoId}/avances/${avanceId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function listarCuadrillasObra(proyectoId: number): Promise<CuadrillaObra[]> {
+  return apiRequest<CuadrillaObra[]>(`/api/proyectos/${proyectoId}/cuadrillas`)
+}
+
+export function crearCuadrillaObra(proyectoId: number, request: CuadrillaObraRequest): Promise<CuadrillaObra> {
+  return apiRequest<CuadrillaObra>(`/api/proyectos/${proyectoId}/cuadrillas`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function actualizarCuadrillaObra(
+  proyectoId: number,
+  cuadrillaId: number,
+  request: CuadrillaObraRequest,
+): Promise<CuadrillaObra> {
+  return apiRequest<CuadrillaObra>(`/api/proyectos/${proyectoId}/cuadrillas/${cuadrillaId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function eliminarCuadrillaObra(proyectoId: number, cuadrillaId: number): Promise<void> {
+  return apiRequest<void>(`/api/proyectos/${proyectoId}/cuadrillas/${cuadrillaId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function agregarMiembroCuadrilla(
+  proyectoId: number,
+  cuadrillaId: number,
+  request: CuadrillaMiembroRequest,
+): Promise<CuadrillaObra> {
+  return apiRequest<CuadrillaObra>(`/api/proyectos/${proyectoId}/cuadrillas/${cuadrillaId}/miembros`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function quitarMiembroCuadrilla(
+  proyectoId: number,
+  cuadrillaId: number,
+  personaId: number,
+): Promise<void> {
+  return apiRequest<void>(`/api/proyectos/${proyectoId}/cuadrillas/${cuadrillaId}/miembros/${personaId}`, {
     method: 'DELETE',
   })
 }

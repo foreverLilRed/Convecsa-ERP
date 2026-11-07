@@ -1,15 +1,21 @@
 package com.convecsa.erp.construccion.service.impl;
 
 import com.convecsa.erp.common.exception.AsignacionEquipoNoEncontradaException;
+import com.convecsa.erp.common.exception.CuadrillaObraNoEncontradaException;
 import com.convecsa.erp.common.exception.ImputacionEquipoNoEncontradaException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
 import com.convecsa.erp.common.exception.SubcontratoAvanceNoEncontradoException;
 import com.convecsa.erp.common.exception.SubcontratoObraNoEncontradoException;
+import com.convecsa.erp.construccion.domain.CategoriaObrera;
 import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
 import com.convecsa.erp.construccion.domain.ModoTarifaEquipo;
 import com.convecsa.erp.construccion.domain.OrigenEquipo;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoRequest;
+import com.convecsa.erp.construccion.dto.CuadrillaMiembroDTO;
+import com.convecsa.erp.construccion.dto.CuadrillaMiembroRequest;
+import com.convecsa.erp.construccion.dto.CuadrillaObraDTO;
+import com.convecsa.erp.construccion.dto.CuadrillaObraRequest;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoRequest;
 import com.convecsa.erp.construccion.dto.SubcontratoAvanceDTO;
@@ -17,6 +23,9 @@ import com.convecsa.erp.construccion.dto.SubcontratoAvanceRequest;
 import com.convecsa.erp.construccion.dto.SubcontratoObraDTO;
 import com.convecsa.erp.construccion.dto.SubcontratoObraRequest;
 import com.convecsa.erp.construccion.entity.AsignacionEquipo;
+import com.convecsa.erp.construccion.entity.ContratoCc;
+import com.convecsa.erp.construccion.entity.CuadrillaMiembro;
+import com.convecsa.erp.construccion.entity.CuadrillaObra;
 import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.PartidaPresupuesto;
 import com.convecsa.erp.construccion.entity.PresupuestoVersion;
@@ -24,12 +33,16 @@ import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.entity.SubcontratoAvance;
 import com.convecsa.erp.construccion.entity.SubcontratoObra;
 import com.convecsa.erp.construccion.repository.AsignacionEquipoRepository;
+import com.convecsa.erp.construccion.repository.ContratoCcRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaMiembroRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaObraRepository;
 import com.convecsa.erp.construccion.repository.ImputacionEquipoRepository;
 import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.SubcontratoObraRepository;
+import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.construccion.service.InterfazRecursosObraService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -52,6 +65,9 @@ public class RecursosObraServiceImpl implements InterfazRecursosObraService {
     private final SubcontratoAvanceRepository subcontratoAvanceRepository;
     private final PresupuestoVersionRepository presupuestoVersionRepository;
     private final PartidaPresupuestoRepository partidaPresupuestoRepository;
+    private final ContratoCcRepository contratoCcRepository;
+    private final CuadrillaObraRepository cuadrillaObraRepository;
+    private final CuadrillaMiembroRepository cuadrillaMiembroRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -218,6 +234,165 @@ public class RecursosObraServiceImpl implements InterfazRecursosObraService {
                 .findByIdAndSubcontratoIdAndProyectoId(avanceId, subcontratoId, proyectoId)
                 .orElseThrow(() -> new SubcontratoAvanceNoEncontradoException("No se encontró el avance"));
         subcontratoAvanceRepository.delete(avance);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CuadrillaObraDTO> listarCuadrillas(Long proyectoId) {
+        buscarProyecto(proyectoId);
+        return armarCuadrillas(proyectoId);
+    }
+
+    @Override
+    @Transactional
+    public CuadrillaObraDTO crearCuadrilla(Long proyectoId, CuadrillaObraRequest request) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        CuadrillaObra cuadrilla = new CuadrillaObra();
+        cuadrilla.setProyecto(proyecto);
+        aplicarCabeceraCuadrilla(cuadrilla, proyectoId, request, null);
+        cuadrillaObraRepository.save(cuadrilla);
+        return toCuadrillaDto(cuadrilla, List.of(), Map.of());
+    }
+
+    @Override
+    @Transactional
+    public CuadrillaObraDTO actualizarCuadrilla(Long proyectoId, Long cuadrillaId, CuadrillaObraRequest request) {
+        buscarProyecto(proyectoId);
+        CuadrillaObra cuadrilla = buscarCuadrilla(proyectoId, cuadrillaId);
+        aplicarCabeceraCuadrilla(cuadrilla, proyectoId, request, cuadrillaId);
+        cuadrillaObraRepository.save(cuadrilla);
+        return dtoDeCuadrilla(proyectoId, cuadrilla);
+    }
+
+    @Override
+    @Transactional
+    public void eliminarCuadrilla(Long proyectoId, Long cuadrillaId) {
+        CuadrillaObra cuadrilla = buscarCuadrilla(proyectoId, cuadrillaId);
+        cuadrillaObraRepository.delete(cuadrilla);
+    }
+
+    @Override
+    @Transactional
+    public CuadrillaObraDTO agregarMiembro(Long proyectoId, Long cuadrillaId, CuadrillaMiembroRequest request) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        CuadrillaObra cuadrilla = buscarCuadrilla(proyectoId, cuadrillaId);
+        if (request == null || request.getPersonaId() == null) {
+            throw new IllegalArgumentException("El obrero es obligatorio");
+        }
+        ContratoCc contratoCc = contratoActivo(proyectoId, request.getPersonaId());
+        Persona persona = contratoCc.getContrato().getPersona();
+        cuadrillaMiembroRepository.findByProyectoIdAndPersonaId(proyectoId, persona.getId()).ifPresent(actual -> {
+            if (actual.getCuadrilla().getId().equals(cuadrilla.getId())) {
+                throw new IllegalArgumentException("El obrero ya pertenece a esta cuadrilla");
+            }
+            cuadrillaMiembroRepository.delete(actual);
+        });
+        CuadrillaMiembro miembro = new CuadrillaMiembro();
+        miembro.setCuadrilla(cuadrilla);
+        miembro.setProyecto(proyecto);
+        miembro.setPersona(persona);
+        cuadrillaMiembroRepository.save(miembro);
+        return dtoDeCuadrilla(proyectoId, cuadrilla);
+    }
+
+    @Override
+    @Transactional
+    public void quitarMiembro(Long proyectoId, Long cuadrillaId, Long personaId) {
+        buscarCuadrilla(proyectoId, cuadrillaId);
+        CuadrillaMiembro miembro = cuadrillaMiembroRepository
+                .findByCuadrillaIdAndPersonaId(cuadrillaId, personaId)
+                .orElseThrow(() -> new IllegalArgumentException("El obrero no pertenece a esta cuadrilla"));
+        cuadrillaMiembroRepository.delete(miembro);
+    }
+
+    private void aplicarCabeceraCuadrilla(
+            CuadrillaObra cuadrilla, Long proyectoId, CuadrillaObraRequest request, Long cuadrillaId) {
+        String codigo = blankToNull(request.getCodigo());
+        if (codigo == null) {
+            throw new IllegalArgumentException("El código es obligatorio");
+        }
+        String nombre = blankToNull(request.getNombre());
+        if (nombre == null) {
+            throw new IllegalArgumentException("El nombre es obligatorio");
+        }
+        boolean duplicado = cuadrillaId == null
+                ? cuadrillaObraRepository.existsByProyectoIdAndCodigoIgnoreCase(proyectoId, codigo)
+                : cuadrillaObraRepository.existsByProyectoIdAndCodigoIgnoreCaseAndIdNot(proyectoId, codigo, cuadrillaId);
+        if (duplicado) {
+            throw new IllegalArgumentException("Ya existe una cuadrilla con ese código");
+        }
+        cuadrilla.setCodigo(codigo);
+        cuadrilla.setNombre(nombre);
+        cuadrilla.setCentroCosto(blankToNull(request.getCentroCosto()));
+        cuadrilla.setObservaciones(blankToNull(request.getObservaciones()));
+    }
+
+    private ContratoCc contratoActivo(Long proyectoId, Long personaId) {
+        return contratoCcRepository.findActivosByProyectoId(proyectoId).stream()
+                .filter(item -> item.getContrato().getPersona().getId().equals(personaId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("El obrero no tiene contrato activo en esta obra"));
+    }
+
+    private List<CuadrillaObraDTO> armarCuadrillas(Long proyectoId) {
+        Map<Long, CategoriaObrera> categoriaPorPersona = categoriaPorPersona(proyectoId);
+        Map<Long, List<CuadrillaMiembro>> porCuadrilla = cuadrillaMiembroRepository.findByProyectoId(proyectoId)
+                .stream()
+                .collect(Collectors.groupingBy(item -> item.getCuadrilla().getId()));
+        return cuadrillaObraRepository.findByProyectoIdOrderByCodigoAsc(proyectoId).stream()
+                .map(item -> toCuadrillaDto(
+                        item, porCuadrilla.getOrDefault(item.getId(), List.of()), categoriaPorPersona))
+                .toList();
+    }
+
+    private CuadrillaObraDTO dtoDeCuadrilla(Long proyectoId, CuadrillaObra cuadrilla) {
+        Map<Long, CategoriaObrera> categoriaPorPersona = categoriaPorPersona(proyectoId);
+        List<CuadrillaMiembro> miembros = cuadrillaMiembroRepository.findByProyectoId(proyectoId).stream()
+                .filter(item -> item.getCuadrilla().getId().equals(cuadrilla.getId()))
+                .toList();
+        return toCuadrillaDto(cuadrilla, miembros, categoriaPorPersona);
+    }
+
+    private Map<Long, CategoriaObrera> categoriaPorPersona(Long proyectoId) {
+        return contratoCcRepository.findActivosByProyectoId(proyectoId).stream()
+                .collect(Collectors.toMap(
+                        item -> item.getContrato().getPersona().getId(),
+                        ContratoCc::getCategoria,
+                        (primero, segundo) -> primero));
+    }
+
+    private CuadrillaObra buscarCuadrilla(Long proyectoId, Long cuadrillaId) {
+        buscarProyecto(proyectoId);
+        return cuadrillaObraRepository.findByIdAndProyectoId(cuadrillaId, proyectoId)
+                .orElseThrow(() -> new CuadrillaObraNoEncontradaException("No se encontró la cuadrilla"));
+    }
+
+    private static CuadrillaObraDTO toCuadrillaDto(
+            CuadrillaObra cuadrilla,
+            List<CuadrillaMiembro> miembros,
+            Map<Long, CategoriaObrera> categoriaPorPersona) {
+        List<CuadrillaMiembroDTO> miembrosDto = miembros.stream()
+                .map(item -> {
+                    Persona persona = item.getPersona();
+                    return CuadrillaMiembroDTO.builder()
+                            .personaId(persona.getId())
+                            .nombres(persona.getNombres())
+                            .apellidos(persona.getApellidos())
+                            .numeroDocumento(persona.getNumeroDocumento())
+                            .categoria(categoriaPorPersona.get(persona.getId()))
+                            .build();
+                })
+                .toList();
+        return CuadrillaObraDTO.builder()
+                .id(cuadrilla.getId())
+                .proyectoId(cuadrilla.getProyecto().getId())
+                .codigo(cuadrilla.getCodigo())
+                .nombre(cuadrilla.getNombre())
+                .centroCosto(cuadrilla.getCentroCosto())
+                .observaciones(cuadrilla.getObservaciones())
+                .createdAt(cuadrilla.getCreatedAt())
+                .miembros(miembrosDto)
+                .build();
     }
 
     private void aplicarCabeceraEquipo(AsignacionEquipo equipo, Proyecto proyecto, AsignacionEquipoRequest request) {

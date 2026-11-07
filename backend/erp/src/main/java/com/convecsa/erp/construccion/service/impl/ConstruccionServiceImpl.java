@@ -24,6 +24,7 @@ import com.convecsa.erp.construccion.dto.ApuPartidaDTO;
 import com.convecsa.erp.construccion.dto.ApuPartidaRequest;
 import com.convecsa.erp.construccion.dto.BoletaCcResumenDTO;
 import com.convecsa.erp.construccion.dto.ComparativoCentroDTO;
+import com.convecsa.erp.construccion.dto.ComparativoCuadrillaDTO;
 import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.ConstruccionCatalogosDTO;
 import com.convecsa.erp.construccion.dto.PartidaPresupuestoDTO;
@@ -49,6 +50,8 @@ import com.convecsa.erp.construccion.entity.CcCategoriaJornal;
 import com.convecsa.erp.construccion.entity.CcEspecialidadBae;
 import com.convecsa.erp.construccion.entity.CcParametroAnual;
 import com.convecsa.erp.construccion.entity.ContratoCc;
+import com.convecsa.erp.construccion.entity.CuadrillaMiembro;
+import com.convecsa.erp.construccion.entity.CuadrillaObra;
 import com.convecsa.erp.construccion.entity.ApuPartida;
 import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.PartidaPresupuesto;
@@ -63,6 +66,8 @@ import com.convecsa.erp.construccion.repository.BoletaCcEnvioCorreoRepository;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
 import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.ContratoCcRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaMiembroRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaObraRepository;
 import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
@@ -147,6 +152,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private final PresupuestoExcelExporter presupuestoExcelExporter;
     private final ImputacionEquipoRepository imputacionEquipoRepository;
     private final SubcontratoAvanceRepository subcontratoAvanceRepository;
+    private final CuadrillaObraRepository cuadrillaObraRepository;
+    private final CuadrillaMiembroRepository cuadrillaMiembroRepository;
     private final BoletaCcEnvioCorreoRepository boletaCcEnvioCorreoRepository;
     private final CalculoNominaCcService calculoNominaCcService;
     private final RentaQuintaProyeccionService rentaQuintaProyeccionService;
@@ -431,6 +438,23 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             }
         }
         Map<String, BigDecimal> realPorCentro = new LinkedHashMap<>();
+        Map<Long, BigDecimal> realMoPorCuadrilla = new LinkedHashMap<>();
+        BigDecimal realMoSinCuadrilla = BigDecimal.ZERO;
+        List<CuadrillaObra> cuadrillasObra = cuadrillaObraRepository.findByProyectoIdOrderByCodigoAsc(proyectoId);
+        List<CuadrillaMiembro> miembrosCuadrilla = cuadrillaMiembroRepository.findByProyectoId(proyectoId);
+        Map<Long, CuadrillaObra> cuadrillaPorPersona = new HashMap<>();
+        Map<Long, Integer> miembrosPorCuadrilla = new HashMap<>();
+        for (CuadrillaMiembro miembro : miembrosCuadrilla) {
+            Persona personaMiembro = miembro.getPersona();
+            if (personaMiembro == null || personaMiembro.getId() == null) {
+                continue;
+            }
+            CuadrillaObra cuadrilla = miembro.getCuadrilla();
+            cuadrillaPorPersona.put(personaMiembro.getId(), cuadrilla);
+            if (cuadrilla != null && cuadrilla.getId() != null) {
+                miembrosPorCuadrilla.merge(cuadrilla.getId(), 1, Integer::sum);
+            }
+        }
         List<PeriodoCc> periodos = periodoCcRepository.findByProyectoIdOrderByFechaDesdeDesc(proyectoId);
         if (!periodos.isEmpty()) {
             List<Long> periodoIds = periodos.stream().map(PeriodoCc::getId).toList();
@@ -440,6 +464,18 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                         .orElseGet(() -> centroDe(null, proyecto.getCentroCosto()));
                 BigDecimal costo = nz(boleta.getTotalHaberes()).add(nz(boleta.getTotalAportesEmpleador()));
                 acumular(realPorCentro, centro, money(costo));
+                Persona personaBoleta = boleta.getPersona();
+                if (personaBoleta == null && boleta.getContrato() != null) {
+                    personaBoleta = boleta.getContrato().getPersona();
+                }
+                CuadrillaObra cuadrilla = personaBoleta == null || personaBoleta.getId() == null
+                        ? null
+                        : cuadrillaPorPersona.get(personaBoleta.getId());
+                if (cuadrilla == null || cuadrilla.getId() == null) {
+                    realMoSinCuadrilla = realMoSinCuadrilla.add(money(costo));
+                } else {
+                    realMoPorCuadrilla.merge(cuadrilla.getId(), money(costo), BigDecimal::add);
+                }
             }
         }
         Map<String, BigDecimal> realMatPorCentro = new LinkedHashMap<>();
@@ -518,6 +554,27 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         BigDecimal desvioPctSubcontrato = metaSubcontrato.signum() == 0
                 ? BigDecimal.ZERO
                 : desvioSubcontrato.multiply(new BigDecimal("100")).divide(metaSubcontrato, 2, RoundingMode.HALF_UP);
+        List<ComparativoCuadrillaDTO> filasCuadrilla = new ArrayList<>();
+        for (CuadrillaObra cuadrilla : cuadrillasObra) {
+            filasCuadrilla.add(ComparativoCuadrillaDTO.builder()
+                    .cuadrillaId(cuadrilla.getId())
+                    .codigo(cuadrilla.getCodigo())
+                    .nombre(cuadrilla.getNombre())
+                    .centroCosto(cuadrilla.getCentroCosto())
+                    .realMo(money(realMoPorCuadrilla.getOrDefault(cuadrilla.getId(), BigDecimal.ZERO)))
+                    .miembros(miembrosPorCuadrilla.getOrDefault(cuadrilla.getId(), 0))
+                    .build());
+        }
+        if (realMoSinCuadrilla.signum() > 0) {
+            filasCuadrilla.add(ComparativoCuadrillaDTO.builder()
+                    .cuadrillaId(null)
+                    .codigo(null)
+                    .nombre("Sin cuadrilla")
+                    .centroCosto(null)
+                    .realMo(money(realMoSinCuadrilla))
+                    .miembros(0)
+                    .build());
+        }
         return ComparativoPresupuestoDTO.builder()
                 .metaMo(money(metaMo))
                 .realMo(money(realMo))
@@ -536,6 +593,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .desvioSubcontrato(desvioSubcontrato)
                 .desvioPctSubcontrato(desvioPctSubcontrato)
                 .centros(filas)
+                .cuadrillas(filasCuadrilla)
                 .build();
     }
 

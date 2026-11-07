@@ -171,6 +171,16 @@ export type ComparativoPresupuesto = {
   desvioSubcontrato: number
   desvioPctSubcontrato: number
   centros: ComparativoCentro[]
+  cuadrillas: ComparativoCuadrilla[]
+}
+
+export type ComparativoCuadrilla = {
+  cuadrillaId: number | null
+  codigo: string | null
+  nombre: string
+  centroCosto: string | null
+  realMo: number
+  miembros: number
 }
 
 export type ConstruccionCatalogos = {
@@ -862,6 +872,36 @@ export type SubcontratoAvanceRequest = {
   monto: number
   partidaId?: number | null
   observaciones?: string | null
+}
+
+export type CuadrillaMiembro = {
+  personaId: number
+  nombres: string
+  apellidos: string
+  numeroDocumento: string
+  categoria: 'OPERARIO' | 'OFICIAL' | 'PEON' | null
+}
+
+export type CuadrillaObra = {
+  id: number
+  proyectoId: number
+  codigo: string
+  nombre: string
+  centroCosto: string | null
+  observaciones: string | null
+  createdAt: string | null
+  miembros: CuadrillaMiembro[]
+}
+
+export type CuadrillaObraRequest = {
+  codigo: string
+  nombre: string
+  centroCosto?: string | null
+  observaciones?: string | null
+}
+
+export type CuadrillaMiembroRequest = {
+  personaId: number
 }
 
 export type AsientoObraLinea = {

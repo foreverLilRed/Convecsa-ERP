@@ -19,31 +19,40 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
+  actualizarCuadrillaObra,
   actualizarEquipoObra,
   actualizarSubcontratoObra,
+  agregarMiembroCuadrilla,
+  crearCuadrillaObra,
   crearEquipoObra,
   crearSubcontratoObra,
   eliminarAvanceSubcontrato,
+  eliminarCuadrillaObra,
   eliminarImputacionEquipo,
   listarAvancesSubcontrato,
+  listarCuadrillasObra,
   listarEquiposObra,
   listarImputacionesEquipo,
+  listarPersonalObra,
   listarSubcontratosObra,
   obtenerPresupuesto,
+  quitarMiembroCuadrilla,
   registrarAvanceSubcontrato,
   registrarImputacionEquipo,
 } from '@/services/construccion/construccionService'
 import type {
   AsignacionEquipo,
+  CuadrillaObra,
   ImputacionEquipo,
   ModoTarifaEquipo,
   OrigenEquipo,
   PartidaPresupuesto,
+  PersonalObra,
   SubcontratoAvance,
   SubcontratoObra,
 } from '@/types/construccion'
 
-type TabRecursos = 'equipos' | 'subcontratos'
+type TabRecursos = 'equipo' | 'cuadrillas' | 'equipos' | 'subcontratos'
 
 const inputClass =
   'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
@@ -55,16 +64,20 @@ const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
-const tab = ref<TabRecursos>('equipos')
+const tab = ref<TabRecursos>('equipo')
 const loading = ref(true)
 const saving = ref(false)
 const partidas = ref<PartidaPresupuesto[]>([])
 const equipos = ref<AsignacionEquipo[]>([])
 const subcontratos = ref<SubcontratoObra[]>([])
+const personal = ref<PersonalObra[]>([])
+const cuadrillas = ref<CuadrillaObra[]>([])
 const equipoSeleccionadoId = ref<number | null>(null)
 const subcontratoSeleccionadoId = ref<number | null>(null)
+const cuadrillaSeleccionadaId = ref<number | null>(null)
 const imputaciones = ref<ImputacionEquipo[]>([])
 const avances = ref<SubcontratoAvance[]>([])
+const personaAAgregar = ref('')
 
 const equipoForm = reactive({
   id: null as number | null,
@@ -107,12 +120,38 @@ const avanceForm = reactive({
   observaciones: '',
 })
 
+const cuadrillaForm = reactive({
+  id: null as number | null,
+  codigo: '',
+  nombre: '',
+  centroCosto: '',
+  observaciones: '',
+})
+
 const equipoSeleccionado = computed(
   () => equipos.value.find((item) => item.id === equipoSeleccionadoId.value) ?? null,
 )
 const subcontratoSeleccionado = computed(
   () => subcontratos.value.find((item) => item.id === subcontratoSeleccionadoId.value) ?? null,
 )
+const cuadrillaSeleccionada = computed(
+  () => cuadrillas.value.find((item) => item.id === cuadrillaSeleccionadaId.value) ?? null,
+)
+const cuadrillaPorPersona = computed(() => {
+  const map = new Map<number, string>()
+  for (const cuadrilla of cuadrillas.value) {
+    for (const miembro of cuadrilla.miembros ?? []) {
+      map.set(miembro.personaId, `${cuadrilla.codigo} — ${cuadrilla.nombre}`)
+    }
+  }
+  return map
+})
+const personalSinCuadrilla = computed(() => {
+  const asignados = new Set(
+    cuadrillas.value.flatMap((item) => (item.miembros ?? []).map((miembro) => miembro.personaId)),
+  )
+  return personal.value.filter((item) => !asignados.has(item.personaId))
+})
 
 function n(valor: number | string | null | undefined): number {
   const parsed = typeof valor === 'number' ? valor : Number(valor)
@@ -129,6 +168,17 @@ function origenLabel(origen: OrigenEquipo): string {
 
 function tarifaLabel(modo: ModoTarifaEquipo): string {
   return modo === 'HORA' ? 'Hora' : 'Día'
+}
+
+function categoriaLabel(categoria: string | null | undefined): string {
+  if (categoria === 'OPERARIO') return 'Operario'
+  if (categoria === 'OFICIAL') return 'Oficial'
+  if (categoria === 'PEON') return 'Peón'
+  return '—'
+}
+
+function personaLabel(item: { apellidos: string; nombres: string; numeroDocumento: string }): string {
+  return `${item.apellidos} ${item.nombres} · ${item.numeroDocumento}`
 }
 
 function resetEquipoForm() {
@@ -158,6 +208,14 @@ function resetSubcontratoForm() {
   subcontratoForm.observaciones = ''
 }
 
+function resetCuadrillaForm() {
+  cuadrillaForm.id = null
+  cuadrillaForm.codigo = ''
+  cuadrillaForm.nombre = ''
+  cuadrillaForm.centroCosto = ''
+  cuadrillaForm.observaciones = ''
+}
+
 function parseMonto(texto: string, etiqueta: string): number {
   const valor = Number(texto.trim().replace(',', '.'))
   if (!Number.isFinite(valor) || valor < 0) {
@@ -172,14 +230,24 @@ async function load() {
   }
   loading.value = true
   try {
-    const [listaEquipos, listaSub, pres] = await Promise.all([
+    const [listaEquipos, listaSub, listaPersonal, listaCuadrillas, pres] = await Promise.all([
       listarEquiposObra(proyectoId.value),
       listarSubcontratosObra(proyectoId.value),
+      listarPersonalObra(proyectoId.value).catch(() => []),
+      listarCuadrillasObra(proyectoId.value),
       obtenerPresupuesto(proyectoId.value).catch(() => null),
     ])
     equipos.value = listaEquipos
     subcontratos.value = listaSub
+    personal.value = listaPersonal
+    cuadrillas.value = listaCuadrillas
     partidas.value = pres?.version?.estado === 'VIGENTE' ? pres.version.partidas : []
+    if (cuadrillaSeleccionadaId.value) {
+      const actual = listaCuadrillas.find((item) => item.id === cuadrillaSeleccionadaId.value)
+      if (!actual) {
+        cuadrillaSeleccionadaId.value = null
+      }
+    }
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudieron cargar los recursos.')
   } finally {
@@ -400,6 +468,101 @@ async function onEliminarAvance(item: SubcontratoAvance) {
   }
 }
 
+function seleccionarCuadrilla(item: CuadrillaObra) {
+  cuadrillaSeleccionadaId.value = item.id
+  personaAAgregar.value = ''
+}
+
+function editarCuadrilla(item: CuadrillaObra) {
+  cuadrillaForm.id = item.id
+  cuadrillaForm.codigo = item.codigo
+  cuadrillaForm.nombre = item.nombre
+  cuadrillaForm.centroCosto = item.centroCosto ?? ''
+  cuadrillaForm.observaciones = item.observaciones ?? ''
+  seleccionarCuadrilla(item)
+}
+
+async function onGuardarCuadrilla() {
+  saving.value = true
+  try {
+    const request = {
+      codigo: cuadrillaForm.codigo.trim(),
+      nombre: cuadrillaForm.nombre.trim(),
+      centroCosto: cuadrillaForm.centroCosto.trim() || null,
+      observaciones: cuadrillaForm.observaciones.trim() || null,
+    }
+    const dto = cuadrillaForm.id
+      ? await actualizarCuadrillaObra(proyectoId.value, cuadrillaForm.id, request)
+      : await crearCuadrillaObra(proyectoId.value, request)
+    toast.success(cuadrillaForm.id ? 'Cuadrilla actualizada.' : 'Cuadrilla creada.')
+    resetCuadrillaForm()
+    await load()
+    seleccionarCuadrilla(dto)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo guardar la cuadrilla.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onEliminarCuadrilla() {
+  if (!cuadrillaForm.id) {
+    return
+  }
+  saving.value = true
+  try {
+    await eliminarCuadrillaObra(proyectoId.value, cuadrillaForm.id)
+    toast.success('Cuadrilla eliminada.')
+    resetCuadrillaForm()
+    cuadrillaSeleccionadaId.value = null
+    await load()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo eliminar la cuadrilla.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onAgregarMiembro() {
+  if (!cuadrillaSeleccionadaId.value) {
+    toast.error('Seleccione una cuadrilla.')
+    return
+  }
+  const personaId = Number(personaAAgregar.value)
+  if (!Number.isFinite(personaId) || personaId <= 0) {
+    toast.error('Seleccione un obrero.')
+    return
+  }
+  saving.value = true
+  try {
+    const dto = await agregarMiembroCuadrilla(proyectoId.value, cuadrillaSeleccionadaId.value, { personaId })
+    toast.success('Obrero asignado a la cuadrilla.')
+    personaAAgregar.value = ''
+    await load()
+    seleccionarCuadrilla(dto)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo asignar el obrero.')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onQuitarMiembro(personaId: number) {
+  if (!cuadrillaSeleccionadaId.value) {
+    return
+  }
+  saving.value = true
+  try {
+    await quitarMiembroCuadrilla(proyectoId.value, cuadrillaSeleccionadaId.value, personaId)
+    toast.success('Obrero retirado de la cuadrilla.')
+    await load()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo retirar el obrero.')
+  } finally {
+    saving.value = false
+  }
+}
+
 onMounted(() => {
   void load()
 })
@@ -409,6 +572,8 @@ onMounted(() => {
   <div class="mt-4 space-y-4">
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabRecursos)">
       <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+        <TabsTrigger value="equipo" class="h-9 rounded-lg px-4 text-sm">Equipo de obra</TabsTrigger>
+        <TabsTrigger value="cuadrillas" class="h-9 rounded-lg px-4 text-sm">Cuadrillas</TabsTrigger>
         <TabsTrigger value="equipos" class="h-9 rounded-lg px-4 text-sm">Equipos</TabsTrigger>
         <TabsTrigger value="subcontratos" class="h-9 rounded-lg px-4 text-sm">Subcontratos</TabsTrigger>
       </TabsList>
@@ -417,6 +582,214 @@ onMounted(() => {
     <div v-if="loading" class="space-y-3">
       <Skeleton class="h-10 w-full" />
       <Skeleton class="h-24 w-full" />
+    </div>
+
+    <div v-else-if="tab === 'equipo'" class="space-y-4">
+      <p class="text-sm text-slate-500">
+        Vista unificada del personal RCC, equipos y subcontratos. El alta de obreros se hace en Gestión Humana → Contratos.
+      </p>
+      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+        <h3 class="mb-3 text-base font-semibold text-palette-navy">Personal</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Obrero</TableHead>
+              <TableHead>Documento</TableHead>
+              <TableHead>Categoría</TableHead>
+              <TableHead>Cuadrilla</TableHead>
+              <TableHead>Ingreso</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="item in personal" :key="item.personaId">
+              <TableCell>{{ item.apellidos }} {{ item.nombres }}</TableCell>
+              <TableCell>{{ item.numeroDocumento }}</TableCell>
+              <TableCell>{{ categoriaLabel(item.categoria) }}</TableCell>
+              <TableCell>{{ cuadrillaPorPersona.get(item.personaId) || 'Sin cuadrilla' }}</TableCell>
+              <TableCell>{{ item.fechaIngreso || '—' }}</TableCell>
+            </TableRow>
+            <TableEmpty v-if="!personal.length" :colspan="5">Sin personal activo. Asigne el contrato RCC a esta obra.</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
+      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+        <h3 class="mb-3 text-base font-semibold text-palette-navy">Equipos</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Código</TableHead>
+              <TableHead>Descripción</TableHead>
+              <TableHead>Origen</TableHead>
+              <TableHead>Imputado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="item in equipos" :key="item.id">
+              <TableCell>{{ item.codigo }}</TableCell>
+              <TableCell>{{ item.descripcion }}</TableCell>
+              <TableCell>{{ origenLabel(item.origen) }}</TableCell>
+              <TableCell>{{ money.format(n(item.costoImputado)) }}</TableCell>
+            </TableRow>
+            <TableEmpty v-if="!equipos.length" :colspan="4">Sin equipos asignados.</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
+      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+        <h3 class="mb-3 text-base font-semibold text-palette-navy">Subcontratos</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Especialidad</TableHead>
+              <TableHead>Subcontratista</TableHead>
+              <TableHead>Contratado</TableHead>
+              <TableHead>Saldo</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="item in subcontratos" :key="item.id">
+              <TableCell>{{ item.especialidad }}</TableCell>
+              <TableCell>{{ item.subcontratistaRazon }}</TableCell>
+              <TableCell>{{ money.format(n(item.montoContratado)) }}</TableCell>
+              <TableCell>{{ money.format(n(item.saldo)) }}</TableCell>
+            </TableRow>
+            <TableEmpty v-if="!subcontratos.length" :colspan="4">Sin subcontratos.</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+
+    <div v-else-if="tab === 'cuadrillas'" class="space-y-4">
+      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+        <h3 class="mb-3 text-base font-semibold text-palette-navy">
+          {{ cuadrillaForm.id ? 'Editar cuadrilla' : 'Nueva cuadrilla' }}
+        </h3>
+        <form class="grid gap-3 md:grid-cols-3" @submit.prevent="onGuardarCuadrilla">
+          <div>
+            <label class="text-xs text-slate-500" for="cu-codigo">Código</label>
+            <Input
+              id="cu-codigo"
+              v-model="cuadrillaForm.codigo"
+              maxlength="40"
+              placeholder="EST"
+              :class="inputClass"
+              required
+            />
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-xs text-slate-500" for="cu-nombre">Nombre</label>
+            <Input
+              id="cu-nombre"
+              v-model="cuadrillaForm.nombre"
+              maxlength="160"
+              placeholder="Estructura, Acabados, Instalaciones…"
+              :class="inputClass"
+              required
+            />
+          </div>
+          <div>
+            <label class="text-xs text-slate-500" for="cu-cc">Centro de costo</label>
+            <Input id="cu-cc" v-model="cuadrillaForm.centroCosto" maxlength="40" :class="inputClass" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="text-xs text-slate-500" for="cu-obs">Observaciones</label>
+            <Textarea id="cu-obs" v-model="cuadrillaForm.observaciones" class="min-h-16" />
+          </div>
+          <div class="flex flex-wrap gap-2 md:col-span-3">
+            <Button class="bg-palette-navy text-white hover:bg-palette-royal" type="submit" :disabled="saving">
+              {{ cuadrillaForm.id ? 'Guardar cambios' : 'Crear' }}
+            </Button>
+            <Button v-if="cuadrillaForm.id" variant="outline" type="button" :disabled="saving" @click="resetCuadrillaForm">
+              Cancelar
+            </Button>
+            <Button
+              v-if="cuadrillaForm.id"
+              variant="outline"
+              type="button"
+              :disabled="saving"
+              @click="onEliminarCuadrilla"
+            >
+              Eliminar
+            </Button>
+          </div>
+        </form>
+      </div>
+
+      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+        <h3 class="mb-3 text-base font-semibold text-palette-navy">Cuadrillas</h3>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Código</TableHead>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Centro</TableHead>
+              <TableHead>Miembros</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow
+              v-for="item in cuadrillas"
+              :key="item.id"
+              class="cursor-pointer"
+              :class="item.id === cuadrillaSeleccionadaId ? 'bg-sky-50' : ''"
+              @click="seleccionarCuadrilla(item)"
+            >
+              <TableCell>{{ item.codigo }}</TableCell>
+              <TableCell>{{ item.nombre }}</TableCell>
+              <TableCell>{{ item.centroCosto || '—' }}</TableCell>
+              <TableCell>{{ item.miembros?.length ?? 0 }}</TableCell>
+              <TableCell>
+                <Button variant="outline" size="sm" type="button" @click.stop="editarCuadrilla(item)">Editar</Button>
+              </TableCell>
+            </TableRow>
+            <TableEmpty v-if="!cuadrillas.length" :colspan="5">Sin cuadrillas.</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
+
+      <div v-if="cuadrillaSeleccionada" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+        <h3 class="mb-1 text-base font-semibold text-palette-navy">
+          Miembros · {{ cuadrillaSeleccionada.codigo }} {{ cuadrillaSeleccionada.nombre }}
+        </h3>
+        <p class="mb-3 text-sm text-slate-500">Un obrero solo puede estar en una cuadrilla a la vez. Si ya está en otra, se mueve.</p>
+        <form class="mb-4 flex flex-wrap items-end gap-3" @submit.prevent="onAgregarMiembro">
+          <div class="min-w-64 flex-1">
+            <label class="text-xs text-slate-500" for="cu-persona">Obrero sin cuadrilla</label>
+            <select id="cu-persona" v-model="personaAAgregar" :class="selectClass">
+              <option value="">Seleccione</option>
+              <option v-for="item in personalSinCuadrilla" :key="item.personaId" :value="String(item.personaId)">
+                {{ personaLabel(item) }}
+              </option>
+            </select>
+          </div>
+          <Button class="bg-palette-navy text-white hover:bg-palette-royal" type="submit" :disabled="saving">
+            Asignar
+          </Button>
+        </form>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Obrero</TableHead>
+              <TableHead>Documento</TableHead>
+              <TableHead>Categoría</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="item in cuadrillaSeleccionada.miembros" :key="item.personaId">
+              <TableCell>{{ item.apellidos }} {{ item.nombres }}</TableCell>
+              <TableCell>{{ item.numeroDocumento }}</TableCell>
+              <TableCell>{{ categoriaLabel(item.categoria) }}</TableCell>
+              <TableCell>
+                <Button variant="outline" size="sm" type="button" :disabled="saving" @click="onQuitarMiembro(item.personaId)">
+                  Quitar
+                </Button>
+              </TableCell>
+            </TableRow>
+            <TableEmpty v-if="!cuadrillaSeleccionada.miembros?.length" :colspan="4">Sin miembros.</TableEmpty>
+          </TableBody>
+        </Table>
+      </div>
     </div>
 
     <div v-else-if="tab === 'equipos'" class="space-y-4">
@@ -593,7 +966,7 @@ onMounted(() => {
       </div>
     </div>
 
-    <div v-else class="space-y-4">
+    <div v-else-if="tab === 'subcontratos'" class="space-y-4">
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="mb-3 text-base font-semibold text-palette-navy">
           {{ subcontratoForm.id ? 'Editar subcontrato' : 'Registrar subcontrato' }}

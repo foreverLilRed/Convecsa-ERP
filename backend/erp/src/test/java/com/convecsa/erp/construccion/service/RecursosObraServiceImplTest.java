@@ -4,12 +4,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 
+import com.convecsa.erp.construccion.domain.CategoriaObrera;
 import com.convecsa.erp.construccion.domain.ModoTarifaEquipo;
 import com.convecsa.erp.construccion.domain.OrigenEquipo;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoRequest;
+import com.convecsa.erp.construccion.dto.CuadrillaMiembroRequest;
+import com.convecsa.erp.construccion.dto.CuadrillaObraDTO;
+import com.convecsa.erp.construccion.dto.CuadrillaObraRequest;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoRequest;
 import com.convecsa.erp.construccion.dto.SubcontratoAvanceDTO;
@@ -17,17 +22,25 @@ import com.convecsa.erp.construccion.dto.SubcontratoAvanceRequest;
 import com.convecsa.erp.construccion.dto.SubcontratoObraDTO;
 import com.convecsa.erp.construccion.dto.SubcontratoObraRequest;
 import com.convecsa.erp.construccion.entity.AsignacionEquipo;
+import com.convecsa.erp.construccion.entity.ContratoCc;
+import com.convecsa.erp.construccion.entity.CuadrillaMiembro;
+import com.convecsa.erp.construccion.entity.CuadrillaObra;
 import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.entity.SubcontratoAvance;
 import com.convecsa.erp.construccion.entity.SubcontratoObra;
 import com.convecsa.erp.construccion.repository.AsignacionEquipoRepository;
+import com.convecsa.erp.construccion.repository.ContratoCcRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaMiembroRepository;
+import com.convecsa.erp.construccion.repository.CuadrillaObraRepository;
 import com.convecsa.erp.construccion.repository.ImputacionEquipoRepository;
 import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.SubcontratoObraRepository;
+import com.convecsa.erp.contrato.entity.Contrato;
+import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.construccion.service.impl.RecursosObraServiceImpl;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -59,6 +72,12 @@ class RecursosObraServiceImplTest {
     private PresupuestoVersionRepository presupuestoVersionRepository;
     @Mock
     private PartidaPresupuestoRepository partidaPresupuestoRepository;
+    @Mock
+    private ContratoCcRepository contratoCcRepository;
+    @Mock
+    private CuadrillaObraRepository cuadrillaObraRepository;
+    @Mock
+    private CuadrillaMiembroRepository cuadrillaMiembroRepository;
 
     @InjectMocks
     private RecursosObraServiceImpl servicio;
@@ -67,7 +86,10 @@ class RecursosObraServiceImplTest {
     private final Map<Long, ImputacionEquipo> imputaciones = new LinkedHashMap<>();
     private final Map<Long, SubcontratoObra> subcontratos = new LinkedHashMap<>();
     private final Map<Long, SubcontratoAvance> avances = new LinkedHashMap<>();
+    private final Map<Long, CuadrillaObra> cuadrillas = new LinkedHashMap<>();
+    private final Map<Long, CuadrillaMiembro> miembros = new LinkedHashMap<>();
     private Proyecto proyecto;
+    private ContratoCc contratoActivo;
 
     @BeforeEach
     void preparar() {
@@ -127,6 +149,87 @@ class RecursosObraServiceImplTest {
                             .filter(item -> item.getSubcontrato().getId().equals(subcontratoId))
                             .toList();
                 });
+
+        Persona persona = new Persona();
+        persona.setId(11L);
+        persona.setNombres("Ana");
+        persona.setApellidos("Rojas");
+        persona.setNumeroDocumento("87654321");
+        Contrato contrato = new Contrato();
+        contrato.setId(22L);
+        contrato.setPersona(persona);
+        contrato.setActivo(true);
+        contratoActivo = new ContratoCc();
+        contratoActivo.setContrato(contrato);
+        contratoActivo.setCategoria(CategoriaObrera.OPERARIO);
+        lenient().when(contratoCcRepository.findActivosByProyectoId(7L)).thenReturn(List.of(contratoActivo));
+
+        lenient().when(cuadrillaObraRepository.save(any(CuadrillaObra.class))).thenAnswer(invocation -> {
+            CuadrillaObra item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId((long) cuadrillas.size() + 1);
+            }
+            cuadrillas.put(item.getId(), item);
+            return item;
+        });
+        lenient().when(cuadrillaObraRepository.findByIdAndProyectoId(any(), eq(7L)))
+                .thenAnswer(invocation -> Optional.ofNullable(cuadrillas.get(invocation.getArgument(0))));
+        lenient().when(cuadrillaObraRepository.findByProyectoIdOrderByCodigoAsc(7L))
+                .thenAnswer(invocation -> cuadrillas.values().stream()
+                        .sorted((a, b) -> a.getCodigo().compareToIgnoreCase(b.getCodigo()))
+                        .toList());
+        lenient().when(cuadrillaObraRepository.existsByProyectoIdAndCodigoIgnoreCase(eq(7L), any()))
+                .thenAnswer(invocation -> {
+                    String codigo = invocation.getArgument(1);
+                    return cuadrillas.values().stream()
+                            .anyMatch(item -> item.getCodigo().equalsIgnoreCase(codigo));
+                });
+        lenient().when(cuadrillaObraRepository.existsByProyectoIdAndCodigoIgnoreCaseAndIdNot(eq(7L), any(), any()))
+                .thenAnswer(invocation -> {
+                    String codigo = invocation.getArgument(1);
+                    Long id = invocation.getArgument(2);
+                    return cuadrillas.values().stream()
+                            .anyMatch(item -> !item.getId().equals(id) && item.getCodigo().equalsIgnoreCase(codigo));
+                });
+        lenient().doAnswer(invocation -> {
+            CuadrillaObra item = invocation.getArgument(0);
+            cuadrillas.remove(item.getId());
+            miembros.entrySet().removeIf(entry -> entry.getValue().getCuadrilla().getId().equals(item.getId()));
+            return null;
+        }).when(cuadrillaObraRepository).delete(any(CuadrillaObra.class));
+
+        lenient().when(cuadrillaMiembroRepository.save(any(CuadrillaMiembro.class))).thenAnswer(invocation -> {
+            CuadrillaMiembro item = invocation.getArgument(0);
+            if (item.getId() == null) {
+                item.setId((long) miembros.size() + 1);
+            }
+            miembros.put(item.getId(), item);
+            return item;
+        });
+        lenient().when(cuadrillaMiembroRepository.findByProyectoId(7L))
+                .thenAnswer(invocation -> List.copyOf(miembros.values()));
+        lenient().when(cuadrillaMiembroRepository.findByProyectoIdAndPersonaId(eq(7L), any()))
+                .thenAnswer(invocation -> {
+                    Long personaId = invocation.getArgument(1);
+                    return miembros.values().stream()
+                            .filter(item -> item.getPersona().getId().equals(personaId))
+                            .findFirst();
+                });
+        lenient().when(cuadrillaMiembroRepository.findByCuadrillaIdAndPersonaId(any(), any()))
+                .thenAnswer(invocation -> {
+                    Long cuadrillaId = invocation.getArgument(0);
+                    Long personaId = invocation.getArgument(1);
+                    return miembros.values().stream()
+                            .filter(item -> item.getCuadrilla().getId().equals(cuadrillaId)
+                                    && item.getPersona().getId().equals(personaId))
+                            .findFirst();
+                });
+        lenient().doAnswer(invocation -> {
+            CuadrillaMiembro item = invocation.getArgument(0);
+            miembros.entrySet().removeIf(entry -> entry.getValue() == item
+                    || (item.getId() != null && item.getId().equals(entry.getKey())));
+            return null;
+        }).when(cuadrillaMiembroRepository).delete(any(CuadrillaMiembro.class));
     }
 
     @Test
@@ -175,6 +278,68 @@ class RecursosObraServiceImplTest {
                 IllegalArgumentException.class,
                 () -> servicio.registrarAvance(7L, subcontrato.getId(), segundo));
         assertEquals("El avance no puede superar el saldo del subcontrato", error.getMessage());
+    }
+
+    @Test
+    void crearCuadrillaPersisteCodigoYNombre() {
+        CuadrillaObraDTO dto = servicio.crearCuadrilla(7L, cuadrillaRequest("EST", "Estructura"));
+
+        assertEquals("EST", dto.getCodigo());
+        assertEquals("Estructura", dto.getNombre());
+        assertEquals("CC-EST", dto.getCentroCosto());
+        assertEquals(0, dto.getMiembros().size());
+    }
+
+    @Test
+    void rechazaCodigoDeCuadrillaDuplicado() {
+        servicio.crearCuadrilla(7L, cuadrillaRequest("EST", "Estructura"));
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.crearCuadrilla(7L, cuadrillaRequest("est", "Otra")));
+        assertEquals("Ya existe una cuadrilla con ese código", error.getMessage());
+    }
+
+    @Test
+    void rechazaMiembroSinContratoActivoEnLaObra() {
+        CuadrillaObraDTO cuadrilla = servicio.crearCuadrilla(7L, cuadrillaRequest("EST", "Estructura"));
+        CuadrillaMiembroRequest request = new CuadrillaMiembroRequest();
+        request.setPersonaId(99L);
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.agregarMiembro(7L, cuadrilla.getId(), request));
+        assertEquals("El obrero no tiene contrato activo en esta obra", error.getMessage());
+    }
+
+    @Test
+    void mueveMiembroEntreCuadrillasDeLaMismaObra() {
+        CuadrillaObraDTO estructura = servicio.crearCuadrilla(7L, cuadrillaRequest("EST", "Estructura"));
+        CuadrillaObraDTO acabados = servicio.crearCuadrilla(7L, cuadrillaRequest("ACA", "Acabados"));
+        CuadrillaMiembroRequest request = new CuadrillaMiembroRequest();
+        request.setPersonaId(11L);
+
+        CuadrillaObraDTO enEstructura = servicio.agregarMiembro(7L, estructura.getId(), request);
+        assertEquals(1, enEstructura.getMiembros().size());
+        assertEquals(11L, enEstructura.getMiembros().get(0).getPersonaId());
+
+        CuadrillaObraDTO enAcabados = servicio.agregarMiembro(7L, acabados.getId(), request);
+        assertEquals(1, enAcabados.getMiembros().size());
+        assertEquals(11L, enAcabados.getMiembros().get(0).getPersonaId());
+        assertEquals(0, servicio.listarCuadrillas(7L).stream()
+                .filter(item -> item.getId().equals(estructura.getId()))
+                .findFirst()
+                .orElseThrow()
+                .getMiembros()
+                .size());
+    }
+
+    private static CuadrillaObraRequest cuadrillaRequest(String codigo, String nombre) {
+        CuadrillaObraRequest request = new CuadrillaObraRequest();
+        request.setCodigo(codigo);
+        request.setNombre(nombre);
+        request.setCentroCosto("CC-EST");
+        return request;
     }
 
     private static AsignacionEquipoRequest equipoRequest(LocalDate ingreso, LocalDate salida, String tarifa) {
