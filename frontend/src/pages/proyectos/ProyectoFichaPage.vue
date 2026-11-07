@@ -30,7 +30,7 @@ import { listarPersonas } from '@/services/persona/personaService'
 import type { EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'avances' | 'financiamiento'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'avances' | 'financiamiento' | 'rentabilidad'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -73,6 +73,7 @@ const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-almacen') return 'almacen'
   if (route.name === 'proyecto-avances') return 'avances'
   if (route.name === 'proyecto-financiamiento') return 'financiamiento'
+  if (route.name === 'proyecto-rentabilidad') return 'rentabilidad'
   return 'resumen'
 })
 
@@ -214,6 +215,10 @@ function onTab(value: string | number) {
   }
   if (siguiente === 'financiamiento') {
     void router.push({ name: 'proyecto-financiamiento', params: { id } })
+    return
+  }
+  if (siguiente === 'rentabilidad') {
+    void router.push({ name: 'proyecto-rentabilidad', params: { id } })
     return
   }
   void router.push({ name: 'proyecto-ficha', params: { id } })
@@ -462,6 +467,12 @@ onUnmounted(() => {
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Financiamiento
+        </TabsTrigger>
+        <TabsTrigger
+          value="rentabilidad"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Rentabilidad
         </TabsTrigger>
       </TabsList>
     </Tabs>

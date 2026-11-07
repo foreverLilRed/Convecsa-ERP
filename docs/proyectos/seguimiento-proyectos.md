@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna) y el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado). Falta el tablero de rentabilidad.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado) y el **tablero de rentabilidad** (P&amp;L de obra por devengo y asientos de materiales/factoring). Quedan transversales (documentos, permisos, auditoría).
 
 ```mermaid
 flowchart LR
@@ -39,7 +39,7 @@ flowchart LR
   CostoReal --> Cierre
 ```
 
-Subflujo de ejecución actual versus objetivo:
+Subflujo de ejecución:
 
 ```mermaid
 flowchart TB
@@ -53,8 +53,6 @@ flowchart TB
     Presupuesto --> Avances[AvancesFisicos]
     Avances --> Valorizacion[ValorizacionCliente]
     Valorizacion --> Factoring[Factoring]
-  end
-  subgraph pendiente [Pendiente]
     Factoring --> Rentabilidad[TableroRentabilidad]
   end
 ```
@@ -70,10 +68,10 @@ flowchart TB
 | 6 | Materiales y almacén | Hecho |
 | 7 | Avances y valorizaciones | Hecho |
 | 8 | Financiamiento de obra (incluye factoring) | Hecho |
-| 9 | Integración contable y rentabilidad | Parcial |
+| 9 | Integración contable y rentabilidad | Hecho |
 | 10 | Transversales | Parcial |
 
-Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Avances y Financiamiento viven como pestañas de esa ficha.
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Avances, Financiamiento y Rentabilidad viven como pestañas de esa ficha.
 
 Rutas Vue:
 
@@ -85,6 +83,7 @@ Rutas Vue:
 - `/proyectos/:id/almacen` → misma ficha, tab Almacén ([`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue))
 - `/proyectos/:id/avances` → misma ficha, tab Avances ([`ProyectoAvancesPage.vue`](../../frontend/src/pages/proyectos/ProyectoAvancesPage.vue))
 - `/proyectos/:id/financiamiento` → misma ficha, tab Financiamiento ([`ProyectoFinanciamientoPage.vue`](../../frontend/src/pages/proyectos/ProyectoFinanciamientoPage.vue))
+- `/proyectos/:id/rentabilidad` → misma ficha, tab Rentabilidad ([`ProyectoRentabilidadPage.vue`](../../frontend/src/pages/proyectos/ProyectoRentabilidadPage.vue))
 
 API base: [`ConstruccionController`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/controller/ConstruccionController.java) en `/api/proyectos`.
 
@@ -299,13 +298,13 @@ Ciclo de abastecimiento de la obra: pedido, compra, recepción, kardex y consumo
 - [x] Recepción en almacén de obra contra la OC, con diferencias (pendiente vs recibido); `numeroGuia` texto, sin GRE/SUNAT
 - [x] Kardex por almacén de obra (entradas, salidas, ajustes) y costo promedio ponderado
 - [x] Vale de salida / consumo imputado a partida y a centro de costo
-- [x] Valorización de inventario al cierre de mes (snapshot; sin asiento de existencias)
+- [x] Valorización de inventario al cierre de mes (snapshot; el asiento de consumo está en la sección 9)
 - [x] Alerta de quiebre de stock y de materiales críticos
 - [x] Devoluciones a almacén de obra (desde vale) y a proveedor. Descartado: almacén central
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Almacén** hay un catálogo empresa y un almacén por obra (se crea al primer acceso). El residente arma un requerimiento (borrador → aprobado), opcionalmente sugerido desde APU `MATERIAL` de la vigente. Compras genera la OC (proveedor razón/RUC, no maestro) y al emitir cubre el requerimiento. La recepción entra al kardex al precio de la OC y recalcula CMP. El vale de salida descuenta stock al CMP e imputa costo a la partida vigente. El comparativo de presupuesto toma el real de materiales de esos vales. El asiento de existencias queda para Fase F.
+En **Obras → Abrir → Almacén** hay un catálogo empresa y un almacén por obra (se crea al primer acceso). El residente arma un requerimiento (borrador → aprobado), opcionalmente sugerido desde APU `MATERIAL` de la vigente. Compras genera la OC (proveedor razón/RUC, no maestro) y al emitir cubre el requerimiento. La recepción entra al kardex al precio de la OC y recalcula CMP. El vale de salida descuenta stock al CMP e imputa costo a la partida vigente. El comparativo de presupuesto toma el real de materiales de esos vales. El asiento de consumo se consulta en la pestaña Rentabilidad (sección 9).
 
 ```mermaid
 flowchart LR
@@ -326,7 +325,7 @@ flowchart LR
 | Endpoints | `GET/POST /api/proyectos/materiales`, `GET /api/proyectos/{id}/almacen`, requerimientos, compras, vales, kardex, cierre |
 | UI | tab Almacén de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue) |
 | Migración | `V49` |
-| Nota | Un almacén por obra. Proveedor = columnas en la OC. Sin cuadrillas, sin GRE electrónica, sin asiento de existencias |
+| Nota | Un almacén por obra. Proveedor = columnas en la OC. Sin cuadrillas, sin GRE electrónica. Asiento de consumo en la sección 9 |
 
 ---
 
@@ -428,37 +427,50 @@ flowchart LR
 
 ---
 
-## 9. Integración contable y rentabilidad — Parcial
+## 9. Integración contable y rentabilidad — Hecho
 
-El costo y el ingreso de la obra deben aterrizar en contabilidad y en un tablero de margen.
+El costo y el ingreso de la obra aterrizan en un P&amp;L de obra (devengo) y en asientos de consulta. El asiento RCC de planilla ya existía; aquí se agregan consumo de materiales y adelanto de factoring.
 
 ### Objetivos
-
-Hecho:
 
 - [x] Asiento RCC a partir de la planilla, agrupado por centro de costo del contrato (fallback: centro de la obra)
 - [x] Consolidado mensual RCC en declaración (`consolidado_cc.centro_costo`)
 - [x] Destino contable `obra / centro` en [`AsientoRccService.java`](../../backend/erp/src/main/java/com/convecsa/erp/nomina/declaracion/support/AsientoRccService.java)
+- [x] Tablero de rentabilidad por obra: ingresos (valorizaciones `APROBADA`, `montoBruto`) vs costos (MO cerrada + materiales + costo de factoring)
+- [x] Margen bruto y margen neto, mensual y acumulado
+- [x] Asientos de consumo de materiales y costo de factoring (DTO de consulta, no persistidos)
+- [ ] Proyección a término (ETC / EAC) cuando existan presupuesto y avance. Descartado en este corte.
+- [ ] Asiento de depreciación/alquiler de equipos. Descartado en este corte: no hay equipos en el sistema.
+- [ ] Exportar resumen de obra a Excel para gerencia. Descartado en este corte.
 
-Pendiente:
-
-- [ ] Tablero de rentabilidad por obra: ingresos (valorizaciones/facturas) vs costos (MO + materiales + equipos + subcontratos + costo de factoring)
-- [ ] Margen bruto y margen neto, mensual y acumulado
-- [ ] Proyección a término (ETC / EAC) cuando existan presupuesto y avance
-- [ ] Asientos de consumo de materiales, depreciación/alquiler de equipos y costo de factoring
-- [ ] Exportar resumen de obra a Excel para gerencia
+Equipos y subcontratos en el margen quedan en 0. Descartado en este corte: no hay esas entidades.
 
 ### Cómo funciona (hoy)
 
-Al consolidar la declaración mensual, cada obrero aporta su neto y aportes al asiento RCC. El destino prioriza `ContratoCc.centroCosto` y, si está vacío, `Proyecto.centroCosto`. Eso permite ver la mano de obra por obra/frente, pero todavía no hay un P&amp;L de obra.
+En **Obras → Abrir → Rentabilidad** hay dos pestañas. **Margen** es P&amp;L por devengo (distinto del flujo de caja de la sección 8): el ingreso es `montoBruto` de valorizaciones `APROBADA` en su `anio`/`mes`; el costo MO es `totalHaberes + totalAportesEmpleador` de periodos `CERRADO` (fecha = `fechaHasta`); materiales son el costo de vales; factoring es `descuento + comisión + IGV` en la fecha de adelanto. Margen bruto = ingreso − MO − materiales; neto = bruto − factoring. **Asientos** arma dos asientos del rango: consumo (Debe 61 / Haber 24, destino 92/791 por centro del vale) y adelanto de factoring (Debe 1041 + 67 + 4011 / Haber 12). No se guardan ni se genera PDF. El asiento RCC de planilla sigue en la declaración mensual.
 
-### Desglose técnico (propuesto para el tablero)
+```mermaid
+flowchart LR
+  ValAprobada[ValorizacionAprobada] --> Ingreso[IngresoBruto]
+  Planilla[PlanillaCerrada] --> CostoMO[CostoMO]
+  Vale[ValeSalida] --> CostoMat[CostoMateriales]
+  Adelanto[FactoringAdelantado] --> CostoFin[CostoFactoring]
+  Ingreso --> Margen[MargenBrutoYNeto]
+  CostoMO --> Margen
+  CostoMat --> Margen
+  CostoFin --> Margen
+  Vale --> AsientoMat[AsientoMateriales]
+  Adelanto --> AsientoFact[AsientoFactoring]
+```
 
-| Capa | Propuesta |
+### Desglose técnico (hecho)
+
+| Capa | Ubicación |
 | --- | --- |
-| Servicio | `RentabilidadObraService` (agrega boletas RCC + movimientos de almacén + facturas + factoring) |
-| Endpoint | `GET /api/proyectos/{id}/rentabilidad?desde=&hasta=` |
-| UI | `ProyectoRentabilidadPage.vue` (cards de ingreso/costo/margen + tabla mensual) |
+| Servicio | [`RentabilidadObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/RentabilidadObraServiceImpl.java) |
+| Endpoints | `GET /{id}/rentabilidad?desde=&hasta=`, `GET /{id}/asientos?desde=&hasta=` |
+| UI | tab Rentabilidad de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoRentabilidadPage.vue`](../../frontend/src/pages/proyectos/ProyectoRentabilidadPage.vue) |
+| Nota | Sin tablas nuevas. Asientos = DTO, no libro diario. MO del P&amp;L usa haberes + aportes (no el neto de caja). Equipos/subcontratos = 0 |
 
 ---
 
@@ -468,7 +480,7 @@ Cortes que aplican a todas las secciones anteriores.
 
 ### Objetivos
 
-- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Avances y Financiamiento
+- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Avances, Financiamiento y Rentabilidad
 - [ ] Pestaña Documentos
 - [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex)
 - [ ] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura)
@@ -482,7 +494,7 @@ Cortes que aplican a todas las secciones anteriores.
 | Capa | Ubicación |
 | --- | --- |
 | Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
-| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-avances`, `proyecto-financiamiento` anidadas bajo `/proyectos/:id` |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad` anidadas bajo `/proyectos/:id` |
 
 ### Desglose técnico (propuesto)
 
@@ -540,11 +552,11 @@ Dependencias: Fase D (factura). Es el hito de liquidez.
 
 ### Fase F — Rentabilidad y transversales
 
-- [ ] Tablero de margen (ingresos vs MO + materiales + equipos + factoring)
+- [x] Tablero de margen (ingresos vs MO + materiales + factoring) y asientos de materiales/factoring
 - [ ] Permisos por obra, adjuntos, auditoría, alertas
 - [ ] Ampliar menú Proyectos
 
-Dependencias: Fases B–E para que el tablero no quede solo con mano de obra.
+Dependencias: Fases B–E para que el tablero no quede solo con mano de obra. Equipos/subcontratos, ETC/EAC y Excel quedaron fuera de este corte.
 
 ### Fuera de fase (mejora continua de lo ya hecho)
 
@@ -618,6 +630,8 @@ Base: `/api/proyectos`.
 | POST | `.../impagar` | Marcar impaga |
 | POST | `.../revertir` | Revertir cesión sin adelanto |
 | GET | `/{id}/flujo-caja` | Flujo ejecutado mensual |
+| GET | `/{id}/rentabilidad` | P&amp;L de obra (devengo) |
+| GET | `/{id}/asientos` | Asientos de materiales y factoring |
 | GET | `/{id}/personal` | Obreros RCC activos |
 | GET/POST | `/{id}/periodos` | Periodos de planilla |
 | GET | `/{id}/periodos/{periodoId}` | Detalle de periodo |

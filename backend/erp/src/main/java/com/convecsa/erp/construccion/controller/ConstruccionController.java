@@ -53,9 +53,12 @@ import com.convecsa.erp.construccion.dto.LiberacionRetencionRequest;
 import com.convecsa.erp.construccion.dto.OperacionFactoringDTO;
 import com.convecsa.erp.construccion.dto.OperacionFactoringRequest;
 import com.convecsa.erp.construccion.dto.RetencionesDTO;
+import com.convecsa.erp.construccion.dto.AsientosObraDTO;
+import com.convecsa.erp.construccion.dto.RentabilidadObraDTO;
 import com.convecsa.erp.construccion.service.InterfazAlmacenService;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.construccion.service.InterfazFinanciamientoService;
+import com.convecsa.erp.construccion.service.InterfazRentabilidadObraService;
 import com.convecsa.erp.construccion.service.InterfazValorizacionService;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
@@ -90,6 +93,7 @@ public class ConstruccionController {
     private final InterfazAlmacenService almacenService;
     private final InterfazValorizacionService valorizacionService;
     private final InterfazFinanciamientoService financiamientoService;
+    private final InterfazRentabilidadObraService rentabilidadService;
 
     @GetMapping("/catalogos")
     public ConstruccionCatalogosDTO catalogos() {
@@ -509,6 +513,22 @@ public class ConstruccionController {
             @RequestParam(required = false) LocalDate desde,
             @RequestParam(required = false) LocalDate hasta) {
         return financiamientoService.flujoCaja(id, desde, hasta);
+    }
+
+    @GetMapping("/{id:\\d+}/rentabilidad")
+    public RentabilidadObraDTO rentabilidad(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        return rentabilidadService.rentabilidad(id, desde, hasta);
+    }
+
+    @GetMapping("/{id:\\d+}/asientos")
+    public AsientosObraDTO asientos(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDate desde,
+            @RequestParam(required = false) LocalDate hasta) {
+        return rentabilidadService.asientos(id, desde, hasta);
     }
 
     @GetMapping("/{id:\\d+}/personal")

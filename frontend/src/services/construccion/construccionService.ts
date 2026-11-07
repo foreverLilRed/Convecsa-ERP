@@ -42,6 +42,8 @@ import type {
   CobranzaObraRequest,
   FacturaObra,
   FlujoCaja,
+  AsientosObra,
+  RentabilidadObra,
   OperacionFactoring,
   OperacionFactoringRequest,
   RetencionesObra,
@@ -660,4 +662,28 @@ export function obtenerFlujoCaja(
   if (hasta) params.set('hasta', hasta)
   const query = params.toString()
   return apiRequest<FlujoCaja>(`/api/proyectos/${proyectoId}/flujo-caja${query ? `?${query}` : ''}`)
+}
+
+export function obtenerRentabilidadObra(
+  proyectoId: number,
+  desde?: string,
+  hasta?: string,
+): Promise<RentabilidadObra> {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  const query = params.toString()
+  return apiRequest<RentabilidadObra>(`/api/proyectos/${proyectoId}/rentabilidad${query ? `?${query}` : ''}`)
+}
+
+export function obtenerAsientosObra(
+  proyectoId: number,
+  desde?: string,
+  hasta?: string,
+): Promise<AsientosObra> {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  const query = params.toString()
+  return apiRequest<AsientosObra>(`/api/proyectos/${proyectoId}/asientos${query ? `?${query}` : ''}`)
 }

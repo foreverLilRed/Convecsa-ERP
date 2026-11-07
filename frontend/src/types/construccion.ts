@@ -709,6 +709,60 @@ export type FlujoCaja = {
   puntos: FlujoCajaPunto[]
 }
 
+export type RentabilidadPunto = {
+  anio: number
+  mes: number
+  ingreso: number
+  costoMo: number
+  costoMateriales: number
+  costoFactoring: number
+  margenBruto: number
+  margenNeto: number
+  margenBrutoAcumulado: number
+  margenNetoAcumulado: number
+}
+
+export type RentabilidadObra = {
+  ingreso: number
+  costoMo: number
+  costoMateriales: number
+  costoFactoring: number
+  margenBruto: number
+  margenNeto: number
+  puntos: RentabilidadPunto[]
+}
+
+export type AsientoObraLinea = {
+  cuenta: string
+  descripcion: string
+  auxiliar: string | null
+  debe: number
+  haber: number
+}
+
+export type AsientoObraBloque = {
+  codigo: string
+  titulo: string
+  lineas: AsientoObraLinea[]
+  totalDebe: number
+  totalHaber: number
+}
+
+export type AsientoObra = {
+  desde: string
+  hasta: string
+  generadoAt: string
+  bloques: AsientoObraBloque[]
+  totalDebe: number
+  totalHaber: number
+  diferencia: number
+}
+
+export type AsientosObra = {
+  materiales: AsientoObra
+  factoring: AsientoObra
+}
+
 export type ValorizacionItem = {
   id: number | null
   partidaId: number | null
