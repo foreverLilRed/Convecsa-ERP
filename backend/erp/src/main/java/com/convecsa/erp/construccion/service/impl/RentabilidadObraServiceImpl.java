@@ -11,16 +11,20 @@ import com.convecsa.erp.construccion.dto.AsientosObraDTO;
 import com.convecsa.erp.construccion.dto.RentabilidadObraDTO;
 import com.convecsa.erp.construccion.dto.RentabilidadPuntoDTO;
 import com.convecsa.erp.construccion.entity.BoletaCc;
+import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.OperacionFactoring;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.Proyecto;
+import com.convecsa.erp.construccion.entity.SubcontratoAvance;
 import com.convecsa.erp.construccion.entity.ValeSalida;
 import com.convecsa.erp.construccion.entity.Valorizacion;
 import com.convecsa.erp.construccion.repository.AlmacenObraRepository;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
+import com.convecsa.erp.construccion.repository.ImputacionEquipoRepository;
 import com.convecsa.erp.construccion.repository.OperacionFactoringRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
+import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionRepository;
 import com.convecsa.erp.construccion.service.InterfazRentabilidadObraService;
@@ -48,6 +52,8 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
     private final AlmacenObraRepository almacenObraRepository;
     private final ValeSalidaRepository valeSalidaRepository;
     private final OperacionFactoringRepository operacionFactoringRepository;
+    private final ImputacionEquipoRepository imputacionEquipoRepository;
+    private final SubcontratoAvanceRepository subcontratoAvanceRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -57,6 +63,8 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
         Map<YearMonth, BigDecimal> ingresos = vacio(rango.inicio(), rango.fin());
         Map<YearMonth, BigDecimal> costoMo = vacio(rango.inicio(), rango.fin());
         Map<YearMonth, BigDecimal> costoMat = vacio(rango.inicio(), rango.fin());
+        Map<YearMonth, BigDecimal> costoEq = vacio(rango.inicio(), rango.fin());
+        Map<YearMonth, BigDecimal> costoSub = vacio(rango.inicio(), rango.fin());
         Map<YearMonth, BigDecimal> costoFact = vacio(rango.inicio(), rango.fin());
 
         for (Valorizacion valorizacion : valorizacionRepository.findByProyectoIdOrderByNumeroDesc(proyectoId)) {
@@ -89,6 +97,14 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
             acumular(costoMat, vale.getFecha(), rango.inicio(), rango.fin(), costoVale(vale));
         }
 
+        for (ImputacionEquipo imputacion : imputacionEquipoRepository.findByProyectoId(proyectoId)) {
+            acumular(costoEq, imputacion.getFecha(), rango.inicio(), rango.fin(), imputacion.getCostoTotal());
+        }
+
+        for (SubcontratoAvance avance : subcontratoAvanceRepository.findByProyectoId(proyectoId)) {
+            acumular(costoSub, avance.getFecha(), rango.inicio(), rango.fin(), avance.getMonto());
+        }
+
         for (OperacionFactoring operacion : adelantos(proyectoId)) {
             BigDecimal costo = nz(operacion.getDescuento())
                     .add(nz(operacion.getComision()))
@@ -100,6 +116,8 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
         BigDecimal totIng = BigDecimal.ZERO;
         BigDecimal totMo = BigDecimal.ZERO;
         BigDecimal totMat = BigDecimal.ZERO;
+        BigDecimal totEq = BigDecimal.ZERO;
+        BigDecimal totSub = BigDecimal.ZERO;
         BigDecimal totFact = BigDecimal.ZERO;
         BigDecimal acumBruto = BigDecimal.ZERO;
         BigDecimal acumNeto = BigDecimal.ZERO;
@@ -107,12 +125,16 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
             BigDecimal ingreso = money(ingresos.get(mes));
             BigDecimal mo = money(costoMo.get(mes));
             BigDecimal mat = money(costoMat.get(mes));
+            BigDecimal eq = money(costoEq.get(mes));
+            BigDecimal sub = money(costoSub.get(mes));
             BigDecimal fact = money(costoFact.get(mes));
-            BigDecimal bruto = money(ingreso.subtract(mo).subtract(mat));
+            BigDecimal bruto = money(ingreso.subtract(mo).subtract(mat).subtract(eq).subtract(sub));
             BigDecimal neto = money(bruto.subtract(fact));
             totIng = totIng.add(ingreso);
             totMo = totMo.add(mo);
             totMat = totMat.add(mat);
+            totEq = totEq.add(eq);
+            totSub = totSub.add(sub);
             totFact = totFact.add(fact);
             acumBruto = money(acumBruto.add(bruto));
             acumNeto = money(acumNeto.add(neto));
@@ -122,6 +144,8 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
                     .ingreso(ingreso)
                     .costoMo(mo)
                     .costoMateriales(mat)
+                    .costoEquipos(eq)
+                    .costoSubcontratos(sub)
                     .costoFactoring(fact)
                     .margenBruto(bruto)
                     .margenNeto(neto)
@@ -133,9 +157,11 @@ public class RentabilidadObraServiceImpl implements InterfazRentabilidadObraServ
                 .ingreso(money(totIng))
                 .costoMo(money(totMo))
                 .costoMateriales(money(totMat))
+                .costoEquipos(money(totEq))
+                .costoSubcontratos(money(totSub))
                 .costoFactoring(money(totFact))
-                .margenBruto(money(totIng.subtract(totMo).subtract(totMat)))
-                .margenNeto(money(totIng.subtract(totMo).subtract(totMat).subtract(totFact)))
+                .margenBruto(money(totIng.subtract(totMo).subtract(totMat).subtract(totEq).subtract(totSub)))
+                .margenNeto(money(totIng.subtract(totMo).subtract(totMat).subtract(totEq).subtract(totSub).subtract(totFact)))
                 .puntos(puntos)
                 .build();
     }

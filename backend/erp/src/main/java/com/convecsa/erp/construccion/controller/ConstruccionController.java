@@ -55,13 +55,22 @@ import com.convecsa.erp.construccion.dto.OperacionFactoringRequest;
 import com.convecsa.erp.construccion.dto.RetencionesDTO;
 import com.convecsa.erp.construccion.dto.AlertaObraDTO;
 import com.convecsa.erp.construccion.dto.AsientosObraDTO;
+import com.convecsa.erp.construccion.dto.AsignacionEquipoDTO;
+import com.convecsa.erp.construccion.dto.AsignacionEquipoRequest;
 import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
+import com.convecsa.erp.construccion.dto.ImputacionEquipoDTO;
+import com.convecsa.erp.construccion.dto.ImputacionEquipoRequest;
 import com.convecsa.erp.construccion.dto.RentabilidadObraDTO;
+import com.convecsa.erp.construccion.dto.SubcontratoAvanceDTO;
+import com.convecsa.erp.construccion.dto.SubcontratoAvanceRequest;
+import com.convecsa.erp.construccion.dto.SubcontratoObraDTO;
+import com.convecsa.erp.construccion.dto.SubcontratoObraRequest;
 import com.convecsa.erp.construccion.domain.TipoDocumentoObra;
 import com.convecsa.erp.construccion.service.InterfazAlmacenService;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.construccion.service.InterfazFinanciamientoService;
 import com.convecsa.erp.construccion.service.InterfazRentabilidadObraService;
+import com.convecsa.erp.construccion.service.InterfazRecursosObraService;
 import com.convecsa.erp.construccion.service.InterfazTransversalObraService;
 import com.convecsa.erp.construccion.service.InterfazValorizacionService;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
@@ -101,6 +110,7 @@ public class ConstruccionController {
     private final InterfazFinanciamientoService financiamientoService;
     private final InterfazRentabilidadObraService rentabilidadService;
     private final InterfazTransversalObraService transversalService;
+    private final InterfazRecursosObraService recursosService;
 
     @GetMapping("/catalogos")
     public ConstruccionCatalogosDTO catalogos() {
@@ -567,6 +577,88 @@ public class ConstruccionController {
     @GetMapping("/{id:\\d+}/alertas")
     public List<AlertaObraDTO> alertas(@PathVariable Long id) {
         return transversalService.listarAlertas(id);
+    }
+
+    @GetMapping("/{id:\\d+}/equipos")
+    public List<AsignacionEquipoDTO> equipos(@PathVariable Long id) {
+        return recursosService.listarEquipos(id);
+    }
+
+    @PostMapping("/{id:\\d+}/equipos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AsignacionEquipoDTO crearEquipo(
+            @PathVariable Long id, @Valid @RequestBody AsignacionEquipoRequest request) {
+        return recursosService.crearEquipo(id, request);
+    }
+
+    @PutMapping("/{id:\\d+}/equipos/{eqId}")
+    public AsignacionEquipoDTO actualizarEquipo(
+            @PathVariable Long id,
+            @PathVariable Long eqId,
+            @Valid @RequestBody AsignacionEquipoRequest request) {
+        return recursosService.actualizarEquipo(id, eqId, request);
+    }
+
+    @GetMapping("/{id:\\d+}/equipos/{eqId}/imputaciones")
+    public List<ImputacionEquipoDTO> imputaciones(@PathVariable Long id, @PathVariable Long eqId) {
+        return recursosService.listarImputaciones(id, eqId);
+    }
+
+    @PostMapping("/{id:\\d+}/equipos/{eqId}/imputaciones")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ImputacionEquipoDTO registrarImputacion(
+            @PathVariable Long id,
+            @PathVariable Long eqId,
+            @Valid @RequestBody ImputacionEquipoRequest request) {
+        return recursosService.registrarImputacion(id, eqId, request);
+    }
+
+    @DeleteMapping("/{id:\\d+}/equipos/{eqId}/imputaciones/{impId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarImputacion(
+            @PathVariable Long id, @PathVariable Long eqId, @PathVariable Long impId) {
+        recursosService.eliminarImputacion(id, eqId, impId);
+    }
+
+    @GetMapping("/{id:\\d+}/subcontratos")
+    public List<SubcontratoObraDTO> subcontratos(@PathVariable Long id) {
+        return recursosService.listarSubcontratos(id);
+    }
+
+    @PostMapping("/{id:\\d+}/subcontratos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SubcontratoObraDTO crearSubcontrato(
+            @PathVariable Long id, @Valid @RequestBody SubcontratoObraRequest request) {
+        return recursosService.crearSubcontrato(id, request);
+    }
+
+    @PutMapping("/{id:\\d+}/subcontratos/{subId}")
+    public SubcontratoObraDTO actualizarSubcontrato(
+            @PathVariable Long id,
+            @PathVariable Long subId,
+            @Valid @RequestBody SubcontratoObraRequest request) {
+        return recursosService.actualizarSubcontrato(id, subId, request);
+    }
+
+    @GetMapping("/{id:\\d+}/subcontratos/{subId}/avances")
+    public List<SubcontratoAvanceDTO> avancesSubcontrato(@PathVariable Long id, @PathVariable Long subId) {
+        return recursosService.listarAvances(id, subId);
+    }
+
+    @PostMapping("/{id:\\d+}/subcontratos/{subId}/avances")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SubcontratoAvanceDTO registrarAvanceSubcontrato(
+            @PathVariable Long id,
+            @PathVariable Long subId,
+            @Valid @RequestBody SubcontratoAvanceRequest request) {
+        return recursosService.registrarAvance(id, subId, request);
+    }
+
+    @DeleteMapping("/{id:\\d+}/subcontratos/{subId}/avances/{avId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarAvanceSubcontrato(
+            @PathVariable Long id, @PathVariable Long subId, @PathVariable Long avId) {
+        recursosService.eliminarAvance(id, subId, avId);
     }
 
     @GetMapping("/{id:\\d+}/personal")

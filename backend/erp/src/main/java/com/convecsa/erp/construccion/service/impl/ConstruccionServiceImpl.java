@@ -50,7 +50,9 @@ import com.convecsa.erp.construccion.entity.CcEspecialidadBae;
 import com.convecsa.erp.construccion.entity.CcParametroAnual;
 import com.convecsa.erp.construccion.entity.ContratoCc;
 import com.convecsa.erp.construccion.entity.ApuPartida;
+import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.PartidaPresupuesto;
+import com.convecsa.erp.construccion.entity.SubcontratoAvance;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.PresupuestoVersion;
 import com.convecsa.erp.construccion.entity.Proyecto;
@@ -66,6 +68,8 @@ import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
+import com.convecsa.erp.construccion.repository.ImputacionEquipoRepository;
+import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.TareoCcDiaRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaItemRepository;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
@@ -135,6 +139,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private final TareoCcDiaRepository tareoCcDiaRepository;
     private final BoletaCcRepository boletaCcRepository;
     private final ValeSalidaItemRepository valeSalidaItemRepository;
+    private final ImputacionEquipoRepository imputacionEquipoRepository;
+    private final SubcontratoAvanceRepository subcontratoAvanceRepository;
     private final BoletaCcEnvioCorreoRepository boletaCcEnvioCorreoRepository;
     private final CalculoNominaCcService calculoNominaCcService;
     private final RentaQuintaProyeccionService rentaQuintaProyeccionService;
@@ -355,6 +361,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .orElse(null);
         Map<String, BigDecimal> metaPorCentro = new LinkedHashMap<>();
         Map<String, BigDecimal> metaMatPorCentro = new LinkedHashMap<>();
+        Map<String, BigDecimal> metaEqPorCentro = new LinkedHashMap<>();
+        Map<String, BigDecimal> metaSubPorCentro = new LinkedHashMap<>();
         if (vigente != null) {
             for (PartidaPresupuesto partida : partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(vigente.getId())) {
                 String centro = centroDe(partida.getCentroCosto(), proyecto.getCentroCosto());
@@ -366,8 +374,18 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                         .filter(item -> item.getTipo() == TipoRecursoApu.MATERIAL)
                         .map(item -> nz(item.getParcial()))
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal eqUnit = partida.getApu().stream()
+                        .filter(item -> item.getTipo() == TipoRecursoApu.EQUIPO)
+                        .map(item -> nz(item.getParcial()))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                BigDecimal subUnit = partida.getApu().stream()
+                        .filter(item -> item.getTipo() == TipoRecursoApu.SUBCONTRATO)
+                        .map(item -> nz(item.getParcial()))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
                 acumular(metaPorCentro, centro, money(moUnit.multiply(nz(partida.getMetrado()))));
                 acumular(metaMatPorCentro, centro, money(matUnit.multiply(nz(partida.getMetrado()))));
+                acumular(metaEqPorCentro, centro, money(eqUnit.multiply(nz(partida.getMetrado()))));
+                acumular(metaSubPorCentro, centro, money(subUnit.multiply(nz(partida.getMetrado()))));
             }
         }
         Map<String, BigDecimal> realPorCentro = new LinkedHashMap<>();
@@ -387,8 +405,20 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             String centro = centroDe(item.getVale().getCentroCosto(), proyecto.getCentroCosto());
             acumular(realMatPorCentro, centro, money(item.getCostoTotal()));
         }
+        Map<String, BigDecimal> realEqPorCentro = new LinkedHashMap<>();
+        for (ImputacionEquipo imputacion : imputacionEquipoRepository.findByProyectoId(proyectoId)) {
+            String centro = centroDe(imputacion.getCentroCosto(), proyecto.getCentroCosto());
+            acumular(realEqPorCentro, centro, money(imputacion.getCostoTotal()));
+        }
+        Map<String, BigDecimal> realSubPorCentro = new LinkedHashMap<>();
+        for (SubcontratoAvance avance : subcontratoAvanceRepository.findByProyectoId(proyectoId)) {
+            String centro = centroDe(avance.getCentroCosto(), proyecto.getCentroCosto());
+            acumular(realSubPorCentro, centro, money(avance.getMonto()));
+        }
         List<String> centros = new ArrayList<>();
-        for (Map<String, BigDecimal> mapa : List.of(metaPorCentro, realPorCentro, metaMatPorCentro, realMatPorCentro)) {
+        for (Map<String, BigDecimal> mapa : List.of(
+                metaPorCentro, realPorCentro, metaMatPorCentro, realMatPorCentro,
+                metaEqPorCentro, realEqPorCentro, metaSubPorCentro, realSubPorCentro)) {
             for (String clave : mapa.keySet()) {
                 if (!centros.contains(clave)) {
                     centros.add(clave);
@@ -401,6 +431,10 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                     BigDecimal real = money(realPorCentro.getOrDefault(centro, BigDecimal.ZERO));
                     BigDecimal metaMat = money(metaMatPorCentro.getOrDefault(centro, BigDecimal.ZERO));
                     BigDecimal realMat = money(realMatPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal metaEq = money(metaEqPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal realEq = money(realEqPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal metaSub = money(metaSubPorCentro.getOrDefault(centro, BigDecimal.ZERO));
+                    BigDecimal realSub = money(realSubPorCentro.getOrDefault(centro, BigDecimal.ZERO));
                     return ComparativoCentroDTO.builder()
                             .centroCosto(centro)
                             .metaMo(meta)
@@ -409,6 +443,12 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                             .metaMaterial(metaMat)
                             .realMaterial(realMat)
                             .desvioMaterial(money(realMat.subtract(metaMat)))
+                            .metaEquipo(metaEq)
+                            .realEquipo(realEq)
+                            .desvioEquipo(money(realEq.subtract(metaEq)))
+                            .metaSubcontrato(metaSub)
+                            .realSubcontrato(realSub)
+                            .desvioSubcontrato(money(realSub.subtract(metaSub)))
                             .build();
                 })
                 .toList();
@@ -424,6 +464,18 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         BigDecimal desvioPctMaterial = metaMaterial.signum() == 0
                 ? BigDecimal.ZERO
                 : desvioMaterial.multiply(new BigDecimal("100")).divide(metaMaterial, 2, RoundingMode.HALF_UP);
+        BigDecimal metaEquipo = filas.stream().map(ComparativoCentroDTO::getMetaEquipo).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal realEquipo = filas.stream().map(ComparativoCentroDTO::getRealEquipo).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal desvioEquipo = money(realEquipo.subtract(metaEquipo));
+        BigDecimal desvioPctEquipo = metaEquipo.signum() == 0
+                ? BigDecimal.ZERO
+                : desvioEquipo.multiply(new BigDecimal("100")).divide(metaEquipo, 2, RoundingMode.HALF_UP);
+        BigDecimal metaSubcontrato = filas.stream().map(ComparativoCentroDTO::getMetaSubcontrato).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal realSubcontrato = filas.stream().map(ComparativoCentroDTO::getRealSubcontrato).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal desvioSubcontrato = money(realSubcontrato.subtract(metaSubcontrato));
+        BigDecimal desvioPctSubcontrato = metaSubcontrato.signum() == 0
+                ? BigDecimal.ZERO
+                : desvioSubcontrato.multiply(new BigDecimal("100")).divide(metaSubcontrato, 2, RoundingMode.HALF_UP);
         return ComparativoPresupuestoDTO.builder()
                 .metaMo(money(metaMo))
                 .realMo(money(realMo))
@@ -433,6 +485,14 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .realMaterial(money(realMaterial))
                 .desvioMaterial(desvioMaterial)
                 .desvioPctMaterial(desvioPctMaterial)
+                .metaEquipo(money(metaEquipo))
+                .realEquipo(money(realEquipo))
+                .desvioEquipo(desvioEquipo)
+                .desvioPctEquipo(desvioPctEquipo)
+                .metaSubcontrato(money(metaSubcontrato))
+                .realSubcontrato(money(realSubcontrato))
+                .desvioSubcontrato(desvioSubcontrato)
+                .desvioPctSubcontrato(desvioPctSubcontrato)
                 .centros(filas)
                 .build();
     }

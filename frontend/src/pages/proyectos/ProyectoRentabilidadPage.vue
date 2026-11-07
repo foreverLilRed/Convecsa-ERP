@@ -124,7 +124,7 @@ onMounted(() => {
     </div>
 
     <div v-else-if="tab === 'margen'" class="space-y-4">
-      <div v-if="rentabilidad" class="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div v-if="rentabilidad" class="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
           <p class="text-slate-500">Ingreso</p>
           <p class="font-semibold text-palette-navy">{{ money.format(n(rentabilidad.ingreso)) }}</p>
@@ -136,6 +136,14 @@ onMounted(() => {
         <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
           <p class="text-slate-500">Materiales</p>
           <p class="font-semibold text-palette-navy">{{ money.format(n(rentabilidad.costoMateriales)) }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+          <p class="text-slate-500">Equipos</p>
+          <p class="font-semibold text-palette-navy">{{ money.format(n(rentabilidad.costoEquipos)) }}</p>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+          <p class="text-slate-500">Subcontratos</p>
+          <p class="font-semibold text-palette-navy">{{ money.format(n(rentabilidad.costoSubcontratos)) }}</p>
         </div>
         <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
           <p class="text-slate-500">Factoring</p>
@@ -158,6 +166,8 @@ onMounted(() => {
               <TableHead>Ingreso</TableHead>
               <TableHead>MO</TableHead>
               <TableHead>Materiales</TableHead>
+              <TableHead>Equipos</TableHead>
+              <TableHead>Subcontratos</TableHead>
               <TableHead>Factoring</TableHead>
               <TableHead>Bruto</TableHead>
               <TableHead>Neto</TableHead>
@@ -171,13 +181,15 @@ onMounted(() => {
               <TableCell>{{ money.format(n(punto.ingreso)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.costoMo)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.costoMateriales)) }}</TableCell>
+              <TableCell>{{ money.format(n(punto.costoEquipos)) }}</TableCell>
+              <TableCell>{{ money.format(n(punto.costoSubcontratos)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.costoFactoring)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.margenBruto)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.margenNeto)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.margenBrutoAcumulado)) }}</TableCell>
               <TableCell>{{ money.format(n(punto.margenNetoAcumulado)) }}</TableCell>
             </TableRow>
-            <TableEmpty v-if="!(rentabilidad?.puntos.length)" :colspan="9">Sin movimientos en el periodo.</TableEmpty>
+            <TableEmpty v-if="!(rentabilidad?.puntos.length)" :colspan="11">Sin movimientos en el periodo.</TableEmpty>
           </TableBody>
         </Table>
       </div>

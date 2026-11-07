@@ -31,7 +31,7 @@ import { listarPersonas } from '@/services/persona/personaService'
 import type { AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -73,6 +73,7 @@ const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-planilla') return 'planilla'
   if (route.name === 'proyecto-presupuesto') return 'presupuesto'
   if (route.name === 'proyecto-almacen') return 'almacen'
+  if (route.name === 'proyecto-recursos') return 'recursos'
   if (route.name === 'proyecto-avances') return 'avances'
   if (route.name === 'proyecto-financiamiento') return 'financiamiento'
   if (route.name === 'proyecto-rentabilidad') return 'rentabilidad'
@@ -210,6 +211,10 @@ function onTab(value: string | number) {
   }
   if (siguiente === 'almacen') {
     void router.push({ name: 'proyecto-almacen', params: { id } })
+    return
+  }
+  if (siguiente === 'recursos') {
+    void router.push({ name: 'proyecto-recursos', params: { id } })
     return
   }
   if (siguiente === 'avances') {
@@ -470,6 +475,12 @@ onUnmounted(() => {
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Almacén
+        </TabsTrigger>
+        <TabsTrigger
+          value="recursos"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Recursos
         </TabsTrigger>
         <TabsTrigger
           value="avances"

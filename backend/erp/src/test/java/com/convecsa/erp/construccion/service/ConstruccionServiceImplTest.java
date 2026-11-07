@@ -37,11 +37,14 @@ import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.ContratoCcRepository;
 import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
+import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.ValeSalida;
 import com.convecsa.erp.construccion.entity.ValeSalidaItem;
+import com.convecsa.erp.construccion.repository.ImputacionEquipoRepository;
 import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
+import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaItemRepository;
 import com.convecsa.erp.construccion.service.impl.ConstruccionServiceImpl;
 import com.convecsa.erp.contrato.entity.Contrato;
@@ -91,6 +94,12 @@ class ConstruccionServiceImplTest {
 
     @Mock
     private ValeSalidaItemRepository valeSalidaItemRepository;
+
+    @Mock
+    private ImputacionEquipoRepository imputacionEquipoRepository;
+
+    @Mock
+    private SubcontratoAvanceRepository subcontratoAvanceRepository;
 
     @InjectMocks
     private ConstruccionServiceImpl servicio;
@@ -428,6 +437,42 @@ class ConstruccionServiceImplTest {
         assertEquals(new BigDecimal("8.00"), dto.getRealMaterial());
         assertEquals(new BigDecimal("-12.00"), dto.getDesvioMaterial());
         assertEquals(new BigDecimal("0.00"), dto.getMetaMo());
+    }
+
+    @Test
+    void comparativoPresupuestoContrastaMetaEquipoConImputaciones() {
+        Proyecto proyecto = proyectoExistente();
+        proyecto.setCentroCosto("CC-OBRA");
+        PresupuestoVersion vigente = versionBorrador(proyecto);
+        vigente.setEstado(EstadoVersionPresupuesto.VIGENTE);
+        PartidaPresupuesto partida = new PartidaPresupuesto();
+        partida.setCentroCosto("CC-1");
+        partida.setMetrado(new BigDecimal("2"));
+        ApuPartida apu = new ApuPartida();
+        apu.setTipo(TipoRecursoApu.EQUIPO);
+        apu.setParcial(new BigDecimal("10.00"));
+        partida.getApu().add(apu);
+
+        when(proyectoRepository.findById(7L)).thenReturn(Optional.of(proyecto));
+        when(presupuestoVersionRepository.findByProyectoIdAndEstado(7L, EstadoVersionPresupuesto.VIGENTE))
+                .thenReturn(Optional.of(vigente));
+        when(partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(10L)).thenReturn(List.of(partida));
+
+        ImputacionEquipo imputacion = new ImputacionEquipo();
+        imputacion.setCentroCosto("CC-1");
+        imputacion.setCostoTotal(new BigDecimal("8.00"));
+        when(imputacionEquipoRepository.findByProyectoId(7L)).thenReturn(List.of(imputacion));
+
+        ComparativoPresupuestoDTO dto = servicio.comparativoPresupuesto(7L);
+
+        assertEquals(new BigDecimal("20.00"), dto.getMetaEquipo());
+        assertEquals(new BigDecimal("8.00"), dto.getRealEquipo());
+        assertEquals(new BigDecimal("-12.00"), dto.getDesvioEquipo());
+        assertEquals(new BigDecimal("0.00"), dto.getMetaMo());
+        assertEquals(new BigDecimal("0.00"), dto.getMetaSubcontrato());
+        assertEquals("CC-1", dto.getCentros().get(0).getCentroCosto());
+        assertEquals(new BigDecimal("20.00"), dto.getCentros().get(0).getMetaEquipo());
+        assertEquals(new BigDecimal("8.00"), dto.getCentros().get(0).getRealEquipo());
     }
 
     private static Proyecto proyectoExistente() {

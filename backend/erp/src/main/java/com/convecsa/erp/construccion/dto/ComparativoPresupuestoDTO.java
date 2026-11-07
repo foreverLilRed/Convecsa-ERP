@@ -17,5 +17,13 @@ public class ComparativoPresupuestoDTO {
     private final BigDecimal realMaterial;
     private final BigDecimal desvioMaterial;
     private final BigDecimal desvioPctMaterial;
+    private final BigDecimal metaEquipo;
+    private final BigDecimal realEquipo;
+    private final BigDecimal desvioEquipo;
+    private final BigDecimal desvioPctEquipo;
+    private final BigDecimal metaSubcontrato;
+    private final BigDecimal realSubcontrato;
+    private final BigDecimal desvioSubcontrato;
+    private final BigDecimal desvioPctSubcontrato;
     private final List<ComparativoCentroDTO> centros;
 }

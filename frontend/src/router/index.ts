@@ -32,6 +32,7 @@ import ProyectoAlmacenPage from '@/pages/proyectos/ProyectoAlmacenPage.vue'
 import ProyectoAvancesPage from '@/pages/proyectos/ProyectoAvancesPage.vue'
 import ProyectoFinanciamientoPage from '@/pages/proyectos/ProyectoFinanciamientoPage.vue'
 import ProyectoRentabilidadPage from '@/pages/proyectos/ProyectoRentabilidadPage.vue'
+import ProyectoRecursosPage from '@/pages/proyectos/ProyectoRecursosPage.vue'
 import ProyectoDocumentosPage from '@/pages/proyectos/ProyectoDocumentosPage.vue'
 
 const router = createRouter({
@@ -189,6 +190,11 @@ const router = createRouter({
               path: 'almacen',
               name: 'proyecto-almacen',
               component: ProyectoAlmacenPage,
+            },
+            {
+              path: 'recursos',
+              name: 'proyecto-recursos',
+              component: ProyectoRecursosPage,
             },
             {
               path: 'avances',

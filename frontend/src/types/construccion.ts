@@ -145,6 +145,12 @@ export type ComparativoCentro = {
   metaMaterial: number
   realMaterial: number
   desvioMaterial: number
+  metaEquipo: number
+  realEquipo: number
+  desvioEquipo: number
+  metaSubcontrato: number
+  realSubcontrato: number
+  desvioSubcontrato: number
 }
 
 export type ComparativoPresupuesto = {
@@ -156,6 +162,14 @@ export type ComparativoPresupuesto = {
   realMaterial: number
   desvioMaterial: number
   desvioPctMaterial: number
+  metaEquipo: number
+  realEquipo: number
+  desvioEquipo: number
+  desvioPctEquipo: number
+  metaSubcontrato: number
+  realSubcontrato: number
+  desvioSubcontrato: number
+  desvioPctSubcontrato: number
   centros: ComparativoCentro[]
 }
 
@@ -715,6 +729,8 @@ export type RentabilidadPunto = {
   ingreso: number
   costoMo: number
   costoMateriales: number
+  costoEquipos: number
+  costoSubcontratos: number
   costoFactoring: number
   margenBruto: number
   margenNeto: number
@@ -726,10 +742,126 @@ export type RentabilidadObra = {
   ingreso: number
   costoMo: number
   costoMateriales: number
+  costoEquipos: number
+  costoSubcontratos: number
   costoFactoring: number
   margenBruto: number
   margenNeto: number
   puntos: RentabilidadPunto[]
+}
+
+export type OrigenEquipo = 'PROPIO' | 'ALQUILADO'
+
+export type ModoTarifaEquipo = 'HORA' | 'DIA'
+
+export type AsignacionEquipo = {
+  id: number
+  proyectoId: number
+  codigo: string
+  descripcion: string
+  origen: OrigenEquipo
+  proveedorRazon: string | null
+  proveedorRuc: string | null
+  fechaIngreso: string
+  fechaSalida: string | null
+  modoTarifa: ModoTarifaEquipo
+  tarifa: number
+  partidaId: number | null
+  codigoPartida: string | null
+  descripcionPartida: string | null
+  centroCosto: string | null
+  observaciones: string | null
+  createdAt: string
+  costoImputado: number
+  cantidadImputada: number
+}
+
+export type AsignacionEquipoRequest = {
+  codigo: string
+  descripcion: string
+  origen: OrigenEquipo
+  proveedorRazon?: string | null
+  proveedorRuc?: string | null
+  fechaIngreso: string
+  fechaSalida?: string | null
+  modoTarifa: ModoTarifaEquipo
+  tarifa: number
+  partidaId?: number | null
+  observaciones?: string | null
+}
+
+export type ImputacionEquipo = {
+  id: number
+  asignacionId: number
+  proyectoId: number
+  fecha: string
+  cantidad: number
+  tarifa: number
+  costoTotal: number
+  partidaId: number | null
+  codigoPartida: string | null
+  descripcionPartida: string | null
+  centroCosto: string | null
+  observaciones: string | null
+  createdAt: string
+}
+
+export type ImputacionEquipoRequest = {
+  fecha: string
+  cantidad: number
+  partidaId?: number | null
+  observaciones?: string | null
+}
+
+export type SubcontratoObra = {
+  id: number
+  proyectoId: number
+  especialidad: string
+  subcontratistaRazon: string
+  subcontratistaRuc: string | null
+  montoContratado: number
+  fechaInicio: string | null
+  fechaFin: string | null
+  partidaId: number | null
+  codigoPartida: string | null
+  descripcionPartida: string | null
+  centroCosto: string | null
+  observaciones: string | null
+  createdAt: string
+  montoAvanzado: number
+  saldo: number
+}
+
+export type SubcontratoObraRequest = {
+  especialidad: string
+  subcontratistaRazon: string
+  subcontratistaRuc?: string | null
+  montoContratado: number
+  fechaInicio?: string | null
+  fechaFin?: string | null
+  partidaId?: number | null
+  observaciones?: string | null
+}
+
+export type SubcontratoAvance = {
+  id: number
+  subcontratoId: number
+  proyectoId: number
+  fecha: string
+  monto: number
+  partidaId: number | null
+  codigoPartida: string | null
+  descripcionPartida: string | null
+  centroCosto: string | null
+  observaciones: string | null
+  createdAt: string
+}
+
+export type SubcontratoAvanceRequest = {
+  fecha: string
+  monto: number
+  partidaId?: number | null
+  observaciones?: string | null
 }
 
 export type AsientoObraLinea = {

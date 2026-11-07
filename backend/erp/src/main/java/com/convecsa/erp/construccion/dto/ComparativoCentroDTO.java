@@ -15,4 +15,10 @@ public class ComparativoCentroDTO {
     private final BigDecimal metaMaterial;
     private final BigDecimal realMaterial;
     private final BigDecimal desvioMaterial;
+    private final BigDecimal metaEquipo;
+    private final BigDecimal realEquipo;
+    private final BigDecimal desvioEquipo;
+    private final BigDecimal metaSubcontrato;
+    private final BigDecimal realSubcontrato;
+    private final BigDecimal desvioSubcontrato;
 }

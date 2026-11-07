@@ -13,17 +13,21 @@ import com.convecsa.erp.construccion.dto.RentabilidadObraDTO;
 import com.convecsa.erp.construccion.dto.RentabilidadPuntoDTO;
 import com.convecsa.erp.construccion.entity.AlmacenObra;
 import com.convecsa.erp.construccion.entity.BoletaCc;
+import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.OperacionFactoring;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.Proyecto;
+import com.convecsa.erp.construccion.entity.SubcontratoAvance;
 import com.convecsa.erp.construccion.entity.ValeSalida;
 import com.convecsa.erp.construccion.entity.ValeSalidaItem;
 import com.convecsa.erp.construccion.entity.Valorizacion;
 import com.convecsa.erp.construccion.repository.AlmacenObraRepository;
 import com.convecsa.erp.construccion.repository.BoletaCcRepository;
+import com.convecsa.erp.construccion.repository.ImputacionEquipoRepository;
 import com.convecsa.erp.construccion.repository.OperacionFactoringRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
+import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionRepository;
 import com.convecsa.erp.construccion.service.impl.RentabilidadObraServiceImpl;
@@ -56,6 +60,10 @@ class RentabilidadObraServiceImplTest {
     private ValeSalidaRepository valeSalidaRepository;
     @Mock
     private OperacionFactoringRepository operacionFactoringRepository;
+    @Mock
+    private ImputacionEquipoRepository imputacionEquipoRepository;
+    @Mock
+    private SubcontratoAvanceRepository subcontratoAvanceRepository;
 
     @InjectMocks
     private RentabilidadObraServiceImpl servicio;
@@ -124,6 +132,8 @@ class RentabilidadObraServiceImplTest {
                 .thenAnswer(invocation -> List.copyOf(vales));
         lenient().when(operacionFactoringRepository.findByProyectoIdOrderByFechaCesionDescIdDesc(7L))
                 .thenAnswer(invocation -> List.copyOf(factoring));
+        lenient().when(imputacionEquipoRepository.findByProyectoId(7L)).thenReturn(List.of());
+        lenient().when(subcontratoAvanceRepository.findByProyectoId(7L)).thenReturn(List.of());
     }
 
     @Test
@@ -185,6 +195,24 @@ class RentabilidadObraServiceImplTest {
         assertEquals(new BigDecimal("15.00"), linea(asiento, "67").getDebe());
         assertEquals(new BigDecimal("1.80"), linea(asiento, "4011").getDebe());
         assertEquals(new BigDecimal("100.00"), linea(asiento, "12").getHaber());
+    }
+
+    @Test
+    void margenIncluyeEquiposYSubcontratos() {
+        ImputacionEquipo imputacion = new ImputacionEquipo();
+        imputacion.setFecha(LocalDate.of(2026, 11, 8));
+        imputacion.setCostoTotal(new BigDecimal("40.00"));
+        SubcontratoAvance avance = new SubcontratoAvance();
+        avance.setFecha(LocalDate.of(2026, 11, 9));
+        avance.setMonto(new BigDecimal("25.00"));
+        lenient().when(imputacionEquipoRepository.findByProyectoId(7L)).thenReturn(List.of(imputacion));
+        lenient().when(subcontratoAvanceRepository.findByProyectoId(7L)).thenReturn(List.of(avance));
+
+        RentabilidadObraDTO dto = rentabilidadNoviembre();
+        assertEquals(new BigDecimal("40.00"), dto.getCostoEquipos());
+        assertEquals(new BigDecimal("25.00"), dto.getCostoSubcontratos());
+        assertEquals(new BigDecimal("-40.00"), dto.getMargenBruto());
+        assertEquals(new BigDecimal("-56.80"), dto.getMargenNeto());
     }
 
     @Test

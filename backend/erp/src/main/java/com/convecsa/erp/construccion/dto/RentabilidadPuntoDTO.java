@@ -13,6 +13,8 @@ public class RentabilidadPuntoDTO {
     private final BigDecimal ingreso;
     private final BigDecimal costoMo;
     private final BigDecimal costoMateriales;
+    private final BigDecimal costoEquipos;
+    private final BigDecimal costoSubcontratos;
     private final BigDecimal costoFactoring;
     private final BigDecimal margenBruto;
     private final BigDecimal margenNeto;

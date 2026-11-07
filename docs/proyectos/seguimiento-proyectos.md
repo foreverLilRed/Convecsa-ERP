@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo y asientos de materiales/factoring) y **documentos + alertas** en la ficha. Quedan permisos por obra, auditoría y bitácora.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de equipos y subcontratos** (imputación explícita y avance), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos) y **documentos + alertas** en la ficha. Quedan cuadrillas, permisos por obra, auditoría y bitácora.
 
 ```mermaid
 flowchart LR
@@ -50,6 +50,7 @@ flowchart TB
     Planilla --> Asiento[AsientoRCC]
     Presupuesto[PresupuestoYAPU]
     Presupuesto --> Materiales[MaterialesYAlmacen]
+    Presupuesto --> Recursos[EquiposYSubcontratos]
     Presupuesto --> Avances[AvancesFisicos]
     Avances --> Valorizacion[ValorizacionCliente]
     Valorizacion --> Factoring[Factoring]
@@ -71,7 +72,7 @@ flowchart TB
 | 9 | Integración contable y rentabilidad | Hecho |
 | 10 | Transversales | Parcial |
 
-Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Avances, Financiamiento, Rentabilidad y Documentos viven como pestañas de esa ficha. Las alertas operativas se muestran en el hub.
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad y Documentos viven como pestañas de esa ficha. Las alertas operativas se muestran en el hub.
 
 Rutas Vue:
 
@@ -81,6 +82,7 @@ Rutas Vue:
 - `/proyectos/:id/planilla` → misma ficha, tab Planilla ([`ProyectoPlanillaPage.vue`](../../frontend/src/pages/proyectos/ProyectoPlanillaPage.vue))
 - `/proyectos/:id/presupuesto` → misma ficha, tab Presupuesto ([`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue))
 - `/proyectos/:id/almacen` → misma ficha, tab Almacén ([`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue))
+- `/proyectos/:id/recursos` → misma ficha, tab Recursos ([`ProyectoRecursosPage.vue`](../../frontend/src/pages/proyectos/ProyectoRecursosPage.vue))
 - `/proyectos/:id/avances` → misma ficha, tab Avances ([`ProyectoAvancesPage.vue`](../../frontend/src/pages/proyectos/ProyectoAvancesPage.vue))
 - `/proyectos/:id/financiamiento` → misma ficha, tab Financiamiento ([`ProyectoFinanciamientoPage.vue`](../../frontend/src/pages/proyectos/ProyectoFinanciamientoPage.vue))
 - `/proyectos/:id/rentabilidad` → misma ficha, tab Rentabilidad ([`ProyectoRentabilidadPage.vue`](../../frontend/src/pages/proyectos/ProyectoRentabilidadPage.vue))
@@ -141,19 +143,21 @@ Personal RCC (hecho):
 - [x] Listar personal activo de la obra (`GET /{id}/personal`) con fechas de ingreso y cese
 - [x] El tareo y la liquidación usan solo personal con contrato activo en esa obra
 
-Resto de recursos (pendiente):
+Resto de recursos:
 
-- [ ] Cuadrillas o frentes de trabajo (estructura, acabados, instalaciones) y asignación de obreros a cuadrilla
+- [ ] Cuadrillas o frentes de trabajo (estructura, acabados, instalaciones) y asignación de obreros a cuadrilla. Fuera de este corte.
 - [x] Responsables de obra: residente, maestro de obra, supervisor SSOMA (un responsable por rol, persona del padrón)
-- [ ] Asignación de maquinaria y equipos (propios o alquilados) con fecha de ingreso/salida y tarifa/hora o tarifa/día
-- [ ] Subcontratistas por especialidad, con monto contratado y avance
-- [ ] Vista de “equipo de obra” unificada (personal + equipos + subcontratos)
+- [x] Asignación de maquinaria y equipos (propios o alquilados) con fecha de ingreso/salida y tarifa/hora o tarifa/día
+- [x] Subcontratistas por especialidad, con monto contratado y avance
+- [ ] Vista de “equipo de obra” unificada (personal + equipos + subcontratos). Fuera de este corte.
 
 ### Cómo funciona (hoy)
 
 El vínculo obra–obrero no se da en la pantalla de Obras: se da en **Gestión Humana → Contratos**. Al registrar un contrato de construcción civil se elige el `proyecto` y, opcionalmente, un `centroCosto`. Ese contrato alimenta `GET /api/proyectos/{id}/personal`, el parte diario y la planilla. Si el obrero cesa (`contrato.fechaFin`), el parte diario deshabilita los días posteriores y resalta la fila en el mes del cese.
 
-Los responsables (residente, maestro de obra, supervisor SSOMA) se eligen en la ficha, tab Resumen, con Combobox sobre `listarPersonas`. `PUT /api/proyectos/{id}/responsables` reemplaza el set (0 a 3 filas, unique por rol). No es un maestro de clientes ni un módulo de equipos: el cliente sigue siendo campos en la obra.
+Los responsables (residente, maestro de obra, supervisor SSOMA) se eligen en la ficha, tab Resumen, con Combobox sobre `listarPersonas`. `PUT /api/proyectos/{id}/responsables` reemplaza el set (0 a 3 filas, unique por rol). El cliente sigue siendo campos en la obra.
+
+En **Obras → Abrir → Recursos** se asignan equipos (propios o alquilados: razón/RUC como en la OC) con tarifa por hora o por día. El costo real **no se devenga del calendario** entre ingreso y salida: solo cuentan las imputaciones explícitas (`cantidad × tarifa` snapshot). Un subcontrato tiene especialidad, subcontratista (razón/RUC) y monto contratado; cada avance es un monto devengado en una fecha y no puede superar el saldo. La partida es opcional; si se indica, debe ser del presupuesto vigente. El centro de costo es el de la partida o, en su defecto, el de la obra. Cuadrillas y la vista unificada de “equipo de obra” quedan fuera de este corte.
 
 ### Desglose técnico (hecho)
 
@@ -176,13 +180,24 @@ Los responsables (residente, maestro de obra, supervisor SSOMA) se eligen en la 
 | UI | Combobox por rol en [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) |
 | Migración | `V47` (tabla `proyecto_responsable`, unique `(proyecto_id, rol)`) |
 
+### Desglose técnico (equipos y subcontratos — hecho)
+
+| Capa | Ubicación |
+| --- | --- |
+| Entidades | [`AsignacionEquipo.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AsignacionEquipo.java), [`ImputacionEquipo.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ImputacionEquipo.java), [`SubcontratoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/SubcontratoObra.java), [`SubcontratoAvance.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/SubcontratoAvance.java) |
+| Dominio | `OrigenEquipo` (`PROPIO`/`ALQUILADO`), `ModoTarifaEquipo` (`HORA`/`DIA`) |
+| Servicio | [`RecursosObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/RecursosObraServiceImpl.java) |
+| Endpoints | `GET/POST /{id}/equipos`, `PUT /{id}/equipos/{eqId}`, `GET/POST /{id}/equipos/{eqId}/imputaciones`, `DELETE .../imputaciones/{impId}`, `GET/POST /{id}/subcontratos`, `PUT /{id}/subcontratos/{subId}`, `GET/POST /{id}/subcontratos/{subId}/avances`, `DELETE .../avances/{avId}` |
+| UI | tab Recursos de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoRecursosPage.vue`](../../frontend/src/pages/proyectos/ProyectoRecursosPage.vue) |
+| Migración | `V53` |
+| Nota | Sin asientos 61/67 de equipos. Sin alertas de desvío de equipo. PUT de cabecera no recalcula imputaciones ya hechas |
+
 ### Desglose técnico (propuesto)
 
 | Recurso | Entidad | Endpoints | UI |
 | --- | --- | --- | --- |
 | Cuadrilla | `CuadrillaObra`, `CuadrillaMiembro` | `/api/proyectos/{id}/cuadrillas` | pestaña en ficha de obra |
-| Equipos | `AsignacionEquipo` | `/api/proyectos/{id}/equipos` | `ProyectoEquiposPage.vue` |
-| Subcontratos | `SubcontratoObra` | `/api/proyectos/{id}/subcontratos` | `ProyectoSubcontratosPage.vue` |
+| Vista unificada | — | — | “equipo de obra” (personal + equipos + subcontratos) |
 
 ---
 
@@ -266,13 +281,13 @@ El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra e
 - [x] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
 - [x] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
 - [x] Costo objetivo por obra y por centro de costo (cuadrilla sigue pendiente)
-- [x] Comparativo meta vs real de mano de obra RCC y de materiales (vales de salida); equipos aún sin dato
+- [x] Comparativo meta vs real de mano de obra RCC, materiales (vales de salida), equipos (imputaciones) y subcontratos (avances)
 - [x] Versiones de presupuesto (inicial, actualizado, adicional)
 - [x] Bloqueo de presupuesto vigente: solo se edita un borrador; vigentar pasa el anterior a histórico
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida, agrupado por centro de costo. El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
+En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida. El de equipos usa APU `EQUIPO` × metrado frente a las imputaciones. El de subcontratos usa APU `SUBCONTRATO` × metrado frente a los avances. Todo se agrupa por centro de costo. El import Excel y la cuadrilla en la meta siguen pendientes. El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
 
 ### Desglose técnico (hecho)
 
@@ -437,28 +452,30 @@ El costo y el ingreso de la obra aterrizan en un P&amp;L de obra (devengo) y en 
 - [x] Asiento RCC a partir de la planilla, agrupado por centro de costo del contrato (fallback: centro de la obra)
 - [x] Consolidado mensual RCC en declaración (`consolidado_cc.centro_costo`)
 - [x] Destino contable `obra / centro` en [`AsientoRccService.java`](../../backend/erp/src/main/java/com/convecsa/erp/nomina/declaracion/support/AsientoRccService.java)
-- [x] Tablero de rentabilidad por obra: ingresos (valorizaciones `APROBADA`, `montoBruto`) vs costos (MO cerrada + materiales + costo de factoring)
+- [x] Tablero de rentabilidad por obra: ingresos (valorizaciones `APROBADA`, `montoBruto`) vs costos (MO cerrada + materiales + equipos + subcontratos + costo de factoring)
 - [x] Margen bruto y margen neto, mensual y acumulado
 - [x] Asientos de consumo de materiales y costo de factoring (DTO de consulta, no persistidos)
 - [ ] Proyección a término (ETC / EAC) cuando existan presupuesto y avance. Descartado en este corte.
-- [ ] Asiento de depreciación/alquiler de equipos. Descartado en este corte: no hay equipos en el sistema.
+- [ ] Asiento de depreciación/alquiler de equipos. Descartado en este corte: no hay asientos nuevos de equipos.
 - [ ] Exportar resumen de obra a Excel para gerencia. Descartado en este corte.
-
-Equipos y subcontratos en el margen quedan en 0. Descartado en este corte: no hay esas entidades.
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Rentabilidad** hay dos pestañas. **Margen** es P&amp;L por devengo (distinto del flujo de caja de la sección 8): el ingreso es `montoBruto` de valorizaciones `APROBADA` en su `anio`/`mes`; el costo MO es `totalHaberes + totalAportesEmpleador` de periodos `CERRADO` (fecha = `fechaHasta`); materiales son el costo de vales; factoring es `descuento + comisión + IGV` en la fecha de adelanto. Margen bruto = ingreso − MO − materiales; neto = bruto − factoring. **Asientos** arma dos asientos del rango: consumo (Debe 61 / Haber 24, destino 92/791 por centro del vale) y adelanto de factoring (Debe 1041 + 67 + 4011 / Haber 12). No se guardan ni se genera PDF. El asiento RCC de planilla sigue en la declaración mensual.
+En **Obras → Abrir → Rentabilidad** hay dos pestañas. **Margen** es P&amp;L por devengo (distinto del flujo de caja de la sección 8): el ingreso es `montoBruto` de valorizaciones `APROBADA` en su `anio`/`mes`; el costo MO es `totalHaberes + totalAportesEmpleador` de periodos `CERRADO` (fecha = `fechaHasta`); materiales son el costo de vales; equipos son las imputaciones (fecha de imputación); subcontratos son los avances (fecha de avance); factoring es `descuento + comisión + IGV` en la fecha de adelanto. Margen bruto = ingreso − MO − materiales − equipos − subcontratos; neto = bruto − factoring. **Asientos** arma dos asientos del rango: consumo (Debe 61 / Haber 24, destino 92/791 por centro del vale) y adelanto de factoring (Debe 1041 + 67 + 4011 / Haber 12). No se guardan ni se genera PDF. El asiento RCC de planilla sigue en la declaración mensual. No hay asientos 61/67 de equipos.
 
 ```mermaid
 flowchart LR
   ValAprobada[ValorizacionAprobada] --> Ingreso[IngresoBruto]
   Planilla[PlanillaCerrada] --> CostoMO[CostoMO]
   Vale[ValeSalida] --> CostoMat[CostoMateriales]
+  ImpEq[ImputacionEquipo] --> CostoEq[CostoEquipos]
+  AvSub[SubcontratoAvance] --> CostoSub[CostoSubcontratos]
   Adelanto[FactoringAdelantado] --> CostoFin[CostoFactoring]
   Ingreso --> Margen[MargenBrutoYNeto]
   CostoMO --> Margen
   CostoMat --> Margen
+  CostoEq --> Margen
+  CostoSub --> Margen
   CostoFin --> Margen
   Vale --> AsientoMat[AsientoMateriales]
   Adelanto --> AsientoFact[AsientoFactoring]
@@ -471,7 +488,7 @@ flowchart LR
 | Servicio | [`RentabilidadObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/RentabilidadObraServiceImpl.java) |
 | Endpoints | `GET /{id}/rentabilidad?desde=&hasta=`, `GET /{id}/asientos?desde=&hasta=` |
 | UI | tab Rentabilidad de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoRentabilidadPage.vue`](../../frontend/src/pages/proyectos/ProyectoRentabilidadPage.vue) |
-| Nota | Sin tablas nuevas. Asientos = DTO, no libro diario. MO del P&amp;L usa haberes + aportes (no el neto de caja). Equipos/subcontratos = 0 |
+| Nota | Asientos = DTO, no libro diario. MO del P&amp;L usa haberes + aportes (no el neto de caja). Equipos y subcontratos entran al margen bruto; no generan asientos nuevos |
 
 ---
 
@@ -481,7 +498,7 @@ Cortes que aplican a todas las secciones anteriores.
 
 ### Objetivos
 
-- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Avances, Financiamiento, Rentabilidad y Documentos
+- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad y Documentos
 - [x] Pestaña Documentos (adjuntos en disco: contrato, planos, actas, valorizaciones, cesiones)
 - [x] Alertas agregadas en la ficha: 50 UIT, quiebre de stock, factura por vencer/vencida (`FacturaObra.fechaVencimiento`), factoring `IMPAGA`, desvío de presupuesto (> 10 %)
 - [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex). Fuera de este corte.
@@ -509,7 +526,7 @@ flowchart LR
 | Capa | Ubicación |
 | --- | --- |
 | Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
-| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad`, `proyecto-documentos` anidadas bajo `/proyectos/:id` |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-recursos`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad`, `proyecto-documentos` anidadas bajo `/proyectos/:id` |
 | Entidad | [`DocumentoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/DocumentoObra.java) |
 | Servicio | [`TransversalObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/TransversalObraServiceImpl.java) |
 | Endpoints | `GET/POST /{id}/documentos`, `GET/DELETE /{id}/documentos/{docId}`, `GET /{id}/alertas` |
@@ -573,19 +590,20 @@ Dependencias: Fase D (factura). Es el hito de liquidez.
 
 ### Fase F — Rentabilidad y transversales
 
-- [x] Tablero de margen (ingresos vs MO + materiales + factoring) y asientos de materiales/factoring
+- [x] Tablero de margen (ingresos vs MO + materiales + equipos + subcontratos + factoring) y asientos de materiales/factoring
 - [x] Adjuntos de obra y alertas operativas en la ficha
 - [ ] Permisos por obra, auditoría, bitácora. Fuera de este corte.
 - [ ] Ampliar menú Proyectos. Fuera de este corte.
 
-Dependencias: Fases B–E para que el tablero no quede solo con mano de obra. Equipos/subcontratos, ETC/EAC y Excel quedaron fuera de este corte.
+Dependencias: Fases B–E para que el tablero no quede solo con mano de obra. ETC/EAC y Excel quedaron fuera de este corte.
 
 ### Fuera de fase (mejora continua de lo ya hecho)
 
 - [x] Edición de obra (hecho en Fase A)
 - [ ] Exportar parte diario
 - [ ] Aprobación de tareo por residente, independiente del cierre de planilla
-- [ ] Cuadrillas, equipos y subcontratos (pueden entrar en B o C según prioridad de gerencia)
+- [x] Equipos y subcontratos (hecho: tab Recursos, imputación y avance, comparativo y P&amp;L)
+- [ ] Cuadrillas (fuera de este corte)
 
 ---
 
@@ -605,7 +623,15 @@ Base: `/api/proyectos`.
 | POST | `/{id}/presupuesto/versiones` | Nueva versión (borrador) |
 | PUT | `/{id}/presupuesto/versiones/{versionId}/partidas` | Reemplazo de partidas/APU |
 | POST | `/{id}/presupuesto/versiones/{versionId}/vigentar` | Marcar vigente |
-| GET | `/{id}/presupuesto/comparativo` | Meta vs real de mano de obra y materiales |
+| GET | `/{id}/presupuesto/comparativo` | Meta vs real de MO, materiales, equipos y subcontratos |
+| GET/POST | `/{id}/equipos` | Asignaciones de equipo |
+| PUT | `/{id}/equipos/{eqId}` | Editar cabecera (no recalcula imputaciones) |
+| GET/POST | `/{id}/equipos/{eqId}/imputaciones` | Listar / registrar imputación |
+| DELETE | `/{id}/equipos/{eqId}/imputaciones/{impId}` | Eliminar imputación |
+| GET/POST | `/{id}/subcontratos` | Subcontratos de obra |
+| PUT | `/{id}/subcontratos/{subId}` | Editar cabecera |
+| GET/POST | `/{id}/subcontratos/{subId}/avances` | Listar / registrar avance |
+| DELETE | `/{id}/subcontratos/{subId}/avances/{avId}` | Eliminar avance |
 | GET/POST | `/materiales` | Catálogo empresa |
 | PUT | `/materiales/{materialId}` | Editar material |
 | GET | `/{id}/almacen` | Almacén de obra + stock y alertas |

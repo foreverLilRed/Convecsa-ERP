@@ -355,7 +355,7 @@ function quitarApu(index: number) {
       <h3 class="text-base font-semibold text-palette-navy">Comparativo meta vs real</h3>
       <p class="mt-1 text-sm text-slate-500">
         Mano de obra: meta desde APU vigente, real desde boletas RCC. Materiales: meta desde APU vigente, real desde vales de salida.
-        Equipos: sin dato.
+        Equipos: meta desde APU vigente, real desde imputaciones. Subcontratos: meta desde APU vigente, real desde avances.
       </p>
       <div v-if="comparativo" class="mt-4 grid gap-3 sm:grid-cols-3">
         <article class="rounded-lg border border-slate-200 px-4 py-3">
@@ -388,6 +388,36 @@ function quitarApu(index: number) {
             <span class="ml-1 text-sm font-normal text-slate-500">({{ comparativo.desvioPctMaterial }}%)</span>
           </p>
         </article>
+        <article class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Meta equipos</p>
+          <p class="mt-1 text-lg font-semibold text-palette-navy">{{ money.format(comparativo.metaEquipo) }}</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Real equipos</p>
+          <p class="mt-1 text-lg font-semibold text-palette-navy">{{ money.format(comparativo.realEquipo) }}</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Desvío equipos</p>
+          <p class="mt-1 text-lg font-semibold text-palette-navy">
+            {{ money.format(comparativo.desvioEquipo) }}
+            <span class="ml-1 text-sm font-normal text-slate-500">({{ comparativo.desvioPctEquipo }}%)</span>
+          </p>
+        </article>
+        <article class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Meta subcontratos</p>
+          <p class="mt-1 text-lg font-semibold text-palette-navy">{{ money.format(comparativo.metaSubcontrato) }}</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Real subcontratos</p>
+          <p class="mt-1 text-lg font-semibold text-palette-navy">{{ money.format(comparativo.realSubcontrato) }}</p>
+        </article>
+        <article class="rounded-lg border border-slate-200 px-4 py-3">
+          <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Desvío subcontratos</p>
+          <p class="mt-1 text-lg font-semibold text-palette-navy">
+            {{ money.format(comparativo.desvioSubcontrato) }}
+            <span class="ml-1 text-sm font-normal text-slate-500">({{ comparativo.desvioPctSubcontrato }}%)</span>
+          </p>
+        </article>
       </div>
       <Table v-if="comparativo?.centros.length" class="mt-4">
         <TableHeader>
@@ -399,6 +429,12 @@ function quitarApu(index: number) {
             <TableHead>Meta mat.</TableHead>
             <TableHead>Real mat.</TableHead>
             <TableHead>Desvío mat.</TableHead>
+            <TableHead>Meta eq.</TableHead>
+            <TableHead>Real eq.</TableHead>
+            <TableHead>Desvío eq.</TableHead>
+            <TableHead>Meta sub.</TableHead>
+            <TableHead>Real sub.</TableHead>
+            <TableHead>Desvío sub.</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -410,6 +446,12 @@ function quitarApu(index: number) {
             <TableCell>{{ money.format(fila.metaMaterial) }}</TableCell>
             <TableCell>{{ money.format(fila.realMaterial) }}</TableCell>
             <TableCell>{{ money.format(fila.desvioMaterial) }}</TableCell>
+            <TableCell>{{ money.format(fila.metaEquipo) }}</TableCell>
+            <TableCell>{{ money.format(fila.realEquipo) }}</TableCell>
+            <TableCell>{{ money.format(fila.desvioEquipo) }}</TableCell>
+            <TableCell>{{ money.format(fila.metaSubcontrato) }}</TableCell>
+            <TableCell>{{ money.format(fila.realSubcontrato) }}</TableCell>
+            <TableCell>{{ money.format(fila.desvioSubcontrato) }}</TableCell>
           </TableRow>
         </TableBody>
       </Table>

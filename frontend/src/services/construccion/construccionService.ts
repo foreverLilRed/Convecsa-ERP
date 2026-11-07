@@ -45,8 +45,16 @@ import type {
   FlujoCaja,
   AlertaObra,
   AsientosObra,
+  AsignacionEquipo,
+  AsignacionEquipoRequest,
   DocumentoObra,
+  ImputacionEquipo,
+  ImputacionEquipoRequest,
   RentabilidadObra,
+  SubcontratoAvance,
+  SubcontratoAvanceRequest,
+  SubcontratoObra,
+  SubcontratoObraRequest,
   TipoDocumentoObra,
   OperacionFactoring,
   OperacionFactoringRequest,
@@ -756,4 +764,101 @@ export function eliminarDocumentoObra(proyectoId: number, documentoId: number): 
 
 export function listarAlertasObra(proyectoId: number): Promise<AlertaObra[]> {
   return apiRequest<AlertaObra[]>(`/api/proyectos/${proyectoId}/alertas`)
+}
+
+export function listarEquiposObra(proyectoId: number): Promise<AsignacionEquipo[]> {
+  return apiRequest<AsignacionEquipo[]>(`/api/proyectos/${proyectoId}/equipos`)
+}
+
+export function crearEquipoObra(proyectoId: number, request: AsignacionEquipoRequest): Promise<AsignacionEquipo> {
+  return apiRequest<AsignacionEquipo>(`/api/proyectos/${proyectoId}/equipos`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function actualizarEquipoObra(
+  proyectoId: number,
+  equipoId: number,
+  request: AsignacionEquipoRequest,
+): Promise<AsignacionEquipo> {
+  return apiRequest<AsignacionEquipo>(`/api/proyectos/${proyectoId}/equipos/${equipoId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarImputacionesEquipo(proyectoId: number, equipoId: number): Promise<ImputacionEquipo[]> {
+  return apiRequest<ImputacionEquipo[]>(`/api/proyectos/${proyectoId}/equipos/${equipoId}/imputaciones`)
+}
+
+export function registrarImputacionEquipo(
+  proyectoId: number,
+  equipoId: number,
+  request: ImputacionEquipoRequest,
+): Promise<ImputacionEquipo> {
+  return apiRequest<ImputacionEquipo>(`/api/proyectos/${proyectoId}/equipos/${equipoId}/imputaciones`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function eliminarImputacionEquipo(
+  proyectoId: number,
+  equipoId: number,
+  imputacionId: number,
+): Promise<void> {
+  return apiRequest<void>(`/api/proyectos/${proyectoId}/equipos/${equipoId}/imputaciones/${imputacionId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function listarSubcontratosObra(proyectoId: number): Promise<SubcontratoObra[]> {
+  return apiRequest<SubcontratoObra[]>(`/api/proyectos/${proyectoId}/subcontratos`)
+}
+
+export function crearSubcontratoObra(
+  proyectoId: number,
+  request: SubcontratoObraRequest,
+): Promise<SubcontratoObra> {
+  return apiRequest<SubcontratoObra>(`/api/proyectos/${proyectoId}/subcontratos`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function actualizarSubcontratoObra(
+  proyectoId: number,
+  subcontratoId: number,
+  request: SubcontratoObraRequest,
+): Promise<SubcontratoObra> {
+  return apiRequest<SubcontratoObra>(`/api/proyectos/${proyectoId}/subcontratos/${subcontratoId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarAvancesSubcontrato(proyectoId: number, subcontratoId: number): Promise<SubcontratoAvance[]> {
+  return apiRequest<SubcontratoAvance[]>(`/api/proyectos/${proyectoId}/subcontratos/${subcontratoId}/avances`)
+}
+
+export function registrarAvanceSubcontrato(
+  proyectoId: number,
+  subcontratoId: number,
+  request: SubcontratoAvanceRequest,
+): Promise<SubcontratoAvance> {
+  return apiRequest<SubcontratoAvance>(`/api/proyectos/${proyectoId}/subcontratos/${subcontratoId}/avances`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function eliminarAvanceSubcontrato(
+  proyectoId: number,
+  subcontratoId: number,
+  avanceId: number,
+): Promise<void> {
+  return apiRequest<void>(`/api/proyectos/${proyectoId}/subcontratos/${subcontratoId}/avances/${avanceId}`, {
+    method: 'DELETE',
+  })
 }
