@@ -18,7 +18,9 @@ import {
 } from '@/components/ui/table'
 import {
   crearVersionPresupuesto,
+  descargarPlantillaPresupuesto,
   guardarPartidasPresupuesto,
+  importarPresupuestoExcel,
   obtenerComparativoPresupuesto,
   obtenerPresupuesto,
   vigentarPresupuesto,
@@ -77,6 +79,7 @@ const versionId = ref<number | null>(null)
 const tipoNueva = ref<TipoVersionPresupuesto>('ACTUALIZADO')
 const partidas = ref<PartidaDraft[]>([])
 const partidaActiva = ref(0)
+const excelInput = ref<HTMLInputElement | null>(null)
 
 const version = computed(() => presupuesto.value?.version ?? null)
 const esBorrador = computed(() => version.value?.estado === 'BORRADOR')
@@ -221,6 +224,38 @@ async function onVigentar() {
     toast.success('Presupuesto marcado como vigente.')
   } catch (err) {
     toast.error(err instanceof Error ? err.message : 'No se pudo vigentar el presupuesto.')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function onPlantilla() {
+  try {
+    await descargarPlantillaPresupuesto(proyectoId.value, version.value?.id)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo descargar la plantilla.')
+  }
+}
+
+async function onImportar(event: Event) {
+  const input = event.target as HTMLInputElement
+  const archivo = input.files?.[0]
+  input.value = ''
+  if (!archivo || !version.value) {
+    return
+  }
+  if (!archivo.name.toLowerCase().endsWith('.xlsx')) {
+    toast.error('El archivo debe ser .xlsx')
+    return
+  }
+  acting.value = true
+  try {
+    const data = await importarPresupuestoExcel(proyectoId.value, version.value.id, archivo)
+    aplicarPresupuesto(data)
+    comparativo.value = await obtenerComparativoPresupuesto(proyectoId.value)
+    toast.success('Presupuesto importado.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo importar el Excel.')
   } finally {
     acting.value = false
   }
@@ -461,6 +496,25 @@ function quitarApu(index: number) {
       <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="text-base font-semibold text-palette-navy">Partidas</h3>
         <div class="flex flex-wrap gap-2">
+          <Button v-if="esBorrador" variant="outline" type="button" :disabled="acting || saving" @click="onPlantilla">
+            Descargar plantilla
+          </Button>
+          <Button
+            v-if="esBorrador"
+            variant="outline"
+            type="button"
+            :disabled="acting || saving"
+            @click="excelInput?.click()"
+          >
+            Importar Excel
+          </Button>
+          <input
+            ref="excelInput"
+            class="hidden"
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            @change="onImportar"
+          >
           <Button v-if="esBorrador" variant="outline" type="button" :disabled="saving" @click="agregarPartida">
             <PlusIcon data-icon="inline-start" />
             Agregar partida

@@ -22,6 +22,7 @@ import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.nomina.dto.BoletaEnvioResumenDTO;
 import com.convecsa.erp.nomina.dto.BoletaLoteRequest;
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface InterfazConstruccionService {
 
@@ -46,6 +47,10 @@ public interface InterfazConstruccionService {
     PresupuestoDTO guardarPartidasPresupuesto(Long proyectoId, Long versionId, List<PartidaPresupuestoRequest> request);
 
     PresupuestoDTO vigentarPresupuesto(Long proyectoId, Long versionId);
+
+    PresupuestoDTO importarPresupuesto(Long proyectoId, Long versionId, MultipartFile archivo);
+
+    ArchivoDescargaDTO plantillaPresupuesto(Long proyectoId, Long versionId);
 
     ComparativoPresupuestoDTO comparativoPresupuesto(Long proyectoId);
 

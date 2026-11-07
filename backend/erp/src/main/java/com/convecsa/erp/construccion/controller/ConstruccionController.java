@@ -182,6 +182,23 @@ public class ConstruccionController {
         return construccionService.vigentarPresupuesto(id, versionId);
     }
 
+    @GetMapping("/{id:\\d+}/presupuesto/plantilla")
+    public ResponseEntity<byte[]> plantillaPresupuesto(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long versionId) {
+        return archivo(construccionService.plantillaPresupuesto(id, versionId));
+    }
+
+    @PostMapping(
+            value = "/{id:\\d+}/presupuesto/versiones/{versionId}/importar",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public PresupuestoDTO importarPresupuesto(
+            @PathVariable Long id,
+            @PathVariable Long versionId,
+            @RequestParam("file") MultipartFile file) {
+        return construccionService.importarPresupuesto(id, versionId, file);
+    }
+
     @GetMapping("/{id:\\d+}/presupuesto/comparativo")
     public ComparativoPresupuestoDTO comparativo(@PathVariable Long id) {
         return construccionService.comparativoPresupuesto(id);

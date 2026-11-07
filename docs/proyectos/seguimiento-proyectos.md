@@ -65,7 +65,7 @@ flowchart TB
 | 2 | Maestro de Obras | Hecho |
 | 3 | Asignación de recursos | Parcial |
 | 4 | Parte diario y mano de obra | Hecho |
-| 5 | Presupuesto y costeo meta | Parcial |
+| 5 | Presupuesto y costeo meta | Hecho |
 | 6 | Materiales y almacén | Hecho |
 | 7 | Avances y valorizaciones | Hecho |
 | 8 | Financiamiento de obra (incluye factoring) | Hecho |
@@ -270,14 +270,14 @@ PLAME: códigos `REINTEGRO=0121`, `DESCUENTO_MANUAL=0701`. La declaración mensu
 
 ---
 
-## 5. Presupuesto y costeo meta — Parcial
+## 5. Presupuesto y costeo meta — Hecho
 
 El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra el cual se comparará el costo real.
 
 ### Objetivos
 
 - [x] Cargar presupuesto por partidas (capítulo, partida, unidad, metrado, precio unitario, total) desde la ficha
-- [ ] Importar presupuesto desde Excel
+- [x] Importar presupuesto desde Excel
 - [x] APU por partida: mano de obra, materiales, equipos, subcontratos, gastos generales
 - [x] Metrado meta versus metrado ejecutado (se alimenta de la sección 7)
 - [x] Costo objetivo por obra y por centro de costo (cuadrilla sigue pendiente)
@@ -287,7 +287,7 @@ El costo objetivo de la obra, desglosado por partidas (APU) y metrados, contra e
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida. El de equipos usa APU `EQUIPO` × metrado frente a las imputaciones. El de subcontratos usa APU `SUBCONTRATO` × metrado frente a los avances. Todo se agrupa por centro de costo. El import Excel y la cuadrilla en la meta siguen pendientes. El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
+En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. Se cargan partidas en tabla; cada una puede llevar APU. Si hay recursos APU, el P.U. de la partida es la suma de parciales; si no, se teclea. En un borrador se puede **descargar la plantilla** `.xlsx` (hojas `Partidas` y `Apu`) e **importar** un archivo del mismo formato: el import reemplaza todas las partidas del borrador (mismas validaciones que Guardar). No se interpreta S10. Marcar vigente bloquea la edición. Una versión nueva (actualizado o adicional) copia la vigente. El comparativo de mano de obra usa APU `MANO_OBRA` × metrado frente a `totalHaberes + totalAportesEmpleador` de las boletas RCC. El de materiales usa APU `MATERIAL` × metrado frente al costo de los vales de salida. El de equipos usa APU `EQUIPO` × metrado frente a las imputaciones. El de subcontratos usa APU `SUBCONTRATO` × metrado frente a los avances. Todo se agrupa por centro de costo. El desglose de meta por cuadrilla sigue pendiente (sección 3). El metrado ejecutado de cada partida se registra en la pestaña Avances (sección 7) y se compara con el metrado meta.
 
 ### Desglose técnico (hecho)
 
@@ -295,10 +295,12 @@ En **Obras → Abrir → Presupuesto** se crea la versión inicial en borrador. 
 | --- | --- |
 | Entidades | [`PresupuestoVersion.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/PresupuestoVersion.java), [`PartidaPresupuesto.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/PartidaPresupuesto.java), [`ApuPartida.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ApuPartida.java) |
 | Dominio | `TipoVersionPresupuesto`, `EstadoVersionPresupuesto`, `TipoRecursoApu` |
-| Endpoints | `GET /api/proyectos/{id}/presupuesto`, `POST .../presupuesto/versiones`, `PUT .../versiones/{versionId}/partidas`, `POST .../vigentar`, `GET .../presupuesto/comparativo` |
+| Endpoints | `GET /api/proyectos/{id}/presupuesto`, `POST .../presupuesto/versiones`, `PUT .../versiones/{versionId}/partidas`, `POST .../vigentar`, `GET .../presupuesto/comparativo`, `GET .../presupuesto/plantilla`, `POST .../versiones/{versionId}/importar` |
+| Excel | [`PresupuestoExcelParser.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/PresupuestoExcelParser.java), [`PresupuestoExcelExporter.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/PresupuestoExcelExporter.java) (`poi-ooxml`) |
 | UI | tab Presupuesto de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoPresupuestoPage.vue`](../../frontend/src/pages/proyectos/ProyectoPresupuestoPage.vue) |
 | Migración | `V48` |
 | Relación | `PartidaPresupuesto.centroCosto` alinea con `ContratoCc.centroCosto` (fallback: centro de la obra) |
+| Nota | Import solo en `BORRADOR`. Plantilla de dos hojas (`Partidas`, `Apu`). Sin parser S10. Cuadrilla en la meta sigue en la sección 3 |
 
 ---
 
@@ -562,6 +564,7 @@ Dependencias: ninguna. Desbloquea el resto de pantallas.
 - [x] Presupuesto por partidas y versiones
 - [x] APU (mano de obra, materiales, equipos)
 - [x] Comparativo meta vs real de mano de obra RCC (materiales se completan en Fase C)
+- [x] Importar presupuesto desde Excel (plantilla Convecsa, no S10)
 
 Dependencias: Fase A. Desbloquea imputación de materiales y avances.
 
@@ -623,6 +626,8 @@ Base: `/api/proyectos`.
 | POST | `/{id}/presupuesto/versiones` | Nueva versión (borrador) |
 | PUT | `/{id}/presupuesto/versiones/{versionId}/partidas` | Reemplazo de partidas/APU |
 | POST | `/{id}/presupuesto/versiones/{versionId}/vigentar` | Marcar vigente |
+| GET | `/{id}/presupuesto/plantilla` | Plantilla `.xlsx` (vacía o con la versión) |
+| POST | `/{id}/presupuesto/versiones/{versionId}/importar` | Importar partidas/APU (multipart, solo borrador) |
 | GET | `/{id}/presupuesto/comparativo` | Meta vs real de MO, materiales, equipos y subcontratos |
 | GET/POST | `/{id}/equipos` | Asignaciones de equipo |
 | PUT | `/{id}/equipos/{eqId}` | Editar cabecera (no recalcula imputaciones) |

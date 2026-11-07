@@ -80,6 +80,8 @@ import com.convecsa.erp.construccion.support.CcLiquidacionResult;
 import com.convecsa.erp.construccion.support.CcParametros;
 import com.convecsa.erp.construccion.support.DominicalCc;
 import com.convecsa.erp.construccion.support.RentaQuintaProyeccionService;
+import com.convecsa.erp.construccion.support.PresupuestoExcelExporter;
+import com.convecsa.erp.construccion.support.PresupuestoExcelParser;
 import com.convecsa.erp.construccion.support.UitObraAlerta;
 import com.convecsa.erp.contrato.dto.CatalogoItemDTO;
 import com.convecsa.erp.contrato.entity.Contrato;
@@ -102,6 +104,7 @@ import com.convecsa.erp.nomina.support.BoletaCorreoService;
 import com.convecsa.erp.nomina.support.BoletaPdfService;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
@@ -121,6 +124,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -139,6 +143,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private final TareoCcDiaRepository tareoCcDiaRepository;
     private final BoletaCcRepository boletaCcRepository;
     private final ValeSalidaItemRepository valeSalidaItemRepository;
+    private final PresupuestoExcelParser presupuestoExcelParser;
+    private final PresupuestoExcelExporter presupuestoExcelExporter;
     private final ImputacionEquipoRepository imputacionEquipoRepository;
     private final SubcontratoAvanceRepository subcontratoAvanceRepository;
     private final BoletaCcEnvioCorreoRepository boletaCcEnvioCorreoRepository;
@@ -350,6 +356,42 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         version.setEstado(EstadoVersionPresupuesto.VIGENTE);
         presupuestoVersionRepository.save(version);
         return obtenerPresupuesto(proyectoId, versionId);
+    }
+
+    @Override
+    @Transactional
+    public PresupuestoDTO importarPresupuesto(Long proyectoId, Long versionId, MultipartFile archivo) {
+        PresupuestoVersion version = buscarVersion(proyectoId, versionId);
+        asegurarBorrador(version);
+        if (archivo == null || archivo.isEmpty()) {
+            throw new IllegalArgumentException("Adjunte un archivo Excel de presupuesto");
+        }
+        byte[] contenido;
+        try {
+            contenido = archivo.getBytes();
+        } catch (IOException exception) {
+            throw new IllegalArgumentException("No se pudo leer el archivo Excel");
+        }
+        List<PartidaPresupuestoRequest> filas = presupuestoExcelParser.parse(contenido, archivo.getOriginalFilename());
+        return guardarPartidasPresupuesto(proyectoId, versionId, filas);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ArchivoDescargaDTO plantillaPresupuesto(Long proyectoId, Long versionId) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        List<PartidaPresupuestoDTO> partidas = List.of();
+        String filename = "presupuesto-plantilla.xlsx";
+        if (versionId != null) {
+            PresupuestoVersion version = buscarVersion(proyectoId, versionId);
+            partidas = toVersionDto(version).getPartidas();
+            String codigo = proyecto.getCodigo() == null ? "obra" : proyecto.getCodigo();
+            filename = "presupuesto-" + codigo + "-v" + version.getNumero() + ".xlsx";
+        }
+        return new ArchivoDescargaDTO(
+                filename,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                presupuestoExcelExporter.exportar(partidas));
     }
 
     @Override

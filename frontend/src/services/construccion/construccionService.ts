@@ -141,6 +141,53 @@ export function vigentarPresupuesto(proyectoId: number, versionId: number): Prom
   )
 }
 
+export function descargarPlantillaPresupuesto(proyectoId: number, versionId?: number): Promise<void> {
+  const params = versionId == null ? '' : `?versionId=${versionId}`
+  return downloadAuthenticatedRequest(
+    `/api/proyectos/${proyectoId}/presupuesto/plantilla${params}`,
+    'presupuesto-plantilla.xlsx',
+  )
+}
+
+export async function importarPresupuestoExcel(
+  proyectoId: number,
+  versionId: number,
+  file: File,
+): Promise<Presupuesto> {
+  const session = getSession()
+  const headers: Record<string, string> = session?.token ? { Authorization: `Bearer ${session.token}` } : {}
+  const body = new FormData()
+  body.append('file', file)
+  const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+  let response: Response
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/api/proyectos/${proyectoId}/presupuesto/versiones/${versionId}/importar`,
+      { method: 'POST', headers, body },
+    )
+  } catch {
+    throw new ApiError('No se pudo conectar con el servidor.', 0)
+  }
+  if (response.status === 401) {
+    clearSession()
+    const pathname = window.location.pathname
+    if (pathname !== '/login' && !pathname.startsWith('/invitar/')) {
+      window.location.assign('/login')
+    }
+  }
+  if (!response.ok) {
+    let message = `Error ${response.status}`
+    try {
+      const payload = (await response.json()) as { message?: string }
+      message = payload.message ?? message
+    } catch {
+      // respuesta no JSON
+    }
+    throw new ApiError(message, response.status)
+  }
+  return (await response.json()) as Presupuesto
+}
+
 export function obtenerComparativoPresupuesto(proyectoId: number): Promise<ComparativoPresupuesto> {
   return apiRequest<ComparativoPresupuesto>(`/api/proyectos/${proyectoId}/presupuesto/comparativo`)
 }

@@ -15,8 +15,10 @@ import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
 import com.convecsa.erp.construccion.domain.RolResponsableObra;
 import com.convecsa.erp.construccion.domain.TipoRecursoApu;
 import com.convecsa.erp.construccion.domain.TipoVersionPresupuesto;
+import com.convecsa.erp.construccion.dto.ApuPartidaDTO;
 import com.convecsa.erp.construccion.dto.ApuPartidaRequest;
 import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
+import com.convecsa.erp.construccion.dto.PartidaPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.PartidaPresupuestoRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
 import com.convecsa.erp.construccion.dto.PresupuestoDTO;
@@ -47,6 +49,8 @@ import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaItemRepository;
 import com.convecsa.erp.construccion.service.impl.ConstruccionServiceImpl;
+import com.convecsa.erp.construccion.support.PresupuestoExcelExporter;
+import com.convecsa.erp.construccion.support.PresupuestoExcelParser;
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
@@ -60,7 +64,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class ConstruccionServiceImplTest {
@@ -94,6 +100,12 @@ class ConstruccionServiceImplTest {
 
     @Mock
     private ValeSalidaItemRepository valeSalidaItemRepository;
+
+    @Spy
+    private PresupuestoExcelParser presupuestoExcelParser = new PresupuestoExcelParser();
+
+    @Spy
+    private PresupuestoExcelExporter presupuestoExcelExporter = new PresupuestoExcelExporter();
 
     @Mock
     private ImputacionEquipoRepository imputacionEquipoRepository;
@@ -300,6 +312,74 @@ class ConstruccionServiceImplTest {
         IllegalArgumentException error = assertThrows(
                 IllegalArgumentException.class,
                 () -> servicio.guardarPartidasPresupuesto(7L, 10L, List.of(partida)));
+        assertEquals("Solo se puede editar un presupuesto en borrador", error.getMessage());
+    }
+
+    @Test
+    void importarPresupuestoDerivaPrecioUnitarioDesdeApu() {
+        Proyecto proyecto = proyectoExistente();
+        PresupuestoVersion version = versionBorrador(proyecto);
+        when(proyectoRepository.findById(7L)).thenReturn(Optional.of(proyecto));
+        when(presupuestoVersionRepository.findByIdAndProyectoId(10L, 7L)).thenReturn(Optional.of(version));
+        AtomicReference<PartidaPresupuesto> guardada = new AtomicReference<>();
+        when(partidaPresupuestoRepository.save(any(PartidaPresupuesto.class))).thenAnswer(invocation -> {
+            PartidaPresupuesto partida = invocation.getArgument(0);
+            partida.setId(3L);
+            guardada.set(partida);
+            return partida;
+        });
+        when(partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(10L))
+                .thenAnswer(invocation -> guardada.get() == null ? List.of() : List.of(guardada.get()));
+        when(presupuestoVersionRepository.findByProyectoIdOrderByNumeroDesc(7L)).thenReturn(List.of(version));
+        when(partidaPresupuestoRepository.countByVersionId(10L)).thenReturn(1);
+
+        PartidaPresupuestoDTO origen = PartidaPresupuestoDTO.builder()
+                .codigo("01.01")
+                .descripcion("Excavación")
+                .metrado(new BigDecimal("3"))
+                .precioUnitario(new BigDecimal("99"))
+                .orden(0)
+                .apu(List.of(
+                        ApuPartidaDTO.builder()
+                                .tipo(TipoRecursoApu.MANO_OBRA)
+                                .descripcion("Jornal")
+                                .cantidad(new BigDecimal("2"))
+                                .precioUnitario(new BigDecimal("10"))
+                                .parcial(new BigDecimal("20"))
+                                .orden(0)
+                                .build(),
+                        ApuPartidaDTO.builder()
+                                .tipo(TipoRecursoApu.MATERIAL)
+                                .descripcion("Arena")
+                                .cantidad(new BigDecimal("1"))
+                                .precioUnitario(new BigDecimal("5"))
+                                .parcial(new BigDecimal("5"))
+                                .orden(1)
+                                .build()))
+                .build();
+        byte[] excel = presupuestoExcelExporter.exportar(List.of(origen));
+        MockMultipartFile archivo = new MockMultipartFile(
+                "file", "presupuesto.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", excel);
+
+        PresupuestoDTO dto = servicio.importarPresupuesto(7L, 10L, archivo);
+
+        assertEquals(new BigDecimal("25.00"), dto.getVersion().getPartidas().get(0).getPrecioUnitario());
+        assertEquals(new BigDecimal("75.00"), dto.getVersion().getPartidas().get(0).getTotal());
+    }
+
+    @Test
+    void importarPresupuestoRechazaVersionVigente() {
+        Proyecto proyecto = proyectoExistente();
+        PresupuestoVersion version = versionBorrador(proyecto);
+        version.setEstado(EstadoVersionPresupuesto.VIGENTE);
+        when(proyectoRepository.findById(7L)).thenReturn(Optional.of(proyecto));
+        when(presupuestoVersionRepository.findByIdAndProyectoId(10L, 7L)).thenReturn(Optional.of(version));
+
+        MockMultipartFile archivo = new MockMultipartFile("file", "presupuesto.xlsx", "application/octet-stream", new byte[] {1});
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.importarPresupuesto(7L, 10L, archivo));
         assertEquals("Solo se puede editar un presupuesto en borrador", error.getMessage());
     }
 
