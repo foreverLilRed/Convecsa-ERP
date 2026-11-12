@@ -22,10 +22,8 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   anularRequerimientoObra,
   aprobarRequerimientoObra,
-  actualizarMaterial,
   cerrarInventario,
   cerrarOrdenCompra,
-  crearMaterial,
   crearOrdenCompra,
   crearRequerimientoObra,
   crearValeSalida,
@@ -47,6 +45,8 @@ import {
   registrarAjusteAlmacen,
   sugeridosApuMateriales,
 } from '@/services/construccion/construccionService'
+import { getSession } from '@/services/auth/authService'
+import { esAlmacen } from '@/types/auth'
 import type {
   AlmacenObra,
   InventarioCierre,
@@ -58,7 +58,7 @@ import type {
   ValeSalida,
 } from '@/types/construccion'
 
-type TabAlmacen = 'catalogo' | 'requerimientos' | 'compras' | 'kardex'
+type TabAlmacen = 'requerimientos' | 'compras' | 'kardex'
 
 type ItemDraft = {
   materialId: string
@@ -78,7 +78,8 @@ const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
-const tab = ref<TabAlmacen>('catalogo')
+const almacenRol = computed(() => esAlmacen(getSession()?.rol))
+const tab = ref<TabAlmacen>(almacenRol.value ? 'kardex' : 'requerimientos')
 const loading = ref(true)
 const saving = ref(false)
 
@@ -90,17 +91,6 @@ const compras = ref<OrdenCompra[]>([])
 const kardex = ref<MovimientoAlmacen[]>([])
 const vales = ref<ValeSalida[]>([])
 const cierres = ref<InventarioCierre[]>([])
-
-const materialForm = reactive({
-  id: null as number | null,
-  codigo: '',
-  descripcion: '',
-  unidad: '',
-  familia: '',
-  stockMinimo: '0',
-  critico: false,
-  activo: true,
-})
 
 const reqId = ref<number | null>(null)
 const reqObs = ref('')
@@ -144,6 +134,15 @@ async function load() {
   }
   loading.value = true
   try {
+    if (esAlmacen(getSession()?.rol)) {
+      const [alm, movs] = await Promise.all([
+        obtenerAlmacen(proyectoId.value),
+        listarKardex(proyectoId.value),
+      ])
+      almacen.value = alm
+      kardex.value = movs
+      return
+    }
     const [mats, alm, pres, reqs, ocs, movs, valesData, cierresData] = await Promise.all([
       listarMateriales(),
       obtenerAlmacen(proyectoId.value),
@@ -166,56 +165,6 @@ async function load() {
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar el almacén.')
   } finally {
     loading.value = false
-  }
-}
-
-function limpiarMaterial() {
-  materialForm.id = null
-  materialForm.codigo = ''
-  materialForm.descripcion = ''
-  materialForm.unidad = ''
-  materialForm.familia = ''
-  materialForm.stockMinimo = '0'
-  materialForm.critico = false
-  materialForm.activo = true
-}
-
-function editarMaterial(item: MaterialCatalogo) {
-  materialForm.id = item.id
-  materialForm.codigo = item.codigo
-  materialForm.descripcion = item.descripcion
-  materialForm.unidad = item.unidad ?? ''
-  materialForm.familia = item.familia ?? ''
-  materialForm.stockMinimo = String(item.stockMinimo)
-  materialForm.critico = item.critico
-  materialForm.activo = item.activo
-}
-
-async function onGuardarMaterial() {
-  saving.value = true
-  try {
-    const request = {
-      codigo: materialForm.codigo,
-      descripcion: materialForm.descripcion,
-      unidad: materialForm.unidad || null,
-      familia: materialForm.familia || null,
-      stockMinimo: Number(materialForm.stockMinimo || '0'),
-      critico: materialForm.critico,
-      activo: materialForm.activo,
-    }
-    if (materialForm.id) {
-      await actualizarMaterial(materialForm.id, request)
-      toast.success('Material actualizado.')
-    } else {
-      await crearMaterial(request)
-      toast.success('Material creado.')
-    }
-    limpiarMaterial()
-    await load()
-  } catch (err) {
-    toast.error(err instanceof Error ? err.message : 'No se pudo guardar el material.')
-  } finally {
-    saving.value = false
   }
 }
 
@@ -588,9 +537,8 @@ function onSelectOc(event: Event) {
 
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabAlmacen)">
       <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
-        <TabsTrigger value="catalogo" class="h-9 rounded-lg px-4 text-sm">Catálogo</TabsTrigger>
-        <TabsTrigger value="requerimientos" class="h-9 rounded-lg px-4 text-sm">Requerimientos</TabsTrigger>
-        <TabsTrigger value="compras" class="h-9 rounded-lg px-4 text-sm">Compras</TabsTrigger>
+        <TabsTrigger v-if="!almacenRol" value="requerimientos" class="h-9 rounded-lg px-4 text-sm">Requerimientos</TabsTrigger>
+        <TabsTrigger v-if="!almacenRol" value="compras" class="h-9 rounded-lg px-4 text-sm">Compras</TabsTrigger>
         <TabsTrigger value="kardex" class="h-9 rounded-lg px-4 text-sm">Kardex</TabsTrigger>
       </TabsList>
     </Tabs>
@@ -598,55 +546,6 @@ function onSelectOc(event: Event) {
     <div v-if="loading" class="space-y-3">
       <Skeleton class="h-10 w-full" />
       <Skeleton class="h-24 w-full" />
-    </div>
-
-    <div v-else-if="tab === 'catalogo'" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
-      <div class="mb-4 grid gap-3 sm:grid-cols-6">
-        <Input v-model="materialForm.codigo" :class="inputClass" placeholder="Código" />
-        <Input v-model="materialForm.descripcion" class="sm:col-span-2" :class="inputClass" placeholder="Descripción" />
-        <Input v-model="materialForm.unidad" :class="inputClass" placeholder="Unidad" />
-        <Input v-model="materialForm.familia" :class="inputClass" placeholder="Familia" />
-        <Input v-model="materialForm.stockMinimo" :class="inputClass" placeholder="Stock mínimo" />
-      </div>
-      <div class="mb-4 flex flex-wrap items-center gap-3">
-        <label class="flex items-center gap-2 text-sm text-slate-600">
-          <input v-model="materialForm.critico" type="checkbox" />
-          Crítico
-        </label>
-        <label class="flex items-center gap-2 text-sm text-slate-600">
-          <input v-model="materialForm.activo" type="checkbox" />
-          Activo
-        </label>
-        <Button class="bg-palette-navy text-white hover:bg-palette-royal" type="button" :disabled="saving" @click="onGuardarMaterial">
-          {{ materialForm.id ? 'Actualizar' : 'Crear material' }}
-        </Button>
-        <Button v-if="materialForm.id" variant="outline" type="button" @click="limpiarMaterial">Nuevo</Button>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Código</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead>Unidad</TableHead>
-            <TableHead>Familia</TableHead>
-            <TableHead>Mínimo</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="item in materiales" :key="item.id">
-            <TableCell>{{ item.codigo }}</TableCell>
-            <TableCell>{{ item.descripcion }}</TableCell>
-            <TableCell>{{ item.unidad }}</TableCell>
-            <TableCell>{{ item.familia }}</TableCell>
-            <TableCell>{{ qtyFmt.format(item.stockMinimo) }}</TableCell>
-            <TableCell>
-              <Button variant="outline" size="sm" type="button" @click="editarMaterial(item)">Editar</Button>
-            </TableCell>
-          </TableRow>
-          <TableEmpty v-if="!materiales.length" :colspan="6">Aún no hay materiales en el catálogo.</TableEmpty>
-        </TableBody>
-      </Table>
     </div>
 
     <div v-else-if="tab === 'requerimientos'" class="space-y-4">
@@ -825,7 +724,7 @@ function onSelectOc(event: Event) {
         </Table>
       </div>
 
-      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+      <div v-if="!almacenRol" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="text-base font-semibold text-palette-navy">Vale de salida</h3>
         <div class="mt-3 grid gap-3 sm:grid-cols-3">
           <select v-model="valePartidaId" :class="selectClass">
@@ -866,7 +765,7 @@ function onSelectOc(event: Event) {
         </Table>
       </div>
 
-      <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+      <div v-if="!almacenRol" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="text-base font-semibold text-palette-navy">Ajuste y cierre</h3>
         <div class="mt-3 grid gap-3 sm:grid-cols-4">
           <select v-model="ajuste.materialId" :class="selectClass">

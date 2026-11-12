@@ -38,6 +38,7 @@ public class AuthServiceImpl implements InterfazAuthService {
                 .username(usuario.getUsername())
                 .correo(usuario.getCorreo())
                 .rol(usuario.getRol())
+                .usuarioId(usuario.getId())
                 .build();
     }
 }

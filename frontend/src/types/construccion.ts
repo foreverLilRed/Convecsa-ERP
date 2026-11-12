@@ -1,3 +1,5 @@
+import type { RolUsuario } from '@/types/auth'
+
 export type NivelRiesgoObra = 'BAJO' | 'MEDIO' | 'ALTO'
 
 export type EstadoObra = 'EN_EJECUCION' | 'PARALIZADA' | 'LIQUIDADA'
@@ -979,6 +981,22 @@ export type AlertaObra = {
   codigo: string
   severidad: SeveridadAlertaObra
   mensaje: string
+}
+
+export type AccesoObra = {
+  usuarioId: number
+  username: string
+  rol: RolUsuario
+}
+
+export type AccesoObraRequest = {
+  usuarioId: number
+}
+
+export type UsuarioAsignable = {
+  id: number
+  username: string
+  rol: RolUsuario
 }
 
 export type ValorizacionItem = {

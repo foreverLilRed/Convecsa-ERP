@@ -46,6 +46,8 @@ import type {
   CobranzaObraRequest,
   FacturaObra,
   FlujoCaja,
+  AccesoObra,
+  AccesoObraRequest,
   AlertaObra,
   AuditoriaObra,
   AsientosObra,
@@ -62,6 +64,7 @@ import type {
   SubcontratoObra,
   SubcontratoObraRequest,
   TipoDocumentoObra,
+  UsuarioAsignable,
   OperacionFactoring,
   OperacionFactoringRequest,
   RetencionesObra,
@@ -817,6 +820,22 @@ export function eliminarDocumentoObra(proyectoId: number, documentoId: number): 
 
 export function listarAlertasObra(proyectoId: number): Promise<AlertaObra[]> {
   return apiRequest<AlertaObra[]>(`/api/proyectos/${proyectoId}/alertas`)
+}
+
+export function listarAccesosObra(proyectoId: number): Promise<AccesoObra[]> {
+  return apiRequest<AccesoObra[]>(`/api/proyectos/${proyectoId}/accesos`)
+}
+
+export function guardarAccesosObra(proyectoId: number, accesos: AccesoObraRequest[]): Promise<AccesoObra[]> {
+  return apiRequest<AccesoObra[]>(`/api/proyectos/${proyectoId}/accesos`, {
+    method: 'PUT',
+    body: JSON.stringify({ accesos }),
+  })
+}
+
+export function listarUsuariosAsignables(q = ''): Promise<UsuarioAsignable[]> {
+  const params = q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ''
+  return apiRequest<UsuarioAsignable[]>(`/api/proyectos/usuarios-asignables${params}`)
 }
 
 export function listarBitacoraObra(proyectoId: number): Promise<BitacoraObra[]> {

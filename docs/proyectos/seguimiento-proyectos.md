@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de recursos** (cuadrillas, equipos, subcontratos y vista unificada), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos) y **documentos + alertas + diario de obra + log de mutaciones** en la ficha. Quedan permisos por obra y ampliar el menú Proyectos.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo empresa, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de recursos** (cuadrillas, equipos, subcontratos y vista unificada), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos), **documentos + alertas + diario de obra + log de mutaciones** en la ficha, y **permisos por obra** (roles globales + `usuario_proyecto`) con menú **Obras** y **Catálogo de materiales**.
 
 ```mermaid
 flowchart LR
@@ -70,13 +70,14 @@ flowchart TB
 | 7 | Avances y valorizaciones | Hecho |
 | 8 | Financiamiento de obra (incluye factoring) | Hecho |
 | 9 | Integración contable y rentabilidad | Hecho |
-| 10 | Transversales | Parcial |
+| 10 | Transversales | Hecho |
 
-Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad, Documentos y Bitácora viven como pestañas de esa ficha. Las alertas operativas se muestran en el hub.
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con hijos **Obras** (`/proyectos`) y **Catálogo de materiales** (`/proyectos/materiales`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad, Documentos y Bitácora viven como pestañas de esa ficha. Las alertas operativas se muestran en el hub. Gerencia (ADMIN/SUPERADMIN) ve todas las obras y asigna accesos en Resumen; residente/supervisor solo las asignadas; almacén solo Kardex.
 
 Rutas Vue:
 
 - `/proyectos` → [`ProyectosPage.vue`](../../frontend/src/pages/proyectos/ProyectosPage.vue)
+- `/proyectos/materiales` → [`ProyectoMaterialesPage.vue`](../../frontend/src/pages/proyectos/ProyectoMaterialesPage.vue)
 - `/proyectos/:id` → [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) (tab Resumen)
 - `/proyectos/:id/tareo` → misma ficha, tab Tareo ([`ProyectoTareoPage.vue`](../../frontend/src/pages/proyectos/ProyectoTareoPage.vue))
 - `/proyectos/:id/planilla` → misma ficha, tab Planilla ([`ProyectoPlanillaPage.vue`](../../frontend/src/pages/proyectos/ProyectoPlanillaPage.vue))
@@ -328,7 +329,7 @@ Ciclo de abastecimiento de la obra: pedido, compra, recepción, kardex y consumo
 
 ### Cómo funciona (hoy)
 
-En **Obras → Abrir → Almacén** hay un catálogo empresa y un almacén por obra (se crea al primer acceso). El residente arma un requerimiento (borrador → aprobado), opcionalmente sugerido desde APU `MATERIAL` de la vigente. Compras genera la OC (proveedor razón/RUC, no maestro) y al emitir cubre el requerimiento. La recepción entra al kardex al precio de la OC y recalcula CMP. El vale de salida descuenta stock al CMP e imputa costo a la partida vigente. El comparativo de presupuesto toma el real de materiales de esos vales. El asiento de consumo se consulta en la pestaña Rentabilidad (sección 9).
+El catálogo de materiales es de empresa y vive en **Proyectos → Catálogo de materiales**. En **Obras → Abrir → Almacén** hay un almacén por obra (se crea al primer acceso) con Requerimientos, Compras y Kardex. El residente arma un requerimiento (borrador → aprobado), opcionalmente sugerido desde APU `MATERIAL` de la vigente. Compras genera la OC (proveedor razón/RUC, no maestro) y al emitir cubre el requerimiento. La recepción entra al kardex al precio de la OC y recalcula CMP. El vale de salida descuenta stock al CMP e imputa costo a la partida vigente. El comparativo de presupuesto toma el real de materiales de esos vales. El asiento de consumo se consulta en la pestaña Rentabilidad (sección 9).
 
 ```mermaid
 flowchart LR
@@ -347,7 +348,7 @@ flowchart LR
 | Entidades | [`Material.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/Material.java), [`AlmacenObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AlmacenObra.java), [`RequerimientoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/RequerimientoObra.java), [`OrdenCompra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/OrdenCompra.java), [`RecepcionAlmacen.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/RecepcionAlmacen.java), [`ValeSalida.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/ValeSalida.java), [`MovimientoAlmacen.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/MovimientoAlmacen.java), [`InventarioCierre.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/InventarioCierre.java) |
 | Servicio | [`AlmacenServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/AlmacenServiceImpl.java) |
 | Endpoints | `GET/POST /api/proyectos/materiales`, `GET /api/proyectos/{id}/almacen`, requerimientos, compras, vales, kardex, cierre |
-| UI | tab Almacén de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue) |
+| UI | catálogo en [`ProyectoMaterialesPage.vue`](../../frontend/src/pages/proyectos/ProyectoMaterialesPage.vue); tab Almacén de [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue), [`ProyectoAlmacenPage.vue`](../../frontend/src/pages/proyectos/ProyectoAlmacenPage.vue) (Requerimientos / Compras / Kardex) |
 | Migración | `V49` |
 | Nota | Un almacén por obra. Proveedor = columnas en la OC. Sin cuadrillas, sin GRE electrónica. Asiento de consumo en la sección 9 |
 
@@ -500,7 +501,7 @@ flowchart LR
 
 ---
 
-## 10. Transversales — Parcial
+## 10. Transversales — Hecho
 
 Cortes que aplican a todas las secciones anteriores.
 
@@ -511,14 +512,18 @@ Cortes que aplican a todas las secciones anteriores.
 - [x] Alertas agregadas en la ficha: 50 UIT, quiebre de stock, factura por vencer/vencida (`FacturaObra.fechaVencimiento`), factoring `IMPAGA`, desvío de presupuesto (> 10 %)
 - [x] Bitácora / diario de obra (texto libre por día, distinto del parte de asistencia)
 - [x] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura)
-- [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex). Fuera de este corte.
-- [ ] Ampliar el menú **Proyectos** más allá de Obras cuando existan las pantallas. Fuera de este corte.
+- [x] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex)
+- [x] Ampliar el menú **Proyectos**: Obras + Catálogo de materiales
 
 ### Cómo funciona (hoy)
 
 En **Obras → Abrir → Documentos** se suben PDF/JPEG/PNG (máx. 15 MB) con un tipo. El archivo vive en disco (`app.obras.documentos-dir`); la tabla `documento_obra` guarda metadatos. Se puede descargar o eliminar. En el hub, `GET /{id}/alertas` arma banners informativos (ámbar / rojo): no bloquean tareo ni liquidación. La “valorización por vencer” del backlog se cubre con el vencimiento de la factura interna.
 
-En **Bitácora** hay dos capas: el **diario** (`bitacora_obra`) son notas de texto del día de obra (varias por fecha, se pueden quitar); la **auditoría** (`auditoria_obra`) es un log append-only de mutaciones (tareo, presupuesto, valorización, factoring). El campo `usuario` es un snapshot del login JWT; si no hay autenticación (tests) queda `"sistema"`. No hay `usuario_id` en el token.
+En **Bitácora** hay dos capas: el **diario** (`bitacora_obra`) son notas de texto del día de obra (varias por fecha, se pueden quitar); la **auditoría** (`auditoria_obra`) es un log append-only de mutaciones (tareo, presupuesto, valorización, factoring). El campo `usuario` es un snapshot del login JWT; si no hay autenticación (tests) queda `"sistema"`. El JWT lleva `sub`, `rol` y `uid`; el principal del filtro sigue siendo el username.
+
+Los roles son globales: **SUPERADMIN/ADMIN** (gerencia) ven todas las obras, todas las pestañas y asignan accesos en Resumen; **SUPERVISOR/RESIDENTE** ven las obras de `usuario_proyecto` con ficha completa; **ALMACEN** ve las asignadas y solo Almacén/Kardex (lectura). Un supervisor sin filas en `usuario_proyecto` no ve obras hasta que gerencia lo asigne. No hay CRUD de usuarios en esta pantalla (sigue mock): Accesos solo asigna usuarios ya existentes.
+
+El menú **Proyectos** tiene **Obras** y **Catálogo de materiales**. El catálogo es de empresa, no de la ficha.
 
 ```mermaid
 flowchart LR
@@ -533,6 +538,8 @@ flowchart LR
   Mutacion[TareoPresupuestoValorizacionFactoring] --> Auditoria[auditoria_obra]
   Bitacora --> Tab[TabBitacora]
   Auditoria --> Tab
+  Jwt[JWT_uid_rol] --> Guard[AccesoObraService]
+  Guard --> Asignacion[usuario_proyecto]
 ```
 
 ### Desglose técnico (hecho)
@@ -540,19 +547,13 @@ flowchart LR
 | Capa | Ubicación |
 | --- | --- |
 | Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
-| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-recursos`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad`, `proyecto-documentos`, `proyecto-bitacora` anidadas bajo `/proyectos/:id` |
-| Entidad | [`DocumentoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/DocumentoObra.java), [`BitacoraObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/BitacoraObra.java), [`AuditoriaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AuditoriaObra.java) |
-| Servicio | [`TransversalObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/TransversalObraServiceImpl.java); registro en [`AuditoriaObraRegistrar.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/AuditoriaObraRegistrar.java) |
-| Endpoints | `GET/POST /{id}/documentos`, `GET/DELETE /{id}/documentos/{docId}`, `GET /{id}/alertas`, `GET/POST /{id}/bitacora`, `DELETE /{id}/bitacora/{notaId}`, `GET /{id}/auditoria` |
-| UI | [`ProyectoDocumentosPage.vue`](../../frontend/src/pages/proyectos/ProyectoDocumentosPage.vue); [`ProyectoBitacoraPage.vue`](../../frontend/src/pages/proyectos/ProyectoBitacoraPage.vue) (Diario \| Auditoría); banners de alerta en la ficha |
-| Migración | `V52` (documentos), `V55` (bitácora y auditoría) |
-| Nota | Archivo en disco, no `bytea`. MIME PDF/JPEG/PNG. Diario editable/eliminable; auditoría append-only. Usuario = login, no FK. Sin permisos por obra |
-
-### Desglose técnico (propuesto, fuera de este corte)
-
-| Capa | Propuesta |
-| --- | --- |
-| Permisos | extensión del `RolUsuario` actual o tabla `proyecto_usuario_rol` |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-recursos`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad`, `proyecto-documentos`, `proyecto-bitacora` anidadas bajo `/proyectos/:id`; `proyecto-materiales` en `/proyectos/materiales` |
+| Entidad | [`DocumentoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/DocumentoObra.java), [`BitacoraObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/BitacoraObra.java), [`AuditoriaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AuditoriaObra.java), [`UsuarioProyecto.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/UsuarioProyecto.java) |
+| Servicio | [`TransversalObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/TransversalObraServiceImpl.java); registro en [`AuditoriaObraRegistrar.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/AuditoriaObraRegistrar.java); [`AccesoObraService.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/AccesoObraService.java) + [`AccesoObraFilter.java`](../../backend/erp/src/main/java/com/convecsa/erp/auth/security/AccesoObraFilter.java) |
+| Endpoints | `GET/POST /{id}/documentos`, `GET/DELETE /{id}/documentos/{docId}`, `GET /{id}/alertas`, `GET/POST /{id}/bitacora`, `DELETE /{id}/bitacora/{notaId}`, `GET /{id}/auditoria`, `GET/PUT /{id}/accesos`, `GET /usuarios-asignables` |
+| UI | [`ProyectoDocumentosPage.vue`](../../frontend/src/pages/proyectos/ProyectoDocumentosPage.vue); [`ProyectoBitacoraPage.vue`](../../frontend/src/pages/proyectos/ProyectoBitacoraPage.vue) (Diario \| Auditoría); banners de alerta en la ficha; bloque Accesos en Resumen; [`ProyectoMaterialesPage.vue`](../../frontend/src/pages/proyectos/ProyectoMaterialesPage.vue) |
+| Migración | `V52` (documentos), `V55` (bitácora y auditoría), `V56` (`ck_usuarios_rol` + `usuario_proyecto`) |
+| Nota | Archivo en disco, no `bytea`. MIME PDF/JPEG/PNG. Diario editable/eliminable; auditoría append-only. Usuario = login, no FK. JWT `uid` + `usuarioId` en sesión. Sin CRUD de usuarios ni rol distinto por obra |
 
 ---
 
@@ -606,8 +607,8 @@ Dependencias: Fase D (factura). Es el hito de liquidez.
 - [x] Tablero de margen (ingresos vs MO + materiales + equipos + subcontratos + factoring) y asientos de materiales/factoring
 - [x] Adjuntos de obra y alertas operativas en la ficha
 - [x] Bitácora (diario de obra) y auditoría de mutaciones (tareo, presupuesto, valorización, cesión)
-- [ ] Permisos por obra. Fuera de este corte.
-- [ ] Ampliar menú Proyectos. Fuera de este corte.
+- [x] Permisos por obra (roles globales + `usuario_proyecto`)
+- [x] Ampliar menú Proyectos (Obras + Catálogo de materiales)
 
 Dependencias: Fases B–E para que el tablero no quede solo con mano de obra. ETC/EAC y Excel quedaron fuera de este corte.
 
@@ -633,6 +634,8 @@ Base: `/api/proyectos`.
 | GET | `/{id}` | Detalle |
 | PUT | `/{id}` | Editar obra |
 | GET/PUT | `/{id}/responsables` | Responsables (reemplazo del set) |
+| GET | `/usuarios-asignables` | Usuarios no gerencia para asignar a obra |
+| GET/PUT | `/{id}/accesos` | Accesos de obra (reemplazo del set; solo gerencia) |
 | GET | `/{id}/presupuesto` | Presupuesto (versiones + partidas/APU) |
 | POST | `/{id}/presupuesto/versiones` | Nueva versión (borrador) |
 | PUT | `/{id}/presupuesto/versiones/{versionId}/partidas` | Reemplazo de partidas/APU |

@@ -57,6 +57,7 @@ export const navItems: NavItem[] = [
     icon: 'folder',
     children: [
       { name: 'proyectos', label: 'Obras', path: '/proyectos' },
+      { name: 'proyecto-materiales', label: 'Catálogo de materiales', path: '/proyectos/materiales' },
     ],
   },
   {

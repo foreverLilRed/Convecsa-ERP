@@ -1,6 +1,7 @@
 package com.convecsa.erp.auth.security;
 
 import com.convecsa.erp.auth.support.JwtTokenService;
+import com.convecsa.erp.construccion.support.AccesoObraService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,6 +28,11 @@ public class SecurityConfig {
     }
 
     @Bean
+    public AccesoObraFilter accesoObraFilter(AccesoObraService accesoObraService) {
+        return new AccesoObraFilter(accesoObraService);
+    }
+
+    @Bean
     public ApiAuthenticationEntryPoint apiAuthenticationEntryPoint() {
         return new ApiAuthenticationEntryPoint();
     }
@@ -35,6 +41,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
+            AccesoObraFilter accesoObraFilter,
             ApiAuthenticationEntryPoint authenticationEntryPoint)
             throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
@@ -51,7 +58,8 @@ public class SecurityConfig {
                         .authenticated()
                         .anyRequest()
                         .permitAll())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(accesoObraFilter, JwtAuthenticationFilter.class);
         return http.build();
     }
 }

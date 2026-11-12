@@ -1,4 +1,4 @@
-export type RolUsuario = 'SUPERADMIN' | 'ADMIN' | 'SUPERVISOR'
+export type RolUsuario = 'SUPERADMIN' | 'ADMIN' | 'SUPERVISOR' | 'RESIDENTE' | 'ALMACEN'
 
 export interface RequestLogin {
   username: string
@@ -10,4 +10,13 @@ export interface AuthSession {
   username: string
   correo: string
   rol: RolUsuario
+  usuarioId?: number
+}
+
+export function esGerencia(rol?: RolUsuario | null): boolean {
+  return rol === 'SUPERADMIN' || rol === 'ADMIN'
+}
+
+export function esAlmacen(rol?: RolUsuario | null): boolean {
+  return rol === 'ALMACEN'
 }

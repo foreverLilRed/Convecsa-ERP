@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 public class JwtTokenService {
 
     private static final String CLAIM_ROL = "rol";
+    private static final String CLAIM_UID = "uid";
 
     private final SecretKey key;
     private final long expirationMs;
@@ -30,13 +31,16 @@ public class JwtTokenService {
 
     public String generar(Usuario usuario) {
         Instant now = Instant.now();
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(usuario.getUsername())
                 .claim(CLAIM_ROL, usuario.getRol().name())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusMillis(expirationMs)))
-                .signWith(key)
-                .compact();
+                .signWith(key);
+        if (usuario.getId() != null) {
+            builder.claim(CLAIM_UID, usuario.getId());
+        }
+        return builder.compact();
     }
 
     public String extraerUsername(String token) {
@@ -46,6 +50,11 @@ public class JwtTokenService {
     public RolUsuario extraerRol(String token) {
         String rol = parseClaims(token).get(CLAIM_ROL, String.class);
         return RolUsuario.valueOf(rol);
+    }
+
+    public Long extraerUsuarioId(String token) {
+        Number uid = parseClaims(token).get(CLAIM_UID, Number.class);
+        return uid == null ? null : uid.longValue();
     }
 
     public boolean esValido(String token) {

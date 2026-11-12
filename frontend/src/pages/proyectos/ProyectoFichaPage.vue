@@ -21,14 +21,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   actualizarProyecto,
+  guardarAccesosObra,
   guardarResponsablesObra,
-  listarResponsablesObra,
+  listarAccesosObra,
   listarAlertasObra,
+  listarResponsablesObra,
+  listarUsuariosAsignables,
   obtenerCatalogosConstruccion,
   obtenerProyecto,
 } from '@/services/construccion/construccionService'
+import { getSession } from '@/services/auth/authService'
 import { listarPersonas } from '@/services/persona/personaService'
-import type { AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
+import { esAlmacen, esGerencia } from '@/types/auth'
+import type { AccesoObra, AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsableObra, UsuarioAsignable } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
 type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos' | 'bitacora'
@@ -64,7 +69,21 @@ const alertaUit = ref(false)
 const uitAnio = ref(new Date().getFullYear())
 const umbralUit = ref(275000)
 const alertas = ref<AlertaObra[]>([])
+const accesos = ref<AccesoObra[]>([])
+const accesoOpciones = ref<UsuarioAsignable[]>([])
+const accesoPick = ref('')
+const accesoSearch = ref('')
+const savingAccesos = ref(false)
+let accesoTimer: ReturnType<typeof setTimeout> | undefined
 const searchTimers: Partial<Record<RolResponsableObra, ReturnType<typeof setTimeout>>> = {}
+
+const rolActual = computed(() => getSession()?.rol)
+const gerencia = computed(() => esGerencia(rolActual.value))
+const almacenRol = computed(() => esAlmacen(rolActual.value))
+
+function tabVisible(nombre: TabFicha): boolean {
+  return !almacenRol.value || nombre === 'almacen'
+}
 
 const proyectoId = computed(() => Number(route.params.id))
 
@@ -194,7 +213,7 @@ function quitarResponsable(rol: RolResponsableObra) {
 
 function onTab(value: string | number) {
   const siguiente = String(value) as TabFicha
-  if (siguiente === tab.value) {
+  if (siguiente === tab.value || !tabVisible(siguiente)) {
     return
   }
   const id = String(proyectoId.value)
@@ -241,6 +260,65 @@ function onTab(value: string | number) {
   void router.push({ name: 'proyecto-ficha', params: { id } })
 }
 
+const accesoOpcionesMostrar = computed(() =>
+  accesoOpciones.value.filter((item) => !accesos.value.some((acceso) => acceso.usuarioId === item.id)),
+)
+
+function rolAccesoLabel(rol: AccesoObra['rol']): string {
+  if (rol === 'RESIDENTE') return 'Residente'
+  if (rol === 'ALMACEN') return 'Almacén'
+  if (rol === 'SUPERVISOR') return 'Supervisor'
+  return rol
+}
+
+async function buscarAsignables(q: string) {
+  accesoOpciones.value = await listarUsuariosAsignables(q)
+}
+
+function scheduleAccesoSearch(q: string) {
+  if (accesoTimer) {
+    clearTimeout(accesoTimer)
+  }
+  accesoTimer = setTimeout(() => {
+    void buscarAsignables(q)
+  }, 300)
+}
+
+function onAccesoChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(id)) {
+    return
+  }
+  const elegido = accesoOpciones.value.find((item) => item.id === id)
+  if (!elegido || accesos.value.some((acceso) => acceso.usuarioId === elegido.id)) {
+    return
+  }
+  accesos.value = [
+    ...accesos.value,
+    { usuarioId: elegido.id, username: elegido.username, rol: elegido.rol },
+  ]
+  accesoPick.value = ''
+}
+
+function quitarAcceso(usuarioId: number) {
+  accesos.value = accesos.value.filter((acceso) => acceso.usuarioId !== usuarioId)
+}
+
+async function onGuardarAccesos() {
+  savingAccesos.value = true
+  try {
+    accesos.value = await guardarAccesosObra(
+      proyectoId.value,
+      accesos.value.map((acceso) => ({ usuarioId: acceso.usuarioId })),
+    )
+    toast.success('Accesos guardados.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudieron guardar los accesos.')
+  } finally {
+    savingAccesos.value = false
+  }
+}
+
 async function load() {
   if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
     return
@@ -248,13 +326,20 @@ async function load() {
   loading.value = true
   formError.value = ''
   try {
-    const [proyecto, lista, iniciales, catalogos, listaAlertas] = await Promise.all([
+    const soloAlmacen = esAlmacen(getSession()?.rol)
+    const esAdmin = esGerencia(getSession()?.rol)
+    const [proyecto, lista, iniciales, catalogos, listaAlertas, listaAccesos] = await Promise.all([
       obtenerProyecto(proyectoId.value),
-      listarResponsablesObra(proyectoId.value),
-      listarPersonas({ page: 0, size: 15, q: '' }),
+      soloAlmacen ? Promise.resolve([]) : listarResponsablesObra(proyectoId.value),
+      soloAlmacen ? Promise.resolve({ content: [] as PersonaOpcion[] }) : listarPersonas({ page: 0, size: 15, q: '' }),
       obtenerCatalogosConstruccion(),
       listarAlertasObra(proyectoId.value),
+      esAdmin ? listarAccesosObra(proyectoId.value) : Promise.resolve([]),
     ])
+    accesos.value = listaAccesos
+    if (esAdmin) {
+      void buscarAsignables('')
+    }
     form.codigo = proyecto.codigo
     form.nombre = proyecto.nombre
     form.ubicacion = proyecto.ubicacion ?? ''
@@ -399,6 +484,22 @@ watch(proyectoId, () => {
   }
 })
 
+watch(
+  tab,
+  (actual) => {
+    if (almacenRol.value && actual !== 'almacen' && Number.isFinite(proyectoId.value) && proyectoId.value > 0) {
+      void router.replace({ name: 'proyecto-almacen', params: { id: String(proyectoId.value) } })
+    }
+  },
+  { immediate: true },
+)
+
+watch(accesoSearch, (q) => {
+  if (gerencia.value) {
+    scheduleAccesoSearch(q)
+  }
+})
+
 for (const { rol } of ROLES) {
   watch(
     () => responsables[rol].search,
@@ -415,6 +516,9 @@ onUnmounted(() => {
     if (timer) {
       clearTimeout(timer)
     }
+  }
+  if (accesoTimer) {
+    clearTimeout(accesoTimer)
   }
 })
 </script>
@@ -452,24 +556,28 @@ onUnmounted(() => {
     <Tabs class="mt-5" :model-value="tab" @update:model-value="onTab">
       <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
         <TabsTrigger
+          v-if="tabVisible('resumen')"
           value="resumen"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Resumen
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('tareo')"
           value="tareo"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Tareo
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('planilla')"
           value="planilla"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Planilla
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('presupuesto')"
           value="presupuesto"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
@@ -482,36 +590,42 @@ onUnmounted(() => {
           Almacén
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('recursos')"
           value="recursos"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Recursos
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('avances')"
           value="avances"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Avances
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('financiamiento')"
           value="financiamiento"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Financiamiento
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('rentabilidad')"
           value="rentabilidad"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Rentabilidad
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('documentos')"
           value="documentos"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Documentos
         </TabsTrigger>
         <TabsTrigger
+          v-if="tabVisible('bitacora')"
           value="bitacora"
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
@@ -704,6 +818,81 @@ onUnmounted(() => {
           </Button>
         </div>
       </form>
+
+      <div v-if="!loading && gerencia" class="mt-6 border-t border-slate-100 pt-4">
+        <h3 class="text-base font-semibold text-palette-navy">Accesos</h3>
+        <p class="mt-1 text-sm text-slate-500">
+          Usuarios de obra (residente, supervisor o almacén). Gerencia ve todas las obras sin asignarse.
+        </p>
+        <div class="mt-3 flex items-end gap-2">
+          <div class="min-w-0 flex-1">
+            <label class="text-sm font-medium text-slate-700" for="ficha-acceso">Usuario</label>
+            <Combobox
+              :model-value="accesoPick || undefined"
+              ignore-filter
+              class="min-w-0 w-full"
+              @update:model-value="onAccesoChange"
+            >
+              <ComboboxAnchor class="min-w-0 w-full">
+                <ComboboxTrigger as-child>
+                  <Button
+                    id="ficha-acceso"
+                    variant="outline"
+                    class="mt-1.5 h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                    type="button"
+                  >
+                    <span class="min-w-0 flex-1 truncate text-left text-slate-400">
+                      Buscar por usuario
+                    </span>
+                    <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+              <ComboboxList
+                class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)"
+                align="start"
+              >
+                <ComboboxInput v-model="accesoSearch" placeholder="Buscar usuario..." autocomplete="off" />
+                <ComboboxEmpty>Sin resultados.</ComboboxEmpty>
+                <ComboboxGroup>
+                  <ComboboxItem v-for="usuario in accesoOpcionesMostrar" :key="usuario.id" :value="usuario.id">
+                    {{ usuario.username }} · {{ rolAccesoLabel(usuario.rol) }}
+                    <ComboboxItemIndicator>
+                      <CheckIcon />
+                    </ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxGroup>
+              </ComboboxList>
+            </Combobox>
+          </div>
+        </div>
+        <div class="mt-3 space-y-2">
+          <div
+            v-for="acceso in accesos"
+            :key="acceso.usuarioId"
+            class="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2"
+          >
+            <p class="min-w-0 truncate text-sm text-slate-800">
+              {{ acceso.username }}
+              <span class="text-slate-500">· {{ rolAccesoLabel(acceso.rol) }}</span>
+            </p>
+            <Button variant="outline" class="h-8" type="button" @click="quitarAcceso(acceso.usuarioId)">
+              Quitar
+            </Button>
+          </div>
+          <p v-if="!accesos.length" class="text-sm text-slate-500">Aún no hay usuarios asignados a esta obra.</p>
+        </div>
+        <div class="mt-3 flex justify-end">
+          <Button
+            class="bg-palette-navy text-white hover:bg-palette-royal"
+            type="button"
+            :disabled="savingAccesos"
+            @click="onGuardarAccesos"
+          >
+            Guardar accesos
+          </Button>
+        </div>
+      </div>
     </div>
 
     <div v-else class="mt-4">

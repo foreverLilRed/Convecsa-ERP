@@ -44,6 +44,7 @@ class AuthServiceImplTest {
     @BeforeEach
     void setUp() {
         usuario = new Usuario();
+        usuario.setId(7L);
         usuario.setUsername("superadmin");
         usuario.setCorreo("ethan.b@example.com");
         usuario.setPasswordHash("hash");
@@ -67,6 +68,7 @@ class AuthServiceImplTest {
         assertEquals("superadmin", response.getUsername());
         assertEquals("ethan.b@example.com", response.getCorreo());
         assertEquals(RolUsuario.SUPERADMIN, response.getRol());
+        assertEquals(7L, response.getUsuarioId());
         verify(jwtTokenService).generar(usuario);
     }
 

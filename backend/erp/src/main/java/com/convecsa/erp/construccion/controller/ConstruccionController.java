@@ -53,6 +53,9 @@ import com.convecsa.erp.construccion.dto.LiberacionRetencionRequest;
 import com.convecsa.erp.construccion.dto.OperacionFactoringDTO;
 import com.convecsa.erp.construccion.dto.OperacionFactoringRequest;
 import com.convecsa.erp.construccion.dto.RetencionesDTO;
+import com.convecsa.erp.construccion.dto.AccesoObraDTO;
+import com.convecsa.erp.construccion.dto.AccesoObraRequest;
+import com.convecsa.erp.construccion.dto.AccesosObraGuardarRequest;
 import com.convecsa.erp.construccion.dto.AlertaObraDTO;
 import com.convecsa.erp.construccion.dto.AuditoriaObraDTO;
 import com.convecsa.erp.construccion.dto.BitacoraObraDTO;
@@ -64,6 +67,7 @@ import com.convecsa.erp.construccion.dto.CuadrillaMiembroRequest;
 import com.convecsa.erp.construccion.dto.CuadrillaObraDTO;
 import com.convecsa.erp.construccion.dto.CuadrillaObraRequest;
 import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
+import com.convecsa.erp.construccion.dto.UsuarioAsignableDTO;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.ImputacionEquipoRequest;
 import com.convecsa.erp.construccion.dto.RentabilidadObraDTO;
@@ -79,6 +83,7 @@ import com.convecsa.erp.construccion.service.InterfazRentabilidadObraService;
 import com.convecsa.erp.construccion.service.InterfazRecursosObraService;
 import com.convecsa.erp.construccion.service.InterfazTransversalObraService;
 import com.convecsa.erp.construccion.service.InterfazValorizacionService;
+import com.convecsa.erp.construccion.support.AccesoObraService;
 import com.convecsa.erp.nomina.declaracion.domain.BancoDispersion;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.nomina.dto.BoletaEnvioResumenDTO;
@@ -117,6 +122,7 @@ public class ConstruccionController {
     private final InterfazRentabilidadObraService rentabilidadService;
     private final InterfazTransversalObraService transversalService;
     private final InterfazRecursosObraService recursosService;
+    private final AccesoObraService accesoObraService;
 
     @GetMapping("/catalogos")
     public ConstruccionCatalogosDTO catalogos() {
@@ -125,13 +131,19 @@ public class ConstruccionController {
 
     @GetMapping
     public List<ProyectoDTO> listar(@RequestParam(required = false) Boolean activo) {
-        return construccionService.listarProyectos(activo);
+        return accesoObraService.filtrarListado(construccionService.listarProyectos(activo));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ProyectoDTO crear(@Valid @RequestBody ProyectoRequest request) {
+        accesoObraService.exigirGerencia();
         return construccionService.crearProyecto(request);
+    }
+
+    @GetMapping("/usuarios-asignables")
+    public List<UsuarioAsignableDTO> usuariosAsignables(@RequestParam(required = false) String q) {
+        return accesoObraService.listarAsignables(q);
     }
 
     @GetMapping("/{id:\\d+}")
@@ -156,6 +168,18 @@ public class ConstruccionController {
         List<ProyectoResponsableRequest> filas =
                 request.getResponsables() == null ? List.of() : request.getResponsables();
         return construccionService.guardarResponsables(id, filas);
+    }
+
+    @GetMapping("/{id:\\d+}/accesos")
+    public List<AccesoObraDTO> accesos(@PathVariable Long id) {
+        return accesoObraService.listarAccesos(id);
+    }
+
+    @PutMapping("/{id:\\d+}/accesos")
+    public List<AccesoObraDTO> guardarAccesos(
+            @PathVariable Long id, @Valid @RequestBody AccesosObraGuardarRequest request) {
+        List<AccesoObraRequest> filas = request.getAccesos() == null ? List.of() : request.getAccesos();
+        return accesoObraService.guardarAccesos(id, filas);
     }
 
     @GetMapping("/{id:\\d+}/presupuesto")
@@ -218,6 +242,7 @@ public class ConstruccionController {
     @PostMapping("/materiales")
     @ResponseStatus(HttpStatus.CREATED)
     public MaterialDTO crearMaterial(@Valid @RequestBody MaterialRequest request) {
+        accesoObraService.exigirNoAlmacen();
         return almacenService.crearMaterial(request);
     }
 
@@ -225,6 +250,7 @@ public class ConstruccionController {
     public MaterialDTO actualizarMaterial(
             @PathVariable Long materialId,
             @Valid @RequestBody MaterialRequest request) {
+        accesoObraService.exigirNoAlmacen();
         return almacenService.actualizarMaterial(materialId, request);
     }
 

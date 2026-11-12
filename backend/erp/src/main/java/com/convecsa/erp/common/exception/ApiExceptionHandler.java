@@ -165,6 +165,14 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    @ExceptionHandler(ProyectoSinAccesoException.class)
+    public ResponseEntity<Map<String, Object>> handleForbidden(ProyectoSinAccesoException exception) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", HttpStatus.FORBIDDEN.value());
+        body.put("message", exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
+    }
+
     @ExceptionHandler(LinkInvitadoExpiradoException.class)
     public ResponseEntity<Map<String, Object>> handleGone(LinkInvitadoExpiradoException exception) {
         Map<String, Object> body = new LinkedHashMap<>();

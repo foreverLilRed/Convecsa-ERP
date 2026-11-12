@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { isAuthenticated } from '@/services/auth/authService'
+import { getSession, isAuthenticated } from '@/services/auth/authService'
+import { esAlmacen } from '@/types/auth'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import AsistenciaPage from '@/pages/gestion-humana/AsistenciaPage.vue'
@@ -35,6 +36,20 @@ import ProyectoRentabilidadPage from '@/pages/proyectos/ProyectoRentabilidadPage
 import ProyectoRecursosPage from '@/pages/proyectos/ProyectoRecursosPage.vue'
 import ProyectoDocumentosPage from '@/pages/proyectos/ProyectoDocumentosPage.vue'
 import ProyectoBitacoraPage from '@/pages/proyectos/ProyectoBitacoraPage.vue'
+import ProyectoMaterialesPage from '@/pages/proyectos/ProyectoMaterialesPage.vue'
+
+const RUTAS_FICHA_NO_ALMACEN = new Set([
+  'proyecto-ficha',
+  'proyecto-tareo',
+  'proyecto-planilla',
+  'proyecto-presupuesto',
+  'proyecto-recursos',
+  'proyecto-avances',
+  'proyecto-financiamiento',
+  'proyecto-rentabilidad',
+  'proyecto-documentos',
+  'proyecto-bitacora',
+])
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -168,6 +183,11 @@ const router = createRouter({
           component: ProyectosPage,
         },
         {
+          path: 'proyectos/materiales',
+          name: 'proyecto-materiales',
+          component: ProyectoMaterialesPage,
+        },
+        {
           path: 'proyectos/:id(\\d+)',
           name: 'proyecto-ficha',
           component: ProyectoFichaPage,
@@ -238,6 +258,11 @@ router.beforeEach((to) => {
 
   if (to.meta.guestOnly && authenticated) {
     return { name: 'dashboard' }
+  }
+
+  const nombre = typeof to.name === 'string' ? to.name : ''
+  if (esAlmacen(getSession()?.rol) && RUTAS_FICHA_NO_ALMACEN.has(nombre) && to.params.id) {
+    return { name: 'proyecto-almacen', params: { id: to.params.id } }
   }
 
   return true

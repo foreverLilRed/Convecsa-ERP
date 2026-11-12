@@ -18,6 +18,7 @@ class JwtTokenServiceTest {
     void setUp() {
         jwtTokenService = new JwtTokenService("convecsa-erp-dev-jwt-secret-key-32bytes-min", 86_400_000);
         usuario = new Usuario();
+        usuario.setId(42L);
         usuario.setUsername("superadmin");
         usuario.setRol(RolUsuario.SUPERADMIN);
     }
@@ -29,6 +30,7 @@ class JwtTokenServiceTest {
         assertTrue(jwtTokenService.esValido(token));
         assertEquals("superadmin", jwtTokenService.extraerUsername(token));
         assertEquals(RolUsuario.SUPERADMIN, jwtTokenService.extraerRol(token));
+        assertEquals(42L, jwtTokenService.extraerUsuarioId(token));
     }
 
     @Test

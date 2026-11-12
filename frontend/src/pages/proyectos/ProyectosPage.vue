@@ -15,11 +15,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { getSession } from '@/services/auth/authService'
 import {
   crearProyecto,
   listarProyectos,
   obtenerCatalogosConstruccion,
 } from '@/services/construccion/construccionService'
+import { esAlmacen, esGerencia } from '@/types/auth'
 import type { ConstruccionCatalogos, Proyecto } from '@/types/construccion'
 
 const inputClass =
@@ -43,6 +45,17 @@ const form = reactive({
   tasaSctrSalud: '',
   tasaSctrPension: '',
 })
+
+const gerencia = computed(() => esGerencia(getSession()?.rol))
+const almacenRol = computed(() => esAlmacen(getSession()?.rol))
+
+function abrirObra(id: number) {
+  if (almacenRol.value) {
+    void router.push({ name: 'proyecto-almacen', params: { id: String(id) } })
+    return
+  }
+  void router.push({ name: 'proyecto-ficha', params: { id: String(id) } })
+}
 
 const activos = computed(() => proyectos.value.filter((item) => item.activo).length)
 const hayAlertaUit = computed(() => proyectos.value.some((item) => item.alertaUit))
@@ -231,6 +244,7 @@ async function onCrear() {
           {{ loading ? 'Cargando…' : `${activos} obra${activos === 1 ? '' : 's'} activa${activos === 1 ? '' : 's'}` }}
         </p>
         <Button
+          v-if="gerencia"
           class="h-10 bg-palette-navy px-4 text-white hover:bg-palette-royal"
           type="button"
           @click="modalOpen = true"
@@ -285,7 +299,7 @@ async function onCrear() {
                 variant="outline"
                 class="h-8 px-3 text-xs"
                 type="button"
-                @click="router.push({ name: 'proyecto-ficha', params: { id: String(proyecto.id) } })"
+                @click="abrirObra(proyecto.id)"
               >
                 Abrir
               </Button>
