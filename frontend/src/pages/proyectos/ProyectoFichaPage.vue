@@ -35,6 +35,7 @@ import { listarPersonas } from '@/services/persona/personaService'
 import { esAlmacen, esGerencia } from '@/types/auth'
 import type { AccesoObra, AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsableObra, UsuarioAsignable } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
+import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
 type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos' | 'bitacora'
 
@@ -53,11 +54,8 @@ const ROLES: { rol: RolResponsableObra; label: string }[] = [
   { rol: 'SUPERVISOR_SSOMA', label: 'Supervisor SSOMA' },
 ]
 
-const inputClass =
-  'mt-1.5 h-10 rounded-lg border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
-
-const selectClass =
-  'mt-1.5 block h-10 min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-0 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
+const inputClass = `mt-1.5 ${fieldInputClass}`
+const selectClass = `mt-1.5 ${fieldSelectClass}`
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const route = useRoute()
@@ -554,7 +552,7 @@ onUnmounted(() => {
     </div>
 
     <Tabs class="mt-5" :model-value="tab" @update:model-value="onTab">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger
           v-if="tabVisible('resumen')"
           value="resumen"
@@ -870,7 +868,7 @@ onUnmounted(() => {
           <div
             v-for="acceso in accesos"
             :key="acceso.usuarioId"
-            class="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2"
+            class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2"
           >
             <p class="min-w-0 truncate text-sm text-slate-800">
               {{ acceso.username }}

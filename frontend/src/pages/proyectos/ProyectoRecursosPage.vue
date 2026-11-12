@@ -51,14 +51,12 @@ import type {
   SubcontratoAvance,
   SubcontratoObra,
 } from '@/types/construccion'
+import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
 type TabRecursos = 'equipo' | 'cuadrillas' | 'equipos' | 'subcontratos'
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
-
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
+const inputClass = fieldInputClass
+const selectClass = fieldSelectClass
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
@@ -571,7 +569,7 @@ onMounted(() => {
 <template>
   <div class="mt-4 space-y-4">
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabRecursos)">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger value="equipo" class="h-9 rounded-lg px-4 text-sm">Equipo de obra</TabsTrigger>
         <TabsTrigger value="cuadrillas" class="h-9 rounded-lg px-4 text-sm">Cuadrillas</TabsTrigger>
         <TabsTrigger value="equipos" class="h-9 rounded-lg px-4 text-sm">Equipos</TabsTrigger>
@@ -832,7 +830,7 @@ onMounted(() => {
             <label class="text-xs text-slate-500" for="eq-salida">Salida</label>
             <Input id="eq-salida" v-model="equipoForm.fechaSalida" type="date" :class="inputClass" />
           </div>
-          <div>
+          <div class="md:col-span-2">
             <label class="text-xs text-slate-500" for="eq-partida">Partida</label>
             <select id="eq-partida" v-model="equipoForm.partidaId" :class="selectClass">
               <option value="">Sin partida</option>
@@ -912,7 +910,7 @@ onMounted(() => {
         <p class="mb-3 text-sm text-slate-500">
           El costo real solo se registra con imputaciones explícitas (cantidad × tarifa).
         </p>
-        <form class="mb-4 grid gap-3 md:grid-cols-4" @submit.prevent="onImputar">
+        <form class="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4" @submit.prevent="onImputar">
           <div>
             <label class="text-xs text-slate-500" for="imp-fecha">Fecha</label>
             <Input id="imp-fecha" v-model="imputacionForm.fecha" type="date" :class="inputClass" required />
@@ -921,7 +919,7 @@ onMounted(() => {
             <label class="text-xs text-slate-500" for="imp-cant">Cantidad</label>
             <Input id="imp-cant" v-model="imputacionForm.cantidad" :class="inputClass" required />
           </div>
-          <div>
+          <div class="md:col-span-2">
             <label class="text-xs text-slate-500" for="imp-partida">Partida</label>
             <select id="imp-partida" v-model="imputacionForm.partidaId" :class="selectClass">
               <option value="">Cabecera / sin partida</option>
@@ -996,7 +994,7 @@ onMounted(() => {
             <label class="text-xs text-slate-500" for="sub-fin">Fin</label>
             <Input id="sub-fin" v-model="subcontratoForm.fechaFin" type="date" :class="inputClass" />
           </div>
-          <div>
+          <div class="md:col-span-2">
             <label class="text-xs text-slate-500" for="sub-partida">Partida</label>
             <select id="sub-partida" v-model="subcontratoForm.partidaId" :class="selectClass">
               <option value="">Sin partida</option>
@@ -1062,7 +1060,7 @@ onMounted(() => {
         <p class="mb-3 text-sm text-slate-500">
           Saldo disponible: {{ money.format(n(subcontratoSeleccionado.saldo)) }}.
         </p>
-        <form class="mb-4 grid gap-3 md:grid-cols-4" @submit.prevent="onRegistrarAvance">
+        <form class="mb-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4" @submit.prevent="onRegistrarAvance">
           <div>
             <label class="text-xs text-slate-500" for="av-fecha">Fecha</label>
             <Input id="av-fecha" v-model="avanceForm.fecha" type="date" :class="inputClass" required />
@@ -1071,7 +1069,7 @@ onMounted(() => {
             <label class="text-xs text-slate-500" for="av-monto">Monto</label>
             <Input id="av-monto" v-model="avanceForm.monto" :class="inputClass" required />
           </div>
-          <div>
+          <div class="md:col-span-2">
             <label class="text-xs text-slate-500" for="av-partida">Partida</label>
             <select id="av-partida" v-model="avanceForm.partidaId" :class="selectClass">
               <option value="">Cabecera / sin partida</option>

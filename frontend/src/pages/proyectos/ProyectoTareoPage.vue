@@ -16,9 +16,9 @@ import {
 } from '@/services/construccion/construccionService'
 import type { PeriodoCc, TareoCcGrilla } from '@/types/construccion'
 import { mesesCatalogo, periodoLabel } from '@/types/nomina'
+import { fieldSelectClass } from './fieldClasses'
 
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
+const selectClass = fieldSelectClass
 
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
@@ -212,7 +212,7 @@ async function onGuardar() {
               id="tareo-mes"
               v-model.number="mes"
               :class="selectClass"
-              class="mt-0.5 min-w-28"
+              class="mt-0.5 min-w-36"
               :disabled="loading || saving"
             >
               <option v-for="item in meses" :key="item.value" :value="item.value">{{ item.label }}</option>

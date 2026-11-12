@@ -37,9 +37,9 @@ import type {
   PeriodoCc,
   Proyecto,
 } from '@/types/construccion'
+import { fieldSelectClass } from './fieldClasses'
 
-const selectClass =
-  'mt-1.5 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500/20'
+const selectClass = `mt-1.5 ${fieldSelectClass}`
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const route = useRoute()

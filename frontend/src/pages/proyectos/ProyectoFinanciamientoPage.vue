@@ -41,14 +41,12 @@ import type {
   RetencionesObra,
   TipoLiberacionRetencion,
 } from '@/types/construccion'
+import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
 type TabFin = 'facturas' | 'factoring' | 'retenciones' | 'caja'
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
-
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
+const inputClass = fieldInputClass
+const selectClass = fieldSelectClass
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const MESES = [
@@ -304,7 +302,7 @@ onMounted(() => {
 <template>
   <div class="mt-4 space-y-4">
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabFin)">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger value="facturas" class="h-9 rounded-lg px-4 text-sm">Facturas</TabsTrigger>
         <TabsTrigger value="factoring" class="h-9 rounded-lg px-4 text-sm">Factoring</TabsTrigger>
         <TabsTrigger value="retenciones" class="h-9 rounded-lg px-4 text-sm">Retenciones</TabsTrigger>
@@ -366,7 +364,7 @@ onMounted(() => {
         </div>
         <div
           v-if="seleccionada.estado === 'EMITIDA' || seleccionada.estado === 'PARCIAL'"
-          class="mt-4 grid gap-3 sm:grid-cols-6"
+          class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         >
           <Input v-model="cobro.fecha" type="date" :class="inputClass" />
           <Input v-model="cobro.banco" :class="inputClass" placeholder="Banco" maxlength="80" />
@@ -415,8 +413,8 @@ onMounted(() => {
     <div v-else-if="tab === 'factoring'" class="space-y-4">
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="text-base font-semibold text-palette-navy">Ceder factura</h3>
-        <div class="mt-4 grid gap-3 sm:grid-cols-4">
-          <select v-model="cesion.facturaId" :class="selectClass">
+        <div class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          <select v-model="cesion.facturaId" :class="selectClass" class="sm:col-span-2">
             <option value="">Factura emitida</option>
             <option v-for="item in emitidas" :key="item.id" :value="String(item.id)">
               N.º {{ item.numero }} · {{ money.format(n(item.total)) }}
@@ -528,7 +526,7 @@ onMounted(() => {
         </div>
       </div>
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
-        <div class="grid gap-3 sm:grid-cols-6">
+        <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <select v-model="liberacion.tipo" :class="selectClass">
             <option value="EFECTIVO">Efectivo</option>
             <option value="CARTA_FIANZA">Carta fianza</option>

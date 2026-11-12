@@ -24,6 +24,7 @@ import {
   listarBitacoraObra,
 } from '@/services/construccion/construccionService'
 import type { AuditoriaObra, BitacoraObra } from '@/types/construccion'
+import { fieldInputClass, tabsListClass } from './fieldClasses'
 
 type TabBitacora = 'diario' | 'auditoria'
 
@@ -45,8 +46,7 @@ const ACCION_LABEL: Record<string, string> = {
   REVERTIR_FACTORING: 'Revirtió factoring',
 }
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
+const inputClass = fieldInputClass
 
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
@@ -150,7 +150,7 @@ onMounted(() => {
 <template>
   <div class="mt-4 space-y-4">
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabBitacora)">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger value="diario" class="h-9 rounded-lg px-4 text-sm">Diario</TabsTrigger>
         <TabsTrigger value="auditoria" class="h-9 rounded-lg px-4 text-sm">Auditoría</TabsTrigger>
       </TabsList>

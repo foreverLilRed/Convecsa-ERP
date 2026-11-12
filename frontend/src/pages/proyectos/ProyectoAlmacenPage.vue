@@ -45,6 +45,7 @@ import {
   registrarAjusteAlmacen,
   sugeridosApuMateriales,
 } from '@/services/construccion/construccionService'
+import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 import { getSession } from '@/services/auth/authService'
 import { esAlmacen } from '@/types/auth'
 import type {
@@ -68,11 +69,8 @@ type ItemDraft = {
   requerimientoItemId?: number | null
 }
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
-
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
+const inputClass = fieldInputClass
+const selectClass = fieldSelectClass
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
@@ -536,7 +534,7 @@ function onSelectOc(event: Event) {
     </div>
 
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabAlmacen)">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger v-if="!almacenRol" value="requerimientos" class="h-9 rounded-lg px-4 text-sm">Requerimientos</TabsTrigger>
         <TabsTrigger v-if="!almacenRol" value="compras" class="h-9 rounded-lg px-4 text-sm">Compras</TabsTrigger>
         <TabsTrigger value="kardex" class="h-9 rounded-lg px-4 text-sm">Kardex</TabsTrigger>
@@ -576,8 +574,8 @@ function onSelectOc(event: Event) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Material</TableHead>
-              <TableHead>Partida</TableHead>
+              <TableHead class="min-w-[16rem]">Material</TableHead>
+              <TableHead class="min-w-[16rem]">Partida</TableHead>
               <TableHead>Cantidad</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -626,7 +624,7 @@ function onSelectOc(event: Event) {
           <Button v-if="ocSeleccionada?.estado === 'BORRADOR'" type="button" :disabled="saving" @click="onEmitirOc">Emitir</Button>
           <Button v-if="ocRecepcionable" variant="outline" type="button" :disabled="saving" @click="onCerrarOc">Cerrar</Button>
         </div>
-        <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mb-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <select :class="selectClass" :value="ocId ?? ''" @change="onSelectOc">
             <option value="">Orden nueva</option>
             <option v-for="item in compras" :key="item.id" :value="item.id">OC-{{ item.numero }} · {{ item.estado }}</option>
@@ -643,7 +641,7 @@ function onSelectOc(event: Event) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Material</TableHead>
+              <TableHead class="min-w-[16rem]">Material</TableHead>
               <TableHead>Cantidad</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Recibido</TableHead>
@@ -671,7 +669,7 @@ function onSelectOc(event: Event) {
 
         <div v-if="ocRecepcionable && ocSeleccionada" class="mt-6 border-t border-slate-200 pt-4">
           <h4 class="text-sm font-semibold text-palette-navy">Recepción</h4>
-          <div class="mt-3 grid gap-3 sm:grid-cols-3">
+          <div class="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <Input v-model="recepcionGuia" :class="inputClass" placeholder="N° guía (opcional)" />
             <div v-for="item in ocSeleccionada.items" :key="item.id" class="flex items-center gap-2 text-sm">
               <span class="w-32 truncate">{{ item.codigoMaterial }}</span>
@@ -726,8 +724,8 @@ function onSelectOc(event: Event) {
 
       <div v-if="!almacenRol" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="text-base font-semibold text-palette-navy">Vale de salida</h3>
-        <div class="mt-3 grid gap-3 sm:grid-cols-3">
-          <select v-model="valePartidaId" :class="selectClass">
+        <div class="mt-3 grid gap-3 grid-cols-1 md:grid-cols-2">
+          <select v-model="valePartidaId" :class="selectClass" class="md:col-span-2">
             <option value="">Partida vigente</option>
             <option v-for="partida in partidas" :key="partida.id" :value="String(partida.id)">
               {{ partida.codigo }} — {{ partida.descripcion }}
@@ -767,16 +765,16 @@ function onSelectOc(event: Event) {
 
       <div v-if="!almacenRol" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="text-base font-semibold text-palette-navy">Ajuste y cierre</h3>
-        <div class="mt-3 grid gap-3 sm:grid-cols-4">
-          <select v-model="ajuste.materialId" :class="selectClass">
+        <div class="mt-3 grid gap-3 grid-cols-1 md:grid-cols-2">
+          <select v-model="ajuste.materialId" :class="selectClass" class="md:col-span-2">
             <option value="">Material</option>
-            <option v-for="mat in materiales" :key="mat.id" :value="String(mat.id)">{{ mat.codigo }}</option>
+            <option v-for="mat in materiales" :key="mat.id" :value="String(mat.id)">{{ mat.codigo }} — {{ mat.descripcion }}</option>
           </select>
           <Input v-model="ajuste.cantidad" :class="inputClass" placeholder="Cantidad (+/-)" />
           <Input v-model="ajuste.observaciones" :class="inputClass" placeholder="Observación" />
           <Button variant="outline" type="button" :disabled="saving" @click="onAjuste">Ajustar</Button>
         </div>
-        <div class="mt-4 grid gap-3 sm:grid-cols-4">
+        <div class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
           <Input v-model="cierreAnio" :class="inputClass" placeholder="Año" />
           <Input v-model="cierreMes" :class="inputClass" placeholder="Mes" />
           <Button class="bg-palette-navy text-white hover:bg-palette-royal" type="button" :disabled="saving" @click="onCerrarMes">

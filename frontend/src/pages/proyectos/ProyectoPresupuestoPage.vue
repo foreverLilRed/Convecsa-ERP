@@ -25,6 +25,7 @@ import {
   obtenerPresupuesto,
   vigentarPresupuesto,
 } from '@/services/construccion/construccionService'
+import { fieldInputClass, fieldSelectClass } from './fieldClasses'
 import type {
   ComparativoPresupuesto,
   PartidaPresupuesto,
@@ -61,11 +62,8 @@ const TIPOS_APU: { valor: TipoRecursoApu; label: string }[] = [
   { valor: 'GASTOS_GENERALES', label: 'Gastos generales' },
 ]
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
-
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
+const inputClass = fieldInputClass
+const selectClass = fieldSelectClass
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const route = useRoute()
@@ -660,7 +658,7 @@ function quitarApu(index: number) {
           </TableEmpty>
           <TableRow v-for="(recurso, index) in partidaSeleccionada.apu" v-else :key="index">
             <TableCell>
-              <select v-if="esBorrador" v-model="recurso.tipo" :class="selectClass">
+              <select v-if="esBorrador" v-model="recurso.tipo" :class="selectClass" class="min-w-[10rem]">
                 <option v-for="item in TIPOS_APU" :key="item.valor" :value="item.valor">{{ item.label }}</option>
               </select>
               <span v-else>{{ TIPOS_APU.find((item) => item.valor === recurso.tipo)?.label }}</span>

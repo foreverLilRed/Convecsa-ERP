@@ -18,11 +18,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { obtenerAsientosObra, obtenerRentabilidadObra } from '@/services/construccion/construccionService'
 import type { AsientoObra, AsientosObra, RentabilidadObra } from '@/types/construccion'
+import { fieldInputClass, tabsListClass } from './fieldClasses'
 
 type TabRent = 'margen' | 'asientos'
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
+const inputClass = fieldInputClass
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const MESES = [
@@ -100,7 +100,7 @@ onMounted(() => {
 <template>
   <div class="mt-4 space-y-4">
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabRent)">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger value="margen" class="h-9 rounded-lg px-4 text-sm">Margen</TabsTrigger>
         <TabsTrigger value="asientos" class="h-9 rounded-lg px-4 text-sm">Asientos</TabsTrigger>
       </TabsList>

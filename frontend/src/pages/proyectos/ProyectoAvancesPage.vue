@@ -48,14 +48,12 @@ import type {
   TipoValorizacion,
   Valorizacion,
 } from '@/types/construccion'
+import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
 type TabAvances = 'avance' | 'valorizaciones' | 'curva'
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
-
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
+const inputClass = fieldInputClass
+const selectClass = fieldSelectClass
 
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
@@ -412,7 +410,7 @@ onMounted(() => {
 <template>
   <div class="mt-4 space-y-4">
     <Tabs :model-value="tab" @update:model-value="(value) => (tab = String(value) as TabAvances)">
-      <TabsList class="h-auto rounded-xl border border-slate-200 bg-slate-100/85 p-1.5">
+      <TabsList :class="tabsListClass">
         <TabsTrigger value="avance" class="h-9 rounded-lg px-4 text-sm">Avance</TabsTrigger>
         <TabsTrigger value="valorizaciones" class="h-9 rounded-lg px-4 text-sm">Valorizaciones</TabsTrigger>
         <TabsTrigger value="curva" class="h-9 rounded-lg px-4 text-sm">Curva S</TabsTrigger>
@@ -672,7 +670,7 @@ onMounted(() => {
 
       <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
         <h3 class="text-base font-semibold text-palette-navy">Adicionales y deductivos</h3>
-        <div class="mt-4 grid gap-3 sm:grid-cols-6">
+        <div class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <select v-model="adicionalForm.tipo" :class="selectClass">
             <option value="ADICIONAL">Adicional</option>
             <option value="DEDUCTIVO">Deductivo</option>
@@ -680,7 +678,7 @@ onMounted(() => {
           <Input v-model="adicionalForm.codigo" :class="inputClass" placeholder="Código" maxlength="40" />
           <Input
             v-model="adicionalForm.descripcion"
-            class="sm:col-span-2"
+            class="sm:col-span-2 lg:col-span-3"
             :class="inputClass"
             placeholder="Descripción"
             maxlength="240"

@@ -23,12 +23,10 @@ import {
   subirDocumentoObra,
 } from '@/services/construccion/construccionService'
 import type { DocumentoObra, TipoDocumentoObra } from '@/types/construccion'
+import { fieldInputClass, fieldSelectClass } from './fieldClasses'
 
-const selectClass =
-  'h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900 focus:border-sky-600 focus:outline-none focus:ring-1 focus:ring-sky-500/30'
-
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
+const selectClass = fieldSelectClass
+const inputClass = fieldInputClass
 
 const TIPOS: { valor: TipoDocumentoObra; label: string }[] = [
   { valor: 'CONTRATO', label: 'Contrato' },
@@ -134,19 +132,19 @@ onMounted(() => {
 <template>
   <div class="mt-4 space-y-4">
     <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
-      <div class="grid gap-3 sm:grid-cols-4">
+      <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <select v-model="form.tipo" :class="selectClass">
           <option v-for="item in TIPOS" :key="item.valor" :value="item.valor">{{ item.label }}</option>
         </select>
         <input
           ref="fileInput"
-          class="h-8 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm file:mr-2 file:rounded file:border-0 file:bg-slate-100 file:px-2 file:py-1 file:text-xs"
+          class="h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm file:mr-2 file:h-full file:rounded file:border-0 file:bg-slate-100 file:px-3 file:text-sm"
           type="file"
           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
         >
-        <Input v-model="form.observaciones" :class="inputClass" maxlength="400" placeholder="Observaciones" />
+        <Input v-model="form.observaciones" :class="inputClass" class="sm:col-span-2 lg:col-span-1" maxlength="400" placeholder="Observaciones" />
         <Button
-          class="bg-palette-navy text-white hover:bg-palette-royal"
+          class="bg-palette-navy text-white hover:bg-palette-royal sm:col-span-2 lg:col-span-1"
           type="button"
           :disabled="saving"
           @click="onSubir"

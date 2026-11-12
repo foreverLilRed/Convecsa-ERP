@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { fieldInputClass } from './fieldClasses'
 import { getSession } from '@/services/auth/authService'
 import {
   actualizarMaterial,
@@ -23,8 +24,7 @@ import {
 import { esAlmacen } from '@/types/auth'
 import type { MaterialCatalogo } from '@/types/construccion'
 
-const inputClass =
-  'h-8 rounded-lg border-slate-200 bg-white px-2 text-sm text-slate-900 placeholder-slate-400 focus-visible:border-sky-600 focus-visible:ring-sky-500/20'
+const inputClass = `mt-1.5 ${fieldInputClass}`
 
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
 const loading = ref(true)
@@ -128,12 +128,27 @@ async function onGuardarMaterial() {
         <Skeleton class="h-24 w-full" />
       </div>
       <template v-else>
-        <div v-if="puedeEditar" class="mb-4 grid gap-3 sm:grid-cols-6">
-          <Input v-model="materialForm.codigo" :class="inputClass" placeholder="Código" />
-          <Input v-model="materialForm.descripcion" class="sm:col-span-2" :class="inputClass" placeholder="Descripción" />
-          <Input v-model="materialForm.unidad" :class="inputClass" placeholder="Unidad" />
-          <Input v-model="materialForm.familia" :class="inputClass" placeholder="Familia" />
-          <Input v-model="materialForm.stockMinimo" :class="inputClass" placeholder="Stock mínimo" />
+        <div v-if="puedeEditar" class="mb-4 grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+          <div>
+            <label class="text-sm font-medium text-slate-700" for="mat-codigo">Código</label>
+            <Input id="mat-codigo" v-model="materialForm.codigo" :class="inputClass" placeholder="Código" />
+          </div>
+          <div class="sm:col-span-2">
+            <label class="text-sm font-medium text-slate-700" for="mat-desc">Descripción</label>
+            <Input id="mat-desc" v-model="materialForm.descripcion" :class="inputClass" placeholder="Descripción" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700" for="mat-unidad">Unidad</label>
+            <Input id="mat-unidad" v-model="materialForm.unidad" :class="inputClass" placeholder="Unidad" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700" for="mat-familia">Familia</label>
+            <Input id="mat-familia" v-model="materialForm.familia" :class="inputClass" placeholder="Familia" />
+          </div>
+          <div>
+            <label class="text-sm font-medium text-slate-700" for="mat-minimo">Stock mínimo</label>
+            <Input id="mat-minimo" v-model="materialForm.stockMinimo" :class="inputClass" placeholder="0" />
+          </div>
         </div>
         <div v-if="puedeEditar" class="mb-4 flex flex-wrap items-center gap-3">
           <label class="flex items-center gap-2 text-sm text-slate-600">
