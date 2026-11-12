@@ -6,11 +6,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.convecsa.erp.common.exception.ProyectoCodigoDuplicadoException;
+import com.convecsa.erp.construccion.domain.AccionAuditoriaObra;
 import com.convecsa.erp.construccion.domain.CategoriaObrera;
 import com.convecsa.erp.construccion.domain.EstadoObra;
+import com.convecsa.erp.construccion.domain.EstadoPeriodoCc;
 import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
 import com.convecsa.erp.construccion.domain.RolResponsableObra;
 import com.convecsa.erp.construccion.domain.TipoRecursoApu;
@@ -23,6 +28,7 @@ import com.convecsa.erp.construccion.dto.PartidaPresupuestoRequest;
 import com.convecsa.erp.construccion.dto.PersonalObraDTO;
 import com.convecsa.erp.construccion.dto.PresupuestoDTO;
 import com.convecsa.erp.construccion.dto.PresupuestoVersionRequest;
+import com.convecsa.erp.construccion.dto.TareoCcGuardarRequest;
 import com.convecsa.erp.construccion.dto.ProyectoDTO;
 import com.convecsa.erp.construccion.dto.ProyectoRequest;
 import com.convecsa.erp.construccion.dto.ProyectoResponsableRequest;
@@ -43,6 +49,7 @@ import com.convecsa.erp.construccion.repository.CuadrillaMiembroRepository;
 import com.convecsa.erp.construccion.repository.CuadrillaObraRepository;
 import com.convecsa.erp.construccion.repository.PartidaPresupuestoRepository;
 import com.convecsa.erp.construccion.repository.PeriodoCcRepository;
+import com.convecsa.erp.construccion.repository.TareoCcDiaRepository;
 import com.convecsa.erp.construccion.entity.ImputacionEquipo;
 import com.convecsa.erp.construccion.entity.ValeSalida;
 import com.convecsa.erp.construccion.entity.ValeSalidaItem;
@@ -53,6 +60,7 @@ import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.construccion.repository.SubcontratoAvanceRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaItemRepository;
 import com.convecsa.erp.construccion.service.impl.ConstruccionServiceImpl;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import com.convecsa.erp.construccion.support.PresupuestoExcelExporter;
 import com.convecsa.erp.construccion.support.PresupuestoExcelParser;
 import com.convecsa.erp.contrato.entity.Contrato;
@@ -100,6 +108,9 @@ class ConstruccionServiceImplTest {
     private PeriodoCcRepository periodoCcRepository;
 
     @Mock
+    private TareoCcDiaRepository tareoCcDiaRepository;
+
+    @Mock
     private BoletaCcRepository boletaCcRepository;
 
     @Mock
@@ -122,6 +133,9 @@ class ConstruccionServiceImplTest {
 
     @Mock
     private CuadrillaMiembroRepository cuadrillaMiembroRepository;
+
+    @Mock
+    private AuditoriaObraRegistrar auditoriaObraRegistrar;
 
     @InjectMocks
     private ConstruccionServiceImpl servicio;
@@ -305,6 +319,12 @@ class ConstruccionServiceImplTest {
 
         assertEquals(new BigDecimal("25.00"), dto.getVersion().getPartidas().get(0).getPrecioUnitario());
         assertEquals(new BigDecimal("75.00"), dto.getVersion().getPartidas().get(0).getTotal());
+        verify(auditoriaObraRegistrar).registrar(
+                eq(7L),
+                eq(AccionAuditoriaObra.GUARDAR_PARTIDAS),
+                eq(AuditoriaObraRegistrar.ENTIDAD_PRESUPUESTO),
+                eq(10L),
+                any());
     }
 
     @Test
@@ -376,6 +396,44 @@ class ConstruccionServiceImplTest {
 
         assertEquals(new BigDecimal("25.00"), dto.getVersion().getPartidas().get(0).getPrecioUnitario());
         assertEquals(new BigDecimal("75.00"), dto.getVersion().getPartidas().get(0).getTotal());
+        verify(auditoriaObraRegistrar).registrar(
+                eq(7L),
+                eq(AccionAuditoriaObra.IMPORTAR_PRESUPUESTO),
+                eq(AuditoriaObraRegistrar.ENTIDAD_PRESUPUESTO),
+                eq(10L),
+                any());
+        verify(auditoriaObraRegistrar, never()).registrar(
+                eq(7L),
+                eq(AccionAuditoriaObra.GUARDAR_PARTIDAS),
+                any(),
+                any(),
+                any());
+    }
+
+    @Test
+    void guardarTareoRegistraAuditoria() {
+        Proyecto proyecto = proyectoExistente();
+        PeriodoCc periodo = new PeriodoCc();
+        periodo.setId(4L);
+        periodo.setProyecto(proyecto);
+        periodo.setFechaDesde(LocalDate.of(2026, 11, 2));
+        periodo.setFechaHasta(LocalDate.of(2026, 11, 8));
+        periodo.setEstado(EstadoPeriodoCc.BORRADOR);
+        when(periodoCcRepository.findByIdAndProyectoId(4L, 7L)).thenReturn(Optional.of(periodo));
+        when(tareoCcDiaRepository.findByPeriodoIdOrderByPersonaIdAscFechaAsc(4L)).thenReturn(List.of());
+        when(contratoCcRepository.findActivosByProyectoId(7L)).thenReturn(List.of());
+        when(proyectoRepository.findById(7L)).thenReturn(Optional.of(proyecto));
+        when(parametroRepository.findByAnio(2026)).thenReturn(Optional.of(parametrosUit()));
+        when(boletaCcRepository.findByPeriodoIdOrderByIdAsc(4L)).thenReturn(List.of());
+
+        servicio.guardarTareo(7L, 4L, new TareoCcGuardarRequest());
+
+        verify(auditoriaObraRegistrar).registrar(
+                eq(7L),
+                eq(AccionAuditoriaObra.GUARDAR_TAREO),
+                eq(AuditoriaObraRegistrar.ENTIDAD_TAREO),
+                eq(4L),
+                any());
     }
 
     @Test

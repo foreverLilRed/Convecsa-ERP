@@ -47,9 +47,12 @@ import type {
   FacturaObra,
   FlujoCaja,
   AlertaObra,
+  AuditoriaObra,
   AsientosObra,
   AsignacionEquipo,
   AsignacionEquipoRequest,
+  BitacoraObra,
+  BitacoraObraRequest,
   DocumentoObra,
   ImputacionEquipo,
   ImputacionEquipoRequest,
@@ -814,6 +817,27 @@ export function eliminarDocumentoObra(proyectoId: number, documentoId: number): 
 
 export function listarAlertasObra(proyectoId: number): Promise<AlertaObra[]> {
   return apiRequest<AlertaObra[]>(`/api/proyectos/${proyectoId}/alertas`)
+}
+
+export function listarBitacoraObra(proyectoId: number): Promise<BitacoraObra[]> {
+  return apiRequest<BitacoraObra[]>(`/api/proyectos/${proyectoId}/bitacora`)
+}
+
+export function crearNotaBitacora(proyectoId: number, request: BitacoraObraRequest): Promise<BitacoraObra> {
+  return apiRequest<BitacoraObra>(`/api/proyectos/${proyectoId}/bitacora`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function eliminarNotaBitacora(proyectoId: number, notaId: number): Promise<void> {
+  return apiRequest<void>(`/api/proyectos/${proyectoId}/bitacora/${notaId}`, {
+    method: 'DELETE',
+  })
+}
+
+export function listarAuditoriaObra(proyectoId: number): Promise<AuditoriaObra[]> {
+  return apiRequest<AuditoriaObra[]>(`/api/proyectos/${proyectoId}/auditoria`)
 }
 
 export function listarEquiposObra(proyectoId: number): Promise<AsignacionEquipo[]> {

@@ -54,6 +54,9 @@ import com.convecsa.erp.construccion.dto.OperacionFactoringDTO;
 import com.convecsa.erp.construccion.dto.OperacionFactoringRequest;
 import com.convecsa.erp.construccion.dto.RetencionesDTO;
 import com.convecsa.erp.construccion.dto.AlertaObraDTO;
+import com.convecsa.erp.construccion.dto.AuditoriaObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraRequest;
 import com.convecsa.erp.construccion.dto.AsientosObraDTO;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoDTO;
 import com.convecsa.erp.construccion.dto.AsignacionEquipoRequest;
@@ -597,6 +600,29 @@ public class ConstruccionController {
     @GetMapping("/{id:\\d+}/alertas")
     public List<AlertaObraDTO> alertas(@PathVariable Long id) {
         return transversalService.listarAlertas(id);
+    }
+
+    @GetMapping("/{id:\\d+}/bitacora")
+    public List<BitacoraObraDTO> bitacora(@PathVariable Long id) {
+        return transversalService.listarBitacora(id);
+    }
+
+    @PostMapping("/{id:\\d+}/bitacora")
+    @ResponseStatus(HttpStatus.CREATED)
+    public BitacoraObraDTO crearNotaBitacora(
+            @PathVariable Long id, @Valid @RequestBody BitacoraObraRequest request) {
+        return transversalService.crearNotaBitacora(id, request);
+    }
+
+    @DeleteMapping("/{id:\\d+}/bitacora/{notaId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminarNotaBitacora(@PathVariable Long id, @PathVariable Long notaId) {
+        transversalService.eliminarNotaBitacora(id, notaId);
+    }
+
+    @GetMapping("/{id:\\d+}/auditoria")
+    public List<AuditoriaObraDTO> auditoria(@PathVariable Long id) {
+        return transversalService.listarAuditoria(id);
     }
 
     @GetMapping("/{id:\\d+}/equipos")

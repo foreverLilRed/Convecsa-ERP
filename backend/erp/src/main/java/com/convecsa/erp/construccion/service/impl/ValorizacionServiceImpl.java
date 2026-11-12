@@ -4,6 +4,7 @@ import com.convecsa.erp.common.exception.AdicionalObraNoEncontradoException;
 import com.convecsa.erp.common.exception.AvanceNoEncontradoException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
 import com.convecsa.erp.common.exception.ValorizacionNoEncontradaException;
+import com.convecsa.erp.construccion.domain.AccionAuditoriaObra;
 import com.convecsa.erp.construccion.domain.EstadoAdicionalObra;
 import com.convecsa.erp.construccion.domain.EstadoAvanceObra;
 import com.convecsa.erp.construccion.domain.EstadoFacturaObra;
@@ -46,6 +47,7 @@ import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionItemRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionRepository;
 import com.convecsa.erp.construccion.service.InterfazValorizacionService;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -77,6 +79,7 @@ public class ValorizacionServiceImpl implements InterfazValorizacionService {
     private final ValorizacionRepository valorizacionRepository;
     private final ValorizacionItemRepository valorizacionItemRepository;
     private final FacturaObraRepository facturaObraRepository;
+    private final AuditoriaObraRegistrar auditoriaObraRegistrar;
 
     @Override
     @Transactional(readOnly = true)
@@ -306,7 +309,14 @@ public class ValorizacionServiceImpl implements InterfazValorizacionService {
         valorizacion.setPorcentajeRetencion(pct(proyecto.getPorcentajeRetencion()));
         armarItems(valorizacion, proyectoId, tipo, anio, mes);
         recalcularMontos(valorizacion);
-        return toValorizacionDto(valorizacionRepository.save(valorizacion));
+        Valorizacion guardada = valorizacionRepository.save(valorizacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.CREAR_VALORIZACION,
+                AuditoriaObraRegistrar.ENTIDAD_VALORIZACION,
+                guardada.getId(),
+                guardada.getTipo() + " " + guardada.getAnio() + "-" + String.format("%02d", guardada.getMes()));
+        return toValorizacionDto(guardada);
     }
 
     @Override
@@ -321,7 +331,14 @@ public class ValorizacionServiceImpl implements InterfazValorizacionService {
             throw new IllegalArgumentException("No se puede presentar una valorización sin ítems");
         }
         valorizacion.setEstado(EstadoValorizacion.PRESENTADA);
-        return toValorizacionDto(valorizacionRepository.save(valorizacion));
+        Valorizacion guardada = valorizacionRepository.save(valorizacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.PRESENTAR_VALORIZACION,
+                AuditoriaObraRegistrar.ENTIDAD_VALORIZACION,
+                guardada.getId(),
+                "nro " + guardada.getNumero());
+        return toValorizacionDto(guardada);
     }
 
     @Override
@@ -332,7 +349,14 @@ public class ValorizacionServiceImpl implements InterfazValorizacionService {
             throw new IllegalArgumentException("Solo se puede observar una valorización presentada");
         }
         valorizacion.setEstado(EstadoValorizacion.OBSERVADA);
-        return toValorizacionDto(valorizacionRepository.save(valorizacion));
+        Valorizacion guardada = valorizacionRepository.save(valorizacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.OBSERVAR_VALORIZACION,
+                AuditoriaObraRegistrar.ENTIDAD_VALORIZACION,
+                guardada.getId(),
+                "nro " + guardada.getNumero());
+        return toValorizacionDto(guardada);
     }
 
     @Override
@@ -343,7 +367,14 @@ public class ValorizacionServiceImpl implements InterfazValorizacionService {
             throw new IllegalArgumentException("Solo se puede aprobar una valorización presentada");
         }
         valorizacion.setEstado(EstadoValorizacion.APROBADA);
-        return toValorizacionDto(valorizacionRepository.save(valorizacion));
+        Valorizacion guardada = valorizacionRepository.save(valorizacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.APROBAR_VALORIZACION,
+                AuditoriaObraRegistrar.ENTIDAD_VALORIZACION,
+                guardada.getId(),
+                "nro " + guardada.getNumero());
+        return toValorizacionDto(guardada);
     }
 
     @Override
@@ -371,6 +402,12 @@ public class ValorizacionServiceImpl implements InterfazValorizacionService {
         factura.setTotal(money(subtotal.add(igv)));
         factura.setEstado(EstadoFacturaObra.EMITIDA);
         valorizacion.setFactura(facturaObraRepository.save(factura));
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.FACTURAR_VALORIZACION,
+                AuditoriaObraRegistrar.ENTIDAD_VALORIZACION,
+                valorizacionId,
+                "factura " + valorizacion.getFactura().getNumero());
         return toValorizacionDto(valorizacion);
     }
 

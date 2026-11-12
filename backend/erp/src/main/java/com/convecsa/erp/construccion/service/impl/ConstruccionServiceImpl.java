@@ -6,6 +6,7 @@ import com.convecsa.erp.common.exception.PeriodoCcNoEncontradoException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.exception.ProyectoCodigoDuplicadoException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
+import com.convecsa.erp.construccion.domain.AccionAuditoriaObra;
 import com.convecsa.erp.construccion.domain.CadenciaPeriodoCc;
 import com.convecsa.erp.construccion.domain.EstadoObra;
 import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
@@ -85,6 +86,7 @@ import com.convecsa.erp.construccion.support.CcLiquidacionResult;
 import com.convecsa.erp.construccion.support.CcParametros;
 import com.convecsa.erp.construccion.support.DominicalCc;
 import com.convecsa.erp.construccion.support.RentaQuintaProyeccionService;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import com.convecsa.erp.construccion.support.PresupuestoExcelExporter;
 import com.convecsa.erp.construccion.support.PresupuestoExcelParser;
 import com.convecsa.erp.construccion.support.UitObraAlerta;
@@ -154,6 +156,7 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
     private final SubcontratoAvanceRepository subcontratoAvanceRepository;
     private final CuadrillaObraRepository cuadrillaObraRepository;
     private final CuadrillaMiembroRepository cuadrillaMiembroRepository;
+    private final AuditoriaObraRegistrar auditoriaObraRegistrar;
     private final BoletaCcEnvioCorreoRepository boletaCcEnvioCorreoRepository;
     private final CalculoNominaCcService calculoNominaCcService;
     private final RentaQuintaProyeccionService rentaQuintaProyeccionService;
@@ -316,6 +319,12 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             copiarPartidas(vigente, version);
         }
         presupuestoVersionRepository.save(version);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.CREAR_VERSION_PRESUPUESTO,
+                AuditoriaObraRegistrar.ENTIDAD_PRESUPUESTO,
+                version.getId(),
+                "v" + version.getNumero() + " " + version.getTipo());
         return obtenerPresupuesto(proyectoId, version.getId());
     }
 
@@ -325,27 +334,13 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             Long proyectoId, Long versionId, List<PartidaPresupuestoRequest> request) {
         PresupuestoVersion version = buscarVersion(proyectoId, versionId);
         asegurarBorrador(version);
-        List<PartidaPresupuestoRequest> filas = request == null ? List.of() : request;
-        validarPartidas(filas);
-        List<PartidaPresupuesto> actuales = partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(versionId);
-        if (!actuales.isEmpty()) {
-            partidaPresupuestoRepository.deleteAll(actuales);
-            partidaPresupuestoRepository.flush();
-        }
-        int orden = 0;
-        for (PartidaPresupuestoRequest fila : filas) {
-            PartidaPresupuesto partida = new PartidaPresupuesto();
-            partida.setVersion(version);
-            partida.setCodigo(fila.getCodigo().trim());
-            partida.setCapitulo(blankToNull(fila.getCapitulo()));
-            partida.setDescripcion(fila.getDescripcion().trim());
-            partida.setUnidad(blankToNull(fila.getUnidad()));
-            partida.setMetrado(qty(fila.getMetrado()));
-            partida.setCentroCosto(blankToNull(fila.getCentroCosto()));
-            partida.setOrden(orden++);
-            aplicarApu(partida, fila.getApu(), fila.getPrecioUnitario());
-            partidaPresupuestoRepository.save(partida);
-        }
+        List<PartidaPresupuestoRequest> filas = persistirPartidas(version, request);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.GUARDAR_PARTIDAS,
+                AuditoriaObraRegistrar.ENTIDAD_PRESUPUESTO,
+                versionId,
+                "v" + version.getNumero() + ", " + filas.size() + " partidas");
         return obtenerPresupuesto(proyectoId, versionId);
     }
 
@@ -362,6 +357,12 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
                 .ifPresent(vigente -> vigente.setEstado(EstadoVersionPresupuesto.HISTORICO));
         version.setEstado(EstadoVersionPresupuesto.VIGENTE);
         presupuestoVersionRepository.save(version);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.VIGENTAR_PRESUPUESTO,
+                AuditoriaObraRegistrar.ENTIDAD_PRESUPUESTO,
+                versionId,
+                "v" + version.getNumero());
         return obtenerPresupuesto(proyectoId, versionId);
     }
 
@@ -380,7 +381,15 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             throw new IllegalArgumentException("No se pudo leer el archivo Excel");
         }
         List<PartidaPresupuestoRequest> filas = presupuestoExcelParser.parse(contenido, archivo.getOriginalFilename());
-        return guardarPartidasPresupuesto(proyectoId, versionId, filas);
+        persistirPartidas(version, filas);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.IMPORTAR_PRESUPUESTO,
+                AuditoriaObraRegistrar.ENTIDAD_PRESUPUESTO,
+                versionId,
+                (archivo.getOriginalFilename() == null ? "excel" : archivo.getOriginalFilename())
+                        + ", " + filas.size() + " partidas");
+        return obtenerPresupuesto(proyectoId, versionId);
     }
 
     @Override
@@ -695,6 +704,13 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
             aplicarFila(dia, fila);
             tareoCcDiaRepository.save(dia);
         }
+        int filas = request.getDias() == null ? 0 : request.getDias().size();
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.GUARDAR_TAREO,
+                AuditoriaObraRegistrar.ENTIDAD_TAREO,
+                periodoId,
+                periodo.getFechaDesde() + "-" + periodo.getFechaHasta() + ", " + filas + " filas");
         return armarGrilla(periodo);
     }
 
@@ -1204,6 +1220,32 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         return presupuestoVersionRepository
                 .findByProyectoIdAndEstado(proyectoId, EstadoVersionPresupuesto.VIGENTE)
                 .orElse(versiones.get(0));
+    }
+
+    private List<PartidaPresupuestoRequest> persistirPartidas(
+            PresupuestoVersion version, List<PartidaPresupuestoRequest> request) {
+        List<PartidaPresupuestoRequest> filas = request == null ? List.of() : request;
+        validarPartidas(filas);
+        List<PartidaPresupuesto> actuales = partidaPresupuestoRepository.findByVersionIdOrderByOrdenAsc(version.getId());
+        if (!actuales.isEmpty()) {
+            partidaPresupuestoRepository.deleteAll(actuales);
+            partidaPresupuestoRepository.flush();
+        }
+        int orden = 0;
+        for (PartidaPresupuestoRequest fila : filas) {
+            PartidaPresupuesto partida = new PartidaPresupuesto();
+            partida.setVersion(version);
+            partida.setCodigo(fila.getCodigo().trim());
+            partida.setCapitulo(blankToNull(fila.getCapitulo()));
+            partida.setDescripcion(fila.getDescripcion().trim());
+            partida.setUnidad(blankToNull(fila.getUnidad()));
+            partida.setMetrado(qty(fila.getMetrado()));
+            partida.setCentroCosto(blankToNull(fila.getCentroCosto()));
+            partida.setOrden(orden++);
+            aplicarApu(partida, fila.getApu(), fila.getPrecioUnitario());
+            partidaPresupuestoRepository.save(partida);
+        }
+        return filas;
     }
 
     private static void asegurarBorrador(PresupuestoVersion version) {

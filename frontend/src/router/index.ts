@@ -34,6 +34,7 @@ import ProyectoFinanciamientoPage from '@/pages/proyectos/ProyectoFinanciamiento
 import ProyectoRentabilidadPage from '@/pages/proyectos/ProyectoRentabilidadPage.vue'
 import ProyectoRecursosPage from '@/pages/proyectos/ProyectoRecursosPage.vue'
 import ProyectoDocumentosPage from '@/pages/proyectos/ProyectoDocumentosPage.vue'
+import ProyectoBitacoraPage from '@/pages/proyectos/ProyectoBitacoraPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -215,6 +216,11 @@ const router = createRouter({
               path: 'documentos',
               name: 'proyecto-documentos',
               component: ProyectoDocumentosPage,
+            },
+            {
+              path: 'bitacora',
+              name: 'proyecto-bitacora',
+              component: ProyectoBitacoraPage,
             },
           ],
         },

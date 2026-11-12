@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.convecsa.erp.construccion.domain.AccionAuditoriaObra;
 import com.convecsa.erp.construccion.domain.EstadoAdicionalObra;
 import com.convecsa.erp.construccion.domain.EstadoValorizacion;
 import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
@@ -42,6 +44,7 @@ import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionItemRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionRepository;
 import com.convecsa.erp.construccion.service.impl.ValorizacionServiceImpl;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -77,6 +80,8 @@ class ValorizacionServiceImplTest {
     private ValorizacionItemRepository valorizacionItemRepository;
     @Mock
     private FacturaObraRepository facturaObraRepository;
+    @Mock
+    private AuditoriaObraRegistrar auditoriaObraRegistrar;
 
     @InjectMocks
     private ValorizacionServiceImpl servicio;
@@ -221,6 +226,12 @@ class ValorizacionServiceImplTest {
         ValorizacionDTO primera = crearRegular(2026, 10);
         primera = servicio.presentarValorizacion(7L, primera.getId());
         servicio.aprobarValorizacion(7L, primera.getId());
+        verify(auditoriaObraRegistrar).registrar(
+                eq(7L),
+                eq(AccionAuditoriaObra.APROBAR_VALORIZACION),
+                eq(AuditoriaObraRegistrar.ENTIDAD_VALORIZACION),
+                eq(primera.getId()),
+                any());
 
         AvanceObraDTO segundo = guardarAvance(2026, 11, "4");
         servicio.cerrarAvance(7L, segundo.getId());

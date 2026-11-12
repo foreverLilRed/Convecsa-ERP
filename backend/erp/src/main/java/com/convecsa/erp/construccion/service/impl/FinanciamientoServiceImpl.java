@@ -3,6 +3,7 @@ package com.convecsa.erp.construccion.service.impl;
 import com.convecsa.erp.common.exception.FacturaObraNoEncontradaException;
 import com.convecsa.erp.common.exception.OperacionFactoringNoEncontradaException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
+import com.convecsa.erp.construccion.domain.AccionAuditoriaObra;
 import com.convecsa.erp.construccion.domain.EstadoFactoring;
 import com.convecsa.erp.construccion.domain.EstadoFacturaObra;
 import com.convecsa.erp.construccion.domain.EstadoPeriodoCc;
@@ -39,6 +40,7 @@ import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionRepository;
 import com.convecsa.erp.construccion.service.InterfazFinanciamientoService;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -68,6 +70,7 @@ public class FinanciamientoServiceImpl implements InterfazFinanciamientoService 
     private final BoletaCcRepository boletaCcRepository;
     private final AlmacenObraRepository almacenObraRepository;
     private final ValeSalidaRepository valeSalidaRepository;
+    private final AuditoriaObraRegistrar auditoriaObraRegistrar;
 
     @Override
     @Transactional(readOnly = true)
@@ -214,7 +217,14 @@ public class FinanciamientoServiceImpl implements InterfazFinanciamientoService 
         factura.setEstado(EstadoFacturaObra.CEDIDA);
         factura.setFactoring(operacion);
         facturaObraRepository.save(factura);
-        return toFactoringDto(operacionFactoringRepository.save(operacion));
+        OperacionFactoring guardada = operacionFactoringRepository.save(operacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.CEDER_FACTURA,
+                AuditoriaObraRegistrar.ENTIDAD_FACTORING,
+                guardada.getId(),
+                "factura " + factura.getNumero() + ", " + guardada.getEntidadRazon());
+        return toFactoringDto(guardada);
     }
 
     @Override
@@ -226,7 +236,14 @@ public class FinanciamientoServiceImpl implements InterfazFinanciamientoService 
         }
         operacion.setEstado(EstadoFactoring.ADELANTADA);
         operacion.setFechaAdelanto(LocalDate.now());
-        return toFactoringDto(operacionFactoringRepository.save(operacion));
+        OperacionFactoring guardada = operacionFactoringRepository.save(operacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.ADELANTAR_FACTORING,
+                AuditoriaObraRegistrar.ENTIDAD_FACTORING,
+                guardada.getId(),
+                "op " + guardada.getId());
+        return toFactoringDto(guardada);
     }
 
     @Override
@@ -238,7 +255,14 @@ public class FinanciamientoServiceImpl implements InterfazFinanciamientoService 
             throw new IllegalArgumentException("Solo se puede marcar cobrada una operación adelantada o impaga");
         }
         operacion.setEstado(EstadoFactoring.COBRADA);
-        return toFactoringDto(operacionFactoringRepository.save(operacion));
+        OperacionFactoring guardada = operacionFactoringRepository.save(operacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.COBRAR_FACTORING,
+                AuditoriaObraRegistrar.ENTIDAD_FACTORING,
+                guardada.getId(),
+                "op " + guardada.getId());
+        return toFactoringDto(guardada);
     }
 
     @Override
@@ -249,7 +273,14 @@ public class FinanciamientoServiceImpl implements InterfazFinanciamientoService 
             throw new IllegalArgumentException("Solo se puede marcar impaga una operación adelantada");
         }
         operacion.setEstado(EstadoFactoring.IMPAGA);
-        return toFactoringDto(operacionFactoringRepository.save(operacion));
+        OperacionFactoring guardada = operacionFactoringRepository.save(operacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.IMPAGAR_FACTORING,
+                AuditoriaObraRegistrar.ENTIDAD_FACTORING,
+                guardada.getId(),
+                "op " + guardada.getId());
+        return toFactoringDto(guardada);
     }
 
     @Override
@@ -263,7 +294,14 @@ public class FinanciamientoServiceImpl implements InterfazFinanciamientoService 
         FacturaObra factura = operacion.getFactura();
         factura.setEstado(EstadoFacturaObra.EMITIDA);
         facturaObraRepository.save(factura);
-        return toFactoringDto(operacionFactoringRepository.save(operacion));
+        OperacionFactoring guardada = operacionFactoringRepository.save(operacion);
+        auditoriaObraRegistrar.registrar(
+                proyectoId,
+                AccionAuditoriaObra.REVERTIR_FACTORING,
+                AuditoriaObraRegistrar.ENTIDAD_FACTORING,
+                guardada.getId(),
+                "factura " + factura.getNumero());
+        return toFactoringDto(guardada);
     }
 
     @Override

@@ -125,6 +125,10 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
     return 'Documentos'
   }
 
+  if (name === 'proyecto-bitacora') {
+    return 'Bitácora'
+  }
+
   for (const item of navItems) {
     if (item.kind === 'link' && item.name === name) {
       return item.label
@@ -161,6 +165,7 @@ export function getGroupIdForRouteName(name: string | symbol | null | undefined)
     || name === 'proyecto-financiamiento'
     || name === 'proyecto-rentabilidad'
     || name === 'proyecto-documentos'
+    || name === 'proyecto-bitacora'
   ) {
     return 'proyectos'
   }

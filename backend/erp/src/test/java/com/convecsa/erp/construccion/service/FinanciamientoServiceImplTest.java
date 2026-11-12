@@ -5,8 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.convecsa.erp.construccion.domain.AccionAuditoriaObra;
 import com.convecsa.erp.construccion.domain.EstadoFacturaObra;
 import com.convecsa.erp.construccion.domain.EstadoValorizacion;
 import com.convecsa.erp.construccion.domain.TipoLiberacionRetencion;
@@ -34,6 +36,7 @@ import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ValeSalidaRepository;
 import com.convecsa.erp.construccion.repository.ValorizacionRepository;
 import com.convecsa.erp.construccion.service.impl.FinanciamientoServiceImpl;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -71,6 +74,8 @@ class FinanciamientoServiceImplTest {
     private AlmacenObraRepository almacenObraRepository;
     @Mock
     private ValeSalidaRepository valeSalidaRepository;
+    @Mock
+    private AuditoriaObraRegistrar auditoriaObraRegistrar;
 
     @InjectMocks
     private FinanciamientoServiceImpl servicio;
@@ -208,6 +213,12 @@ class FinanciamientoServiceImplTest {
         assertEquals(new BigDecimal("1.80"), dto.getIgvComision());
         assertEquals(new BigDecimal("83.20"), dto.getImporteNeto());
         assertEquals(EstadoFacturaObra.CEDIDA, facturas.get(1L).getEstado());
+        verify(auditoriaObraRegistrar).registrar(
+                eq(7L),
+                eq(AccionAuditoriaObra.CEDER_FACTURA),
+                eq(AuditoriaObraRegistrar.ENTIDAD_FACTORING),
+                eq(dto.getId()),
+                any());
     }
 
     @Test

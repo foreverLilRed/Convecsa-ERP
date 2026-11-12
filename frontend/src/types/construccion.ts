@@ -948,6 +948,31 @@ export type DocumentoObra = {
   createdAt: string
 }
 
+export type BitacoraObra = {
+  id: number
+  proyectoId: number
+  fecha: string
+  texto: string
+  usuario: string
+  createdAt: string
+}
+
+export type BitacoraObraRequest = {
+  fecha: string
+  texto: string
+}
+
+export type AuditoriaObra = {
+  id: number
+  proyectoId: number
+  accion: string
+  entidad: string
+  entidadId: number | null
+  detalle: string | null
+  usuario: string
+  createdAt: string
+}
+
 export type SeveridadAlertaObra = 'INFO' | 'WARNING' | 'CRITICAL'
 
 export type AlertaObra = {

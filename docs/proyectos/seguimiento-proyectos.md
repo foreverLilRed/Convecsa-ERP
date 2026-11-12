@@ -2,7 +2,7 @@
 
 Documento vivo de seguimiento para la gestión de obras en el ERP Convecsa. Sirve como checklist de implementación: se marcan objetivos a medida que se cierran. Lo marcado como **Hecho** cita archivos reales; lo **Pendiente** propone nombres de entidades, endpoints y páginas Vue como guía de implementación, no como contrato cerrado.
 
-Última revisión: 2026-11-07.
+Última revisión: 2026-11-11.
 
 ## Leyenda
 
@@ -26,7 +26,7 @@ Convención de cada sección:
 
 El módulo Proyectos es el contenedor de cada obra de la constructora. Una obra nace en el maestro, recibe personal y recursos, se ejecuta (tareo, materiales, equipos), se valoriza al cliente y se financia (incluido factoring). El costo real se agrupa por centro de costo y alimenta rentabilidad y asiento contable.
 
-Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de recursos** (cuadrillas, equipos, subcontratos y vista unificada), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos) y **documentos + alertas** en la ficha. Quedan permisos por obra, auditoría y bitácora.
+Hoy el ERP cubre el **ciclo de mano de obra RCC** (alta de obra, contrato de obrero, parte diario, planilla, boletas, dispersión bancaria y asiento), el **presupuesto por partidas/APU**, el **ciclo de almacén de obra** (catálogo, requerimiento, OC, recepción, kardex y vale de salida), la **asignación de recursos** (cuadrillas, equipos, subcontratos y vista unificada), el **ciclo de avance/valorización** (metrados, cronograma, valorización mensual, adicionales, curva S y factura interna), el **ciclo de financiamiento** (cobranzas, retenciones, factoring y flujo de caja ejecutado), el **tablero de rentabilidad** (P&amp;L de obra por devengo, con MO, materiales, equipos y subcontratos) y **documentos + alertas + diario de obra + log de mutaciones** en la ficha. Quedan permisos por obra y ampliar el menú Proyectos.
 
 ```mermaid
 flowchart LR
@@ -72,7 +72,7 @@ flowchart TB
 | 9 | Integración contable y rentabilidad | Hecho |
 | 10 | Transversales | Parcial |
 
-Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad y Documentos viven como pestañas de esa ficha. Las alertas operativas se muestran en el hub.
+Navegación actual del módulo: grupo **Proyectos** en [`frontend/src/layouts/nav.ts`](../../frontend/src/layouts/nav.ts) con un único hijo **Obras** (`/proyectos`). La ficha se abre desde la fila de cada obra; Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad, Documentos y Bitácora viven como pestañas de esa ficha. Las alertas operativas se muestran en el hub.
 
 Rutas Vue:
 
@@ -87,6 +87,7 @@ Rutas Vue:
 - `/proyectos/:id/financiamiento` → misma ficha, tab Financiamiento ([`ProyectoFinanciamientoPage.vue`](../../frontend/src/pages/proyectos/ProyectoFinanciamientoPage.vue))
 - `/proyectos/:id/rentabilidad` → misma ficha, tab Rentabilidad ([`ProyectoRentabilidadPage.vue`](../../frontend/src/pages/proyectos/ProyectoRentabilidadPage.vue))
 - `/proyectos/:id/documentos` → misma ficha, tab Documentos ([`ProyectoDocumentosPage.vue`](../../frontend/src/pages/proyectos/ProyectoDocumentosPage.vue))
+- `/proyectos/:id/bitacora` → misma ficha, tab Bitácora ([`ProyectoBitacoraPage.vue`](../../frontend/src/pages/proyectos/ProyectoBitacoraPage.vue))
 
 API base: [`ConstruccionController`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/controller/ConstruccionController.java) en `/api/proyectos`.
 
@@ -505,17 +506,19 @@ Cortes que aplican a todas las secciones anteriores.
 
 ### Objetivos
 
-- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad y Documentos
+- [x] Ficha de obra (hub) con pestañas Resumen, Tareo, Planilla, Presupuesto, Almacén, Recursos, Avances, Financiamiento, Rentabilidad, Documentos y Bitácora
 - [x] Pestaña Documentos (adjuntos en disco: contrato, planos, actas, valorizaciones, cesiones)
 - [x] Alertas agregadas en la ficha: 50 UIT, quiebre de stock, factura por vencer/vencida (`FacturaObra.fechaVencimiento`), factoring `IMPAGA`, desvío de presupuesto (> 10 %)
+- [x] Bitácora / diario de obra (texto libre por día, distinto del parte de asistencia)
+- [x] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura)
 - [ ] Roles y permisos por obra (residente ve su obra; gerencia ve todas; almacén solo kardex). Fuera de este corte.
-- [ ] Auditoría de cambios (quién editó tareo, presupuesto, valorización, cesión de factura). Fuera de este corte.
-- [ ] Bitácora / diario de obra (texto libre por día, distinto del parte de asistencia). Fuera de este corte.
 - [ ] Ampliar el menú **Proyectos** más allá de Obras cuando existan las pantallas. Fuera de este corte.
 
 ### Cómo funciona (hoy)
 
 En **Obras → Abrir → Documentos** se suben PDF/JPEG/PNG (máx. 15 MB) con un tipo. El archivo vive en disco (`app.obras.documentos-dir`); la tabla `documento_obra` guarda metadatos. Se puede descargar o eliminar. En el hub, `GET /{id}/alertas` arma banners informativos (ámbar / rojo): no bloquean tareo ni liquidación. La “valorización por vencer” del backlog se cubre con el vencimiento de la factura interna.
+
+En **Bitácora** hay dos capas: el **diario** (`bitacora_obra`) son notas de texto del día de obra (varias por fecha, se pueden quitar); la **auditoría** (`auditoria_obra`) es un log append-only de mutaciones (tareo, presupuesto, valorización, factoring). El campo `usuario` es un snapshot del login JWT; si no hay autenticación (tests) queda `"sistema"`. No hay `usuario_id` en el token.
 
 ```mermaid
 flowchart LR
@@ -526,6 +529,10 @@ flowchart LR
   Vence[FacturaVencimiento] --> Panel
   Impaga[FactoringImpaga] --> Panel
   Desvio[ComparativoPresupuesto] --> Panel
+  Nota[NotaDiario] --> Bitacora[bitacora_obra]
+  Mutacion[TareoPresupuestoValorizacionFactoring] --> Auditoria[auditoria_obra]
+  Bitacora --> Tab[TabBitacora]
+  Auditoria --> Tab
 ```
 
 ### Desglose técnico (hecho)
@@ -533,21 +540,19 @@ flowchart LR
 | Capa | Ubicación |
 | --- | --- |
 | Hub | [`ProyectoFichaPage.vue`](../../frontend/src/pages/proyectos/ProyectoFichaPage.vue) con `Tabs` de shadcn/vue |
-| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-recursos`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad`, `proyecto-documentos` anidadas bajo `/proyectos/:id` |
-| Entidad | [`DocumentoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/DocumentoObra.java) |
-| Servicio | [`TransversalObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/TransversalObraServiceImpl.java) |
-| Endpoints | `GET/POST /{id}/documentos`, `GET/DELETE /{id}/documentos/{docId}`, `GET /{id}/alertas` |
-| UI | [`ProyectoDocumentosPage.vue`](../../frontend/src/pages/proyectos/ProyectoDocumentosPage.vue); banners de alerta en la ficha |
-| Migración | `V52` |
-| Nota | Archivo en disco, no `bytea`. MIME PDF/JPEG/PNG. Sin permisos por obra ni auditoría |
+| Rutas | `proyecto-ficha`, `proyecto-tareo`, `proyecto-planilla`, `proyecto-presupuesto`, `proyecto-almacen`, `proyecto-recursos`, `proyecto-avances`, `proyecto-financiamiento`, `proyecto-rentabilidad`, `proyecto-documentos`, `proyecto-bitacora` anidadas bajo `/proyectos/:id` |
+| Entidad | [`DocumentoObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/DocumentoObra.java), [`BitacoraObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/BitacoraObra.java), [`AuditoriaObra.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/entity/AuditoriaObra.java) |
+| Servicio | [`TransversalObraServiceImpl.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/service/impl/TransversalObraServiceImpl.java); registro en [`AuditoriaObraRegistrar.java`](../../backend/erp/src/main/java/com/convecsa/erp/construccion/support/AuditoriaObraRegistrar.java) |
+| Endpoints | `GET/POST /{id}/documentos`, `GET/DELETE /{id}/documentos/{docId}`, `GET /{id}/alertas`, `GET/POST /{id}/bitacora`, `DELETE /{id}/bitacora/{notaId}`, `GET /{id}/auditoria` |
+| UI | [`ProyectoDocumentosPage.vue`](../../frontend/src/pages/proyectos/ProyectoDocumentosPage.vue); [`ProyectoBitacoraPage.vue`](../../frontend/src/pages/proyectos/ProyectoBitacoraPage.vue) (Diario \| Auditoría); banners de alerta en la ficha |
+| Migración | `V52` (documentos), `V55` (bitácora y auditoría) |
+| Nota | Archivo en disco, no `bytea`. MIME PDF/JPEG/PNG. Diario editable/eliminable; auditoría append-only. Usuario = login, no FK. Sin permisos por obra |
 
 ### Desglose técnico (propuesto, fuera de este corte)
 
 | Capa | Propuesta |
 | --- | --- |
-| Auditoría | reutilizar patrón de `boleta_cc_envio_correo` (quién, cuándo, qué) a nivel obra |
 | Permisos | extensión del `RolUsuario` actual o tabla `proyecto_usuario_rol` |
-| Bitácora | `bitacora_obra` + `GET/POST /{id}/bitacora` |
 
 ---
 
@@ -600,7 +605,8 @@ Dependencias: Fase D (factura). Es el hito de liquidez.
 
 - [x] Tablero de margen (ingresos vs MO + materiales + equipos + subcontratos + factoring) y asientos de materiales/factoring
 - [x] Adjuntos de obra y alertas operativas en la ficha
-- [ ] Permisos por obra, auditoría, bitácora. Fuera de este corte.
+- [x] Bitácora (diario de obra) y auditoría de mutaciones (tareo, presupuesto, valorización, cesión)
+- [ ] Permisos por obra. Fuera de este corte.
 - [ ] Ampliar menú Proyectos. Fuera de este corte.
 
 Dependencias: Fases B–E para que el tablero no quede solo con mano de obra. ETC/EAC y Excel quedaron fuera de este corte.
@@ -698,6 +704,9 @@ Base: `/api/proyectos`.
 | GET | `/{id}/documentos/{docId}` | Descargar adjunto |
 | DELETE | `/{id}/documentos/{docId}` | Eliminar adjunto |
 | GET | `/{id}/alertas` | Alertas operativas de la ficha |
+| GET/POST | `/{id}/bitacora` | Listar / registrar nota del diario de obra |
+| DELETE | `/{id}/bitacora/{notaId}` | Quitar nota del diario |
+| GET | `/{id}/auditoria` | Log de mutaciones (solo lectura) |
 | GET | `/{id}/personal` | Obreros RCC activos |
 | GET/POST | `/{id}/periodos` | Periodos de planilla |
 | GET | `/{id}/periodos/{periodoId}` | Detalle de periodo |

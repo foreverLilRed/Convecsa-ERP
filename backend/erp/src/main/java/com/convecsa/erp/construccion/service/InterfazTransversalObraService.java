@@ -2,6 +2,9 @@ package com.convecsa.erp.construccion.service;
 
 import com.convecsa.erp.construccion.domain.TipoDocumentoObra;
 import com.convecsa.erp.construccion.dto.AlertaObraDTO;
+import com.convecsa.erp.construccion.dto.AuditoriaObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraRequest;
 import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import java.util.List;
@@ -18,4 +21,12 @@ public interface InterfazTransversalObraService {
     void eliminarDocumento(Long proyectoId, Long documentoId);
 
     List<AlertaObraDTO> listarAlertas(Long proyectoId);
+
+    List<BitacoraObraDTO> listarBitacora(Long proyectoId);
+
+    BitacoraObraDTO crearNotaBitacora(Long proyectoId, BitacoraObraRequest request);
+
+    void eliminarNotaBitacora(Long proyectoId, Long notaId);
+
+    List<AuditoriaObraDTO> listarAuditoria(Long proyectoId);
 }

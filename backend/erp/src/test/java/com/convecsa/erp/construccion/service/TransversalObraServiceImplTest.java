@@ -11,6 +11,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.convecsa.erp.common.exception.BitacoraObraNoEncontradaException;
 import com.convecsa.erp.common.exception.DocumentoObraNoEncontradoException;
 import com.convecsa.erp.construccion.domain.EstadoFacturaObra;
 import com.convecsa.erp.construccion.domain.EstadoFactoring;
@@ -18,13 +19,18 @@ import com.convecsa.erp.construccion.domain.EstadoVersionPresupuesto;
 import com.convecsa.erp.construccion.domain.SeveridadAlertaObra;
 import com.convecsa.erp.construccion.domain.TipoDocumentoObra;
 import com.convecsa.erp.construccion.dto.AlertaObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraRequest;
 import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
+import com.convecsa.erp.construccion.entity.BitacoraObra;
 import com.convecsa.erp.construccion.entity.DocumentoObra;
 import com.convecsa.erp.construccion.entity.FacturaObra;
 import com.convecsa.erp.construccion.entity.OperacionFactoring;
 import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.repository.AlmacenObraRepository;
+import com.convecsa.erp.construccion.repository.AuditoriaObraRepository;
+import com.convecsa.erp.construccion.repository.BitacoraObraRepository;
 import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.DocumentoObraRepository;
 import com.convecsa.erp.construccion.repository.FacturaObraRepository;
@@ -71,6 +77,10 @@ class TransversalObraServiceImplTest {
     private PresupuestoVersionRepository presupuestoVersionRepository;
     @Mock
     private InterfazConstruccionService construccionService;
+    @Mock
+    private BitacoraObraRepository bitacoraObraRepository;
+    @Mock
+    private AuditoriaObraRepository auditoriaObraRepository;
 
     @InjectMocks
     private TransversalObraServiceImpl servicio;
@@ -171,6 +181,46 @@ class TransversalObraServiceImplTest {
         when(construccionService.comparativoPresupuesto(7L)).thenReturn(comparativo("5.00", "5.00"));
         List<AlertaObraDTO> sinDesvio = servicio.listarAlertas(7L);
         assertTrue(sinDesvio.stream().noneMatch(item -> item.getCodigo().startsWith("DESVIO")));
+    }
+
+    @Test
+    void crearNotaBitacoraGuardaTextoYUsuarioSistema() {
+        lenient().when(bitacoraObraRepository.save(any(BitacoraObra.class))).thenAnswer(invocation -> {
+            BitacoraObra nota = invocation.getArgument(0);
+            nota.setId(1L);
+            return nota;
+        });
+        BitacoraObraRequest request = new BitacoraObraRequest();
+        request.setFecha(LocalDate.of(2026, 11, 11));
+        request.setTexto("Hormigonado de zapata Z-1");
+
+        BitacoraObraDTO dto = servicio.crearNotaBitacora(7L, request);
+
+        assertEquals("Hormigonado de zapata Z-1", dto.getTexto());
+        assertEquals(LocalDate.of(2026, 11, 11), dto.getFecha());
+        assertEquals("sistema", dto.getUsuario());
+    }
+
+    @Test
+    void crearNotaBitacoraRechazaTextoVacio() {
+        BitacoraObraRequest request = new BitacoraObraRequest();
+        request.setFecha(LocalDate.of(2026, 11, 11));
+        request.setTexto("   ");
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> servicio.crearNotaBitacora(7L, request));
+        assertEquals("El texto es obligatorio", error.getMessage());
+        verify(bitacoraObraRepository, never()).save(any());
+    }
+
+    @Test
+    void eliminarNotaBitacoraDeOtraObraDa404() {
+        when(bitacoraObraRepository.findByIdAndProyectoId(99L, 7L)).thenReturn(Optional.empty());
+        BitacoraObraNoEncontradaException error = assertThrows(
+                BitacoraObraNoEncontradaException.class,
+                () -> servicio.eliminarNotaBitacora(7L, 99L));
+        assertEquals("No se encontró la nota de bitácora", error.getMessage());
+        verify(bitacoraObraRepository, never()).delete(any());
     }
 
     private static ComparativoPresupuestoDTO comparativo(String desvioMo, String desvioMat) {

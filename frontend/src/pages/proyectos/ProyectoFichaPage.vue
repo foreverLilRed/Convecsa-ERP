@@ -31,7 +31,7 @@ import { listarPersonas } from '@/services/persona/personaService'
 import type { AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsableObra } from '@/types/construccion'
 import type { PersonaResumenDTO } from '@/types/persona'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos' | 'bitacora'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -78,6 +78,7 @@ const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-financiamiento') return 'financiamiento'
   if (route.name === 'proyecto-rentabilidad') return 'rentabilidad'
   if (route.name === 'proyecto-documentos') return 'documentos'
+  if (route.name === 'proyecto-bitacora') return 'bitacora'
   return 'resumen'
 })
 
@@ -231,6 +232,10 @@ function onTab(value: string | number) {
   }
   if (siguiente === 'documentos') {
     void router.push({ name: 'proyecto-documentos', params: { id } })
+    return
+  }
+  if (siguiente === 'bitacora') {
+    void router.push({ name: 'proyecto-bitacora', params: { id } })
     return
   }
   void router.push({ name: 'proyecto-ficha', params: { id } })
@@ -505,6 +510,12 @@ onUnmounted(() => {
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Documentos
+        </TabsTrigger>
+        <TabsTrigger
+          value="bitacora"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          Bitácora
         </TabsTrigger>
       </TabsList>
     </Tabs>

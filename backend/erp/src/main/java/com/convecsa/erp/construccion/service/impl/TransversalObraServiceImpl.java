@@ -1,5 +1,6 @@
 package com.convecsa.erp.construccion.service.impl;
 
+import com.convecsa.erp.common.exception.BitacoraObraNoEncontradaException;
 import com.convecsa.erp.common.exception.DocumentoObraNoEncontradoException;
 import com.convecsa.erp.common.exception.ProyectoNoEncontradoException;
 import com.convecsa.erp.construccion.domain.EstadoFacturaObra;
@@ -9,14 +10,21 @@ import com.convecsa.erp.construccion.domain.SeveridadAlertaObra;
 import com.convecsa.erp.construccion.domain.TipoDocumentoObra;
 import com.convecsa.erp.construccion.dto.AlertaObraDTO;
 import com.convecsa.erp.construccion.dto.AlmacenDTO;
+import com.convecsa.erp.construccion.dto.AuditoriaObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraDTO;
+import com.convecsa.erp.construccion.dto.BitacoraObraRequest;
 import com.convecsa.erp.construccion.dto.ComparativoPresupuestoDTO;
 import com.convecsa.erp.construccion.dto.DocumentoObraDTO;
+import com.convecsa.erp.construccion.entity.AuditoriaObra;
+import com.convecsa.erp.construccion.entity.BitacoraObra;
 import com.convecsa.erp.construccion.entity.CcParametroAnual;
 import com.convecsa.erp.construccion.entity.DocumentoObra;
 import com.convecsa.erp.construccion.entity.FacturaObra;
 import com.convecsa.erp.construccion.entity.OperacionFactoring;
 import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.repository.AlmacenObraRepository;
+import com.convecsa.erp.construccion.repository.AuditoriaObraRepository;
+import com.convecsa.erp.construccion.repository.BitacoraObraRepository;
 import com.convecsa.erp.construccion.repository.CcParametroAnualRepository;
 import com.convecsa.erp.construccion.repository.DocumentoObraRepository;
 import com.convecsa.erp.construccion.repository.FacturaObraRepository;
@@ -26,6 +34,7 @@ import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.service.InterfazAlmacenService;
 import com.convecsa.erp.construccion.service.InterfazConstruccionService;
 import com.convecsa.erp.construccion.service.InterfazTransversalObraService;
+import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import com.convecsa.erp.construccion.support.DocumentoObraStorage;
 import com.convecsa.erp.construccion.support.UitObraAlerta;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
@@ -61,6 +70,8 @@ public class TransversalObraServiceImpl implements InterfazTransversalObraServic
     private final OperacionFactoringRepository operacionFactoringRepository;
     private final PresupuestoVersionRepository presupuestoVersionRepository;
     private final InterfazConstruccionService construccionService;
+    private final BitacoraObraRepository bitacoraObraRepository;
+    private final AuditoriaObraRepository auditoriaObraRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -142,6 +153,54 @@ public class TransversalObraServiceImpl implements InterfazTransversalObraServic
         agregarFactoring(alertas, proyectoId);
         agregarDesvio(alertas, proyectoId);
         return alertas;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BitacoraObraDTO> listarBitacora(Long proyectoId) {
+        buscarProyecto(proyectoId);
+        return bitacoraObraRepository.findByProyectoIdOrderByFechaDescIdDesc(proyectoId).stream()
+                .map(TransversalObraServiceImpl::toBitacoraDto)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public BitacoraObraDTO crearNotaBitacora(Long proyectoId, BitacoraObraRequest request) {
+        Proyecto proyecto = buscarProyecto(proyectoId);
+        if (request == null || request.getFecha() == null) {
+            throw new IllegalArgumentException("La fecha es obligatoria");
+        }
+        String texto = blankToNull(request.getTexto());
+        if (texto == null) {
+            throw new IllegalArgumentException("El texto es obligatorio");
+        }
+        if (texto.length() > 4000) {
+            throw new IllegalArgumentException("El texto no puede superar 4000 caracteres");
+        }
+        BitacoraObra nota = new BitacoraObra();
+        nota.setProyecto(proyecto);
+        nota.setFecha(request.getFecha());
+        nota.setTexto(texto);
+        nota.setUsuario(AuditoriaObraRegistrar.usuarioActual());
+        return toBitacoraDto(bitacoraObraRepository.save(nota));
+    }
+
+    @Override
+    @Transactional
+    public void eliminarNotaBitacora(Long proyectoId, Long notaId) {
+        BitacoraObra nota = bitacoraObraRepository.findByIdAndProyectoId(notaId, proyectoId)
+                .orElseThrow(() -> new BitacoraObraNoEncontradaException("No se encontró la nota de bitácora"));
+        bitacoraObraRepository.delete(nota);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AuditoriaObraDTO> listarAuditoria(Long proyectoId) {
+        buscarProyecto(proyectoId);
+        return auditoriaObraRepository.findByProyectoIdOrderByCreatedAtDescIdDesc(proyectoId).stream()
+                .map(TransversalObraServiceImpl::toAuditoriaDto)
+                .toList();
     }
 
     private void agregarUit(List<AlertaObraDTO> alertas, Proyecto proyecto) {
@@ -276,6 +335,30 @@ public class TransversalObraServiceImpl implements InterfazTransversalObraServic
                 .codigo(codigo)
                 .severidad(severidad)
                 .mensaje(mensaje)
+                .build();
+    }
+
+    private static BitacoraObraDTO toBitacoraDto(BitacoraObra nota) {
+        return BitacoraObraDTO.builder()
+                .id(nota.getId())
+                .proyectoId(nota.getProyecto() == null ? null : nota.getProyecto().getId())
+                .fecha(nota.getFecha())
+                .texto(nota.getTexto())
+                .usuario(nota.getUsuario())
+                .createdAt(nota.getCreatedAt())
+                .build();
+    }
+
+    private static AuditoriaObraDTO toAuditoriaDto(AuditoriaObra fila) {
+        return AuditoriaObraDTO.builder()
+                .id(fila.getId())
+                .proyectoId(fila.getProyecto() == null ? null : fila.getProyecto().getId())
+                .accion(fila.getAccion())
+                .entidad(fila.getEntidad())
+                .entidadId(fila.getEntidadId())
+                .detalle(fila.getDetalle())
+                .usuario(fila.getUsuario())
+                .createdAt(fila.getCreatedAt())
                 .build();
     }
 
