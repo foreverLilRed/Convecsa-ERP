@@ -11,7 +11,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | # | Entrega | Migración | Estado |
 | :- | :--- | :--- | :--- |
 | S0 | Base: rol `INGENIERO_SOMA`, paquete `soma`, pestaña SOMA vacía | V57 | Hecho |
-| S1 | Historial EMO y sincronización con `Persona` | V58 | Pendiente |
+| S1 | Historial EMO y sincronización con `Persona` | V58 | Hecho |
 | S2 | Pólizas SCTR mensuales por obra | V59 | Pendiente |
 | S3 | Entrega de EPP integrada con almacén | V60 | Pendiente |
 | S4 | Capacitaciones e inducción de hombre nuevo | V61 | Pendiente |
@@ -251,6 +251,13 @@ CREATE INDEX idx_soma_emo_vencimiento ON soma_emo_examen (fecha_vencimiento);
 **Verificación:** `mvn -q -Dtest=SomaEmoServiceImplTest test` y `npx vue-tsc --build`.
 
 **Definición de terminado:** registrar un EMO `APTO` vigente deja a la persona en `APTO` y `EMO_APTO_VIGENTE` en `CONFORME`; registrar luego un `NO_APTO` los cambia a `OBSERVADO`.
+
+**Notas de implementación (S1)**
+- El selector de persona en la pestaña de obra usa `GET /api/proyectos/{id}/personal` (`listarPersonalObra`), no el padrón completo.
+- El CAMO se sube desde el mismo formulario con `subirDocumentoObra(..., 'CERTIFICADO_EMO')` y el request solo recibe `documentoObraId`.
+- El checklist `EMO_APTO_VIGENTE` se escribe sobre el agregado `Persona` (`addDocumentoChecklist`); no pasa por `PersonaMapper.applyChecklist`, que borraría filas ausentes del request.
+- `SomaCorporativoController` queda en `/api/soma` (el filtro de S0 ya cubría esa ruta).
+- `mapear` es un método estático público del impl para cubrir la tabla de la decisión 1 en el test.
 
 ---
 
