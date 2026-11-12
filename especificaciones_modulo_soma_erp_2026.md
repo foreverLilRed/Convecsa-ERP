@@ -12,7 +12,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | :- | :--- | :--- | :--- |
 | S0 | Base: rol `INGENIERO_SOMA`, paquete `soma`, pestaña SOMA vacía | V57 | Hecho |
 | S1 | Historial EMO y sincronización con `Persona` | V58 | Hecho |
-| S2 | Pólizas SCTR mensuales por obra | V59 | Pendiente |
+| S2 | Pólizas SCTR mensuales por obra | V59 | Hecho |
 | S3 | Entrega de EPP integrada con almacén | V60 | Pendiente |
 | S4 | Capacitaciones e inducción de hombre nuevo | V61 | Pendiente |
 | S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Pendiente |
@@ -319,6 +319,13 @@ CREATE INDEX idx_soma_sctr_nomina_persona ON soma_sctr_nomina (persona_id);
 - La sugerencia respeta la vigencia del contrato.
 
 **Definición de terminado:** con una póliza vigente y nómina guardada, los cubiertos quedan `CONFORME` y un trabajador activo excluido queda `PENDIENTE`.
+
+**Notas de implementación (S2)**
+- La regla única de "trabajador activo en la obra" vive en `SomaTrabajadorObraRepository.buscarActivos` / `buscarActivosEnMes`: solapa el contrato con el mes (`fecha_inicio <= fin de mes` y `fecha_fin` nula o `>= inicio de mes`).
+- El checklist `SCTR` solo se sincroniza si la póliza es `VIGENTE` y corresponde al mes en curso. Guardar un mes pasado no toca a `Persona`.
+- `ChecklistPersonaActualizador` en `soma/support` es el único escritor del checklist desde SOMA; S1 quedó refactorizado para usarlo.
+- El adjunto de la póliza se sube con `subirDocumentoObra(..., 'SCTR_POLIZA')`, igual que el CAMO en S1.
+- La obra local `0000` no tiene `contrato_cc`; la sugerencia de nómina sale vacía y el caso cubierto/excluido se cubre con `SomaSctrServiceImplTest`.
 
 ---
 

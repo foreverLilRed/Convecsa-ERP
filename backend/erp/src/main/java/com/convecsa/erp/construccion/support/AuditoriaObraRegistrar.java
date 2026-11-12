@@ -20,6 +20,7 @@ public class AuditoriaObraRegistrar {
     public static final String ENTIDAD_VALORIZACION = "VALORIZACION";
     public static final String ENTIDAD_FACTORING = "FACTORING";
     public static final String ENTIDAD_EMO_SOMA = "EMO_SOMA";
+    public static final String ENTIDAD_SCTR_SOMA = "SCTR_SOMA";
 
     private final AuditoriaObraRepository auditoriaObraRepository;
     private final ProyectoRepository proyectoRepository;

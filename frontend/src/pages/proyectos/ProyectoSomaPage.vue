@@ -31,12 +31,28 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { listarPersonalObra, subirDocumentoObra } from '@/services/construccion/construccionService'
-import { listarEmosObra, obtenerResumenSoma, registrarEmoObra } from '@/services/soma/somaService'
+import {
+  anularPolizaSctr,
+  crearPolizaSctr,
+  guardarNominaSctr,
+  listarEmosObra,
+  listarPolizasSctr,
+  obtenerResumenSoma,
+  registrarEmoObra,
+  sugerirNominaSctr,
+} from '@/services/soma/somaService'
 import type { PersonalObra } from '@/types/construccion'
-import type { AptitudEmo, SomaEmo, SomaResumenObra, TipoEmo } from '@/types/soma'
+import type {
+  AptitudEmo,
+  SomaEmo,
+  SomaResumenObra,
+  SomaSctrNominaFila,
+  SomaSctrPoliza,
+  TipoEmo,
+} from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'resumen' | 'vigilancia'
+type TabSoma = 'resumen' | 'vigilancia' | 'sctr'
 
 const inputClass = fieldInputClass
 const selectClass = fieldSelectClass
@@ -58,6 +74,25 @@ const APTITUDES: { valor: AptitudEmo; label: string }[] = [
   { valor: 'NO_APTO', label: 'No apto' },
 ]
 
+const MESES = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Setiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+]
+
+const anioActual = new Date().getFullYear()
+const ANIOS = [anioActual - 1, anioActual, anioActual + 1]
+const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('resumen')
@@ -68,6 +103,11 @@ const emos = ref<SomaEmo[]>([])
 const personal = ref<PersonalObra[]>([])
 const personaSearch = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const polizas = ref<SomaSctrPoliza[]>([])
+const polizaSeleccionadaId = ref<number | null>(null)
+const nominaEdicion = ref<SomaSctrNominaFila[]>([])
+const sctrFileInput = ref<HTMLInputElement | null>(null)
+const sctrSaving = ref(false)
 
 const form = reactive({
   personaId: null as number | null,
@@ -78,6 +118,23 @@ const form = reactive({
   fechaVencimiento: masUnAnio(hoyIso()),
   restricciones: '',
 })
+
+const sctrForm = reactive({
+  anio: anioActual,
+  mes: new Date().getMonth() + 1,
+  aseguradoraSalud: '',
+  numeroPolizaSalud: '',
+  aseguradoraPension: '',
+  numeroPolizaPension: '',
+  fechaInicio: primerDiaMes(anioActual, new Date().getMonth() + 1),
+  fechaFin: ultimoDiaMes(anioActual, new Date().getMonth() + 1),
+  montoPrimaSalud: '0',
+  montoPrimaPension: '0',
+})
+
+const polizaSeleccionada = computed(
+  () => polizas.value.find((item) => item.id === polizaSeleccionadaId.value) ?? null,
+)
 
 const personaSeleccionada = computed(
   () => personal.value.find((item) => item.personaId === form.personaId) ?? null,
@@ -102,6 +159,25 @@ function hoyIso(): string {
   const mes = String(fecha.getMonth() + 1).padStart(2, '0')
   const dia = String(fecha.getDate()).padStart(2, '0')
   return `${fecha.getFullYear()}-${mes}-${dia}`
+}
+
+function primerDiaMes(anio: number, mes: number): string {
+  return `${anio}-${String(mes).padStart(2, '0')}-01`
+}
+
+function ultimoDiaMes(anio: number, mes: number): string {
+  const fecha = new Date(anio, mes, 0)
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  return `${anio}-${String(mes).padStart(2, '0')}-${dia}`
+}
+
+function mesLabel(mes: number): string {
+  return MESES[mes - 1] ?? String(mes)
+}
+
+function n(valor: string): number {
+  const parsed = Number(valor.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function masUnAnio(iso: string): string {
@@ -188,18 +264,25 @@ async function load() {
   }
   loading.value = true
   try {
-    const [resumenObra, listaEmos, listaPersonal] = await Promise.all([
+    const [resumenObra, listaEmos, listaPersonal, listaPolizas] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarEmosObra(proyectoId.value),
       listarPersonalObra(proyectoId.value),
+      listarPolizasSctr(proyectoId.value),
     ])
     resumen.value = resumenObra
     emos.value = listaEmos
     personal.value = uniquePersonal(listaPersonal)
+    polizas.value = listaPolizas
+    if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
+      polizaSeleccionadaId.value = null
+      nominaEdicion.value = []
+    }
   } catch (err) {
     resumen.value = null
     emos.value = []
     personal.value = []
+    polizas.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -251,6 +334,157 @@ async function onRegistrar() {
   }
 }
 
+function sincronizarFechasSctr() {
+  sctrForm.fechaInicio = primerDiaMes(sctrForm.anio, sctrForm.mes)
+  sctrForm.fechaFin = ultimoDiaMes(sctrForm.anio, sctrForm.mes)
+}
+
+function resetSctrForm() {
+  sctrForm.anio = anioActual
+  sctrForm.mes = new Date().getMonth() + 1
+  sctrForm.aseguradoraSalud = ''
+  sctrForm.numeroPolizaSalud = ''
+  sctrForm.aseguradoraPension = ''
+  sctrForm.numeroPolizaPension = ''
+  sctrForm.montoPrimaSalud = '0'
+  sctrForm.montoPrimaPension = '0'
+  sincronizarFechasSctr()
+  if (sctrFileInput.value) {
+    sctrFileInput.value.value = ''
+  }
+}
+
+function seleccionarPoliza(item: SomaSctrPoliza) {
+  polizaSeleccionadaId.value = item.id
+  nominaEdicion.value = item.nomina.map((fila) => ({ ...fila }))
+}
+
+async function onCrearPoliza() {
+  if (!sctrForm.aseguradoraSalud.trim() || !sctrForm.numeroPolizaSalud.trim()) {
+    toast.error('Indique la aseguradora y el número de la póliza de salud.')
+    return
+  }
+  if (!sctrForm.aseguradoraPension.trim() || !sctrForm.numeroPolizaPension.trim()) {
+    toast.error('Indique la aseguradora y el número de la póliza de pensión.')
+    return
+  }
+  if (sctrForm.fechaFin < sctrForm.fechaInicio) {
+    toast.error('La fecha de fin no puede ser menor que la de inicio.')
+    return
+  }
+  sctrSaving.value = true
+  try {
+    const archivo = sctrFileInput.value?.files?.[0]
+    let documentoObraId: number | null = null
+    if (archivo) {
+      const documento = await subirDocumentoObra(proyectoId.value, 'SCTR_POLIZA', archivo)
+      documentoObraId = documento.id
+    }
+    const creada = await crearPolizaSctr(proyectoId.value, {
+      anio: sctrForm.anio,
+      mes: sctrForm.mes,
+      aseguradoraSalud: sctrForm.aseguradoraSalud.trim(),
+      numeroPolizaSalud: sctrForm.numeroPolizaSalud.trim(),
+      aseguradoraPension: sctrForm.aseguradoraPension.trim(),
+      numeroPolizaPension: sctrForm.numeroPolizaPension.trim(),
+      fechaInicio: sctrForm.fechaInicio,
+      fechaFin: sctrForm.fechaFin,
+      montoPrimaSalud: n(sctrForm.montoPrimaSalud),
+      montoPrimaPension: n(sctrForm.montoPrimaPension),
+      documentoObraId,
+    })
+    toast.success('Póliza SCTR registrada.')
+    resetSctrForm()
+    polizas.value = await listarPolizasSctr(proyectoId.value)
+    seleccionarPoliza(polizas.value.find((item) => item.id === creada.id) ?? creada)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar la póliza SCTR.')
+  } finally {
+    sctrSaving.value = false
+  }
+}
+
+async function onPrecargarNomina() {
+  const poliza = polizaSeleccionada.value
+  if (!poliza) {
+    toast.error('Seleccione una póliza.')
+    return
+  }
+  sctrSaving.value = true
+  try {
+    const sugeridos = await sugerirNominaSctr(proyectoId.value, poliza.anio, poliza.mes)
+    const existentes = new Map(nominaEdicion.value.map((fila) => [fila.personaId, fila]))
+    for (const trabajador of sugeridos) {
+      if (!existentes.has(trabajador.personaId)) {
+        existentes.set(trabajador.personaId, {
+          personaId: trabajador.personaId,
+          personaNombre: `${trabajador.apellidos}, ${trabajador.nombres}`,
+          numeroDocumento: trabajador.numeroDocumento,
+          incluidoSalud: true,
+          incluidoPension: true,
+        })
+      }
+    }
+    nominaEdicion.value = [...existentes.values()]
+    toast.success('Nómina precargada con el personal del mes.')
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo sugerir la nómina.')
+  } finally {
+    sctrSaving.value = false
+  }
+}
+
+function quitarDeNomina(personaId: number) {
+  nominaEdicion.value = nominaEdicion.value.filter((fila) => fila.personaId !== personaId)
+}
+
+async function onGuardarNomina() {
+  const poliza = polizaSeleccionada.value
+  if (!poliza) {
+    toast.error('Seleccione una póliza.')
+    return
+  }
+  sctrSaving.value = true
+  try {
+    const actualizada = await guardarNominaSctr(proyectoId.value, poliza.id, {
+      filas: nominaEdicion.value.map((fila) => ({
+        personaId: fila.personaId,
+        incluidoSalud: fila.incluidoSalud,
+        incluidoPension: fila.incluidoPension,
+      })),
+    })
+    toast.success('Nómina SCTR guardada.')
+    polizas.value = await listarPolizasSctr(proyectoId.value)
+    seleccionarPoliza(polizas.value.find((item) => item.id === actualizada.id) ?? actualizada)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo guardar la nómina.')
+  } finally {
+    sctrSaving.value = false
+  }
+}
+
+async function onAnularPoliza(item: SomaSctrPoliza) {
+  if (!window.confirm(`¿Anular la póliza de ${mesLabel(item.mes)} ${item.anio}?`)) {
+    return
+  }
+  sctrSaving.value = true
+  try {
+    await anularPolizaSctr(proyectoId.value, item.id)
+    toast.success('Póliza anulada.')
+    polizas.value = await listarPolizasSctr(proyectoId.value)
+    if (polizaSeleccionadaId.value === item.id) {
+      const actual = polizas.value.find((fila) => fila.id === item.id)
+      if (actual) {
+        seleccionarPoliza(actual)
+      }
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo anular la póliza.')
+  } finally {
+    sctrSaving.value = false
+  }
+}
+
 watch(proyectoId, () => {
   void load()
 })
@@ -266,6 +500,7 @@ onMounted(() => {
       <TabsList :class="tabsListClass">
         <TabsTrigger value="resumen" :class="tabTriggerClass">Resumen</TabsTrigger>
         <TabsTrigger value="vigilancia" :class="tabTriggerClass">Vigilancia médica</TabsTrigger>
+        <TabsTrigger value="sctr" :class="tabTriggerClass">SCTR</TabsTrigger>
       </TabsList>
 
       <TabsContent value="resumen" class="mt-4">
@@ -457,6 +692,225 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!emos.length" :colspan="6">Sin exámenes médicos registrados en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="sctr" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar póliza SCTR</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Una póliza por mes y obra. El certificado se sube como documento de obra. El checklist SCTR solo se
+              actualiza si la póliza corresponde al mes en curso.
+            </p>
+            <form class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" @submit.prevent="onCrearPoliza">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-anio">Año</label>
+                <select
+                  id="soma-sctr-anio"
+                  v-model.number="sctrForm.anio"
+                  :class="selectClass"
+                  class="mt-1.5"
+                  @change="sincronizarFechasSctr"
+                >
+                  <option v-for="anio in ANIOS" :key="anio" :value="anio">{{ anio }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-mes">Mes</label>
+                <select
+                  id="soma-sctr-mes"
+                  v-model.number="sctrForm.mes"
+                  :class="selectClass"
+                  class="mt-1.5"
+                  @change="sincronizarFechasSctr"
+                >
+                  <option v-for="(nombre, index) in MESES" :key="nombre" :value="index + 1">{{ nombre }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-ini">Inicio</label>
+                <Input id="soma-sctr-ini" v-model="sctrForm.fechaInicio" type="date" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-fin">Fin</label>
+                <Input id="soma-sctr-fin" v-model="sctrForm.fechaFin" type="date" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-aseg-salud">Aseguradora salud</label>
+                <Input id="soma-sctr-aseg-salud" v-model="sctrForm.aseguradoraSalud" :class="inputClass" class="mt-1.5" maxlength="120" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-nro-salud">Póliza salud</label>
+                <Input id="soma-sctr-nro-salud" v-model="sctrForm.numeroPolizaSalud" :class="inputClass" class="mt-1.5" maxlength="60" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-aseg-pen">Aseguradora pensión</label>
+                <Input id="soma-sctr-aseg-pen" v-model="sctrForm.aseguradoraPension" :class="inputClass" class="mt-1.5" maxlength="120" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-nro-pen">Póliza pensión</label>
+                <Input id="soma-sctr-nro-pen" v-model="sctrForm.numeroPolizaPension" :class="inputClass" class="mt-1.5" maxlength="60" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-prima-salud">Prima salud</label>
+                <Input id="soma-sctr-prima-salud" v-model="sctrForm.montoPrimaSalud" :class="inputClass" class="mt-1.5" />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-prima-pen">Prima pensión</label>
+                <Input id="soma-sctr-prima-pen" v-model="sctrForm.montoPrimaPension" :class="inputClass" class="mt-1.5" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-sctr-file">Póliza (PDF o imagen)</label>
+                <input
+                  id="soma-sctr-file"
+                  ref="sctrFileInput"
+                  class="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm file:mr-2 file:h-full file:rounded file:border-0 file:bg-slate-100 file:px-3 file:text-sm"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                >
+              </div>
+              <div class="flex items-end">
+                <Button
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="submit"
+                  :disabled="sctrSaving"
+                >
+                  Registrar póliza
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="mb-3 text-base font-semibold text-palette-navy">Pólizas del mes</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Periodo</TableHead>
+                  <TableHead>Salud</TableHead>
+                  <TableHead>Pensión</TableHead>
+                  <TableHead>Prima</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="item in polizas" :key="item.id">
+                  <TableCell>{{ mesLabel(item.mes) }} {{ item.anio }}</TableCell>
+                  <TableCell>
+                    <p>{{ item.aseguradoraSalud }}</p>
+                    <p class="text-xs text-slate-500">{{ item.numeroPolizaSalud }}</p>
+                  </TableCell>
+                  <TableCell>
+                    <p>{{ item.aseguradoraPension }}</p>
+                    <p class="text-xs text-slate-500">{{ item.numeroPolizaPension }}</p>
+                  </TableCell>
+                  <TableCell>{{ money.format(item.montoPrimaSalud + item.montoPrimaPension) }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="item.estado === 'VIGENTE' ? 'success' : 'secondary'">{{ item.estado === 'VIGENTE' ? 'Vigente' : 'Anulada' }}</Badge>
+                  </TableCell>
+                  <TableCell class="space-x-2 whitespace-nowrap">
+                    <Button variant="outline" size="sm" type="button" @click="seleccionarPoliza(item)">Ver nómina</Button>
+                    <Button
+                      v-if="item.estado === 'VIGENTE'"
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      :disabled="sctrSaving"
+                      @click="onAnularPoliza(item)"
+                    >
+                      Anular
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!polizas.length" :colspan="6">Sin pólizas SCTR en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div v-if="polizaSeleccionada" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 class="text-base font-semibold text-palette-navy">
+                  Nómina · {{ mesLabel(polizaSeleccionada.mes) }} {{ polizaSeleccionada.anio }}
+                </h3>
+                <p class="mt-1 text-sm text-slate-500">
+                  Cubierto = salud y pensión marcados. Precargar trae a los trabajadores con contrato vigente en el mes.
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  type="button"
+                  :disabled="sctrSaving || polizaSeleccionada.estado === 'ANULADA'"
+                  @click="onPrecargarNomina"
+                >
+                  Precargar trabajadores
+                </Button>
+                <Button
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="button"
+                  :disabled="sctrSaving || polizaSeleccionada.estado === 'ANULADA'"
+                  @click="onGuardarNomina"
+                >
+                  Guardar nómina
+                </Button>
+              </div>
+            </div>
+            <Table class="mt-4">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Persona</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead class="w-24">Salud</TableHead>
+                  <TableHead class="w-24">Pensión</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in nominaEdicion" :key="fila.personaId">
+                  <TableCell>{{ fila.personaNombre ?? '—' }}</TableCell>
+                  <TableCell>{{ fila.numeroDocumento ?? '—' }}</TableCell>
+                  <TableCell>
+                    <input
+                      v-model="fila.incluidoSalud"
+                      type="checkbox"
+                      class="size-4 rounded border-slate-300"
+                      :disabled="polizaSeleccionada.estado === 'ANULADA'"
+                    >
+                  </TableCell>
+                  <TableCell>
+                    <input
+                      v-model="fila.incluidoPension"
+                      type="checkbox"
+                      class="size-4 rounded border-slate-300"
+                      :disabled="polizaSeleccionada.estado === 'ANULADA'"
+                    >
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      v-if="polizaSeleccionada.estado === 'VIGENTE'"
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      @click="quitarDeNomina(fila.personaId)"
+                    >
+                      Quitar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!nominaEdicion.length" :colspan="5">Sin trabajadores en la nómina.</TableEmpty>
               </TableBody>
             </Table>
           </div>

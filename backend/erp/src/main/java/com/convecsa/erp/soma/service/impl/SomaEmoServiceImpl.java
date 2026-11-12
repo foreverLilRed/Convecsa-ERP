@@ -14,7 +14,6 @@ import com.convecsa.erp.persona.domain.AptitudMedica;
 import com.convecsa.erp.persona.domain.EstadoDocumentoChecklist;
 import com.convecsa.erp.persona.domain.TipoDocumentoChecklist;
 import com.convecsa.erp.persona.entity.Persona;
-import com.convecsa.erp.persona.entity.PersonaDocumentoChecklist;
 import com.convecsa.erp.persona.repository.PersonaRepository;
 import com.convecsa.erp.soma.domain.AptitudEmo;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
@@ -22,6 +21,7 @@ import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.entity.SomaEmoExamen;
 import com.convecsa.erp.soma.repository.SomaEmoExamenRepository;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
+import com.convecsa.erp.soma.support.ChecklistPersonaActualizador;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -144,21 +144,8 @@ public class SomaEmoServiceImpl implements InterfazSomaEmoService {
         persona.setFechaVigenciaEmo(ultimo.getFechaVencimiento());
         persona.setAptitudMedica(mapeo.aptitudMedica());
         persona.setRestriccionesMedicas(blankToNull(ultimo.getRestricciones()));
-        actualizarChecklist(persona, mapeo.estadoChecklist());
-    }
-
-    private static void actualizarChecklist(Persona persona, EstadoDocumentoChecklist estado) {
-        PersonaDocumentoChecklist fila = persona.getDocumentosChecklist().stream()
-                .filter(item -> item.getTipoDocumento() == TipoDocumentoChecklist.EMO_APTO_VIGENTE)
-                .findFirst()
-                .orElse(null);
-        if (fila == null) {
-            fila = new PersonaDocumentoChecklist();
-            fila.setTipoDocumento(TipoDocumentoChecklist.EMO_APTO_VIGENTE);
-            fila.setCriticidad(TipoDocumentoChecklist.EMO_APTO_VIGENTE.getCriticidad());
-            persona.addDocumentoChecklist(fila);
-        }
-        fila.setEstado(estado);
+        ChecklistPersonaActualizador.aplicar(
+                persona, TipoDocumentoChecklist.EMO_APTO_VIGENTE, mapeo.estadoChecklist());
     }
 
     private DocumentoObra resolverDocumento(Long proyectoId, Long documentoObraId) {
