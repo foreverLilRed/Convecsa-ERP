@@ -44,6 +44,8 @@ public class AccesoObraFilter extends OncePerRequestFilter {
                 accesoObraService.exigirNoAlmacen();
             } else if ("GET".equalsIgnoreCase(method) && path.equals("/api/proyectos/usuarios-asignables")) {
                 accesoObraService.exigirGerencia();
+            } else if (path.startsWith("/api/soma")) {
+                accesoObraService.exigirSoma();
             } else {
                 Matcher matcher = OBRA.matcher(path);
                 if (matcher.matches()) {

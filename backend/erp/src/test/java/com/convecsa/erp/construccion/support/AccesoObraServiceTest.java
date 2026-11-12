@@ -102,6 +102,65 @@ class AccesoObraServiceTest {
         assertEquals(AccesoObraService.MSG_GERENCIA, error.getMessage());
     }
 
+    @Test
+    void ingenieroSomaConObraAsignadaPasaExigirObra() {
+        autenticar(usuario(5L, "ingsoma", RolUsuario.INGENIERO_SOMA));
+        when(usuarioProyectoRepository.existsByUsuarioIdAndProyectoId(5L, 10L)).thenReturn(true);
+
+        servicio.exigirObra(10L);
+    }
+
+    @Test
+    void ingenieroSomaSinObraAsignadaRecibe403() {
+        autenticar(usuario(5L, "ingsoma", RolUsuario.INGENIERO_SOMA));
+        when(usuarioProyectoRepository.existsByUsuarioIdAndProyectoId(5L, 10L)).thenReturn(false);
+
+        ProyectoSinAccesoException error = assertThrows(
+                ProyectoSinAccesoException.class, () -> servicio.exigirObra(10L));
+        assertEquals(AccesoObraService.MSG_SIN_ACCESO, error.getMessage());
+    }
+
+    @Test
+    void gerenciaPasaExigirSoma() {
+        autenticar(usuario(1L, "admin", RolUsuario.ADMIN));
+
+        servicio.exigirSoma();
+    }
+
+    @Test
+    void ingenieroSomaPasaExigirSoma() {
+        autenticar(usuario(5L, "ingsoma", RolUsuario.INGENIERO_SOMA));
+
+        servicio.exigirSoma();
+    }
+
+    @Test
+    void residenteNoPasaExigirSoma() {
+        autenticar(usuario(2L, "residente", RolUsuario.RESIDENTE));
+
+        ProyectoSinAccesoException error = assertThrows(
+                ProyectoSinAccesoException.class, () -> servicio.exigirSoma());
+        assertEquals(AccesoObraService.MSG_SOMA, error.getMessage());
+    }
+
+    @Test
+    void supervisorNoPasaExigirSoma() {
+        autenticar(usuario(4L, "supervisor", RolUsuario.SUPERVISOR));
+
+        ProyectoSinAccesoException error = assertThrows(
+                ProyectoSinAccesoException.class, () -> servicio.exigirSoma());
+        assertEquals(AccesoObraService.MSG_SOMA, error.getMessage());
+    }
+
+    @Test
+    void almacenNoPasaExigirSoma() {
+        autenticar(usuario(3L, "almacen", RolUsuario.ALMACEN));
+
+        ProyectoSinAccesoException error = assertThrows(
+                ProyectoSinAccesoException.class, () -> servicio.exigirSoma());
+        assertEquals(AccesoObraService.MSG_SOMA, error.getMessage());
+    }
+
     private void autenticar(Usuario usuario) {
         when(usuarioRepository.findByUsernameOrCorreoIgnoreCase(usuario.getUsername()))
                 .thenReturn(Optional.of(usuario));

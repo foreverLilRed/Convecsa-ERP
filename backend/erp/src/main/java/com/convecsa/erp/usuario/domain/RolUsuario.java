@@ -5,5 +5,6 @@ public enum RolUsuario {
     ADMIN,
     SUPERVISOR,
     RESIDENTE,
-    ALMACEN
+    ALMACEN,
+    INGENIERO_SOMA
 }

@@ -937,7 +937,18 @@ export type AsientosObra = {
   factoring: AsientoObra
 }
 
-export type TipoDocumentoObra = 'CONTRATO' | 'PLANO' | 'ACTA' | 'VALORIZACION' | 'CESION_FACTORING'
+export type TipoDocumentoObra =
+  | 'CONTRATO'
+  | 'PLANO'
+  | 'ACTA'
+  | 'VALORIZACION'
+  | 'CESION_FACTORING'
+  | 'PLAN_SSOMA'
+  | 'MATRIZ_IPERC'
+  | 'SCTR_POLIZA'
+  | 'EVIDENCIA_SOMA'
+  | 'MANIFIESTO_AMBIENTAL'
+  | 'CERTIFICADO_EMO'
 
 export type DocumentoObra = {
   id: number

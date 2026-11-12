@@ -31,6 +31,7 @@ public class AccesoObraService {
     static final String MSG_SIN_ACCESO = "No tiene acceso a esta obra";
     static final String MSG_GERENCIA = "Solo gerencia puede realizar esta acción";
     static final String MSG_ALMACEN = "El rol almacén solo puede consultar el kardex";
+    static final String MSG_SOMA = "Solo gerencia o el ingeniero SOMA pueden acceder";
 
     private static final List<RolUsuario> GERENCIA = List.of(RolUsuario.SUPERADMIN, RolUsuario.ADMIN);
     private static final int LIMITE_ASIGNABLES = 30;
@@ -45,6 +46,10 @@ public class AccesoObraService {
 
     public static boolean esAlmacen(RolUsuario rol) {
         return rol == RolUsuario.ALMACEN;
+    }
+
+    public static boolean esSoma(RolUsuario rol) {
+        return rol == RolUsuario.INGENIERO_SOMA;
     }
 
     public boolean kardexPermitido(String method, String path, Long proyectoId) {
@@ -77,6 +82,13 @@ public class AccesoObraService {
     public void exigirNoAlmacen() {
         if (esAlmacen(usuarioActual().getRol())) {
             throw new ProyectoSinAccesoException(MSG_ALMACEN);
+        }
+    }
+
+    public void exigirSoma() {
+        RolUsuario rol = usuarioActual().getRol();
+        if (!esGerencia(rol) && !esSoma(rol)) {
+            throw new ProyectoSinAccesoException(MSG_SOMA);
         }
     }
 

@@ -37,6 +37,7 @@ import ProyectoRecursosPage from '@/pages/proyectos/ProyectoRecursosPage.vue'
 import ProyectoDocumentosPage from '@/pages/proyectos/ProyectoDocumentosPage.vue'
 import ProyectoBitacoraPage from '@/pages/proyectos/ProyectoBitacoraPage.vue'
 import ProyectoMaterialesPage from '@/pages/proyectos/ProyectoMaterialesPage.vue'
+import ProyectoSomaPage from '@/pages/proyectos/ProyectoSomaPage.vue'
 
 const RUTAS_FICHA_NO_ALMACEN = new Set([
   'proyecto-ficha',
@@ -49,6 +50,7 @@ const RUTAS_FICHA_NO_ALMACEN = new Set([
   'proyecto-rentabilidad',
   'proyecto-documentos',
   'proyecto-bitacora',
+  'proyecto-soma',
 ])
 
 const router = createRouter({
@@ -241,6 +243,11 @@ const router = createRouter({
               path: 'bitacora',
               name: 'proyecto-bitacora',
               component: ProyectoBitacoraPage,
+            },
+            {
+              path: 'soma',
+              name: 'proyecto-soma',
+              component: ProyectoSomaPage,
             },
           ],
         },

@@ -1,4 +1,4 @@
-export type RolUsuario = 'SUPERADMIN' | 'ADMIN' | 'SUPERVISOR' | 'RESIDENTE' | 'ALMACEN'
+export type RolUsuario = 'SUPERADMIN' | 'ADMIN' | 'SUPERVISOR' | 'RESIDENTE' | 'ALMACEN' | 'INGENIERO_SOMA'
 
 export interface RequestLogin {
   username: string

@@ -37,7 +37,7 @@ import type { AccesoObra, AlertaObra, EstadoObra, NivelRiesgoObra, RolResponsabl
 import type { PersonaResumenDTO } from '@/types/persona'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos' | 'bitacora'
+type TabFicha = 'resumen' | 'tareo' | 'planilla' | 'presupuesto' | 'almacen' | 'recursos' | 'avances' | 'financiamiento' | 'rentabilidad' | 'documentos' | 'bitacora' | 'soma'
 
 type PersonaOpcion = Pick<PersonaResumenDTO, 'id' | 'nombres' | 'apellidos' | 'numeroDocumento'>
 
@@ -96,6 +96,7 @@ const tab = computed<TabFicha>(() => {
   if (route.name === 'proyecto-rentabilidad') return 'rentabilidad'
   if (route.name === 'proyecto-documentos') return 'documentos'
   if (route.name === 'proyecto-bitacora') return 'bitacora'
+  if (route.name === 'proyecto-soma') return 'soma'
   return 'resumen'
 })
 
@@ -255,6 +256,10 @@ function onTab(value: string | number) {
     void router.push({ name: 'proyecto-bitacora', params: { id } })
     return
   }
+  if (siguiente === 'soma') {
+    void router.push({ name: 'proyecto-soma', params: { id } })
+    return
+  }
   void router.push({ name: 'proyecto-ficha', params: { id } })
 }
 
@@ -266,6 +271,7 @@ function rolAccesoLabel(rol: AccesoObra['rol']): string {
   if (rol === 'RESIDENTE') return 'Residente'
   if (rol === 'ALMACEN') return 'Almacén'
   if (rol === 'SUPERVISOR') return 'Supervisor'
+  if (rol === 'INGENIERO_SOMA') return 'Ingeniero SOMA'
   return rol
 }
 
@@ -628,6 +634,13 @@ onUnmounted(() => {
           class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
         >
           Bitácora
+        </TabsTrigger>
+        <TabsTrigger
+          v-if="tabVisible('soma')"
+          value="soma"
+          class="h-9 rounded-lg px-4 text-sm text-slate-500 data-active:bg-white data-active:text-palette-navy data-active:shadow-sm"
+        >
+          SOMA
         </TabsTrigger>
       </TabsList>
     </Tabs>
