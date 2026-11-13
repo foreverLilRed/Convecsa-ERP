@@ -1,7 +1,11 @@
-import { apiRequest } from '@/services/http'
+import { apiRequest, downloadAuthenticatedFile } from '@/services/http'
 import type {
+  EstadoItemEpp,
   SomaEmo,
   SomaEmoRequest,
+  SomaEntregaEpp,
+  SomaEntregaEppRequest,
+  SomaEppMaterial,
   SomaResumenObra,
   SomaSctrNominaGuardarRequest,
   SomaSctrPoliza,
@@ -55,4 +59,34 @@ export function anularPolizaSctr(proyectoId: number, polizaId: number): Promise<
 export function sugerirNominaSctr(proyectoId: number, anio: number, mes: number): Promise<SomaTrabajadorObra[]> {
   const params = new URLSearchParams({ anio: String(anio), mes: String(mes) })
   return apiRequest<SomaTrabajadorObra[]>(`/api/proyectos/${proyectoId}/soma/sctr/sugerir-nomina?${params}`)
+}
+
+export function listarEntregasEpp(proyectoId: number): Promise<SomaEntregaEpp[]> {
+  return apiRequest<SomaEntregaEpp[]>(`/api/proyectos/${proyectoId}/soma/epps`)
+}
+
+export function crearEntregaEpp(proyectoId: number, request: SomaEntregaEppRequest): Promise<SomaEntregaEpp> {
+  return apiRequest<SomaEntregaEpp>(`/api/proyectos/${proyectoId}/soma/epps`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function cambiarEstadoItemEpp(
+  proyectoId: number,
+  itemId: number,
+  estado: EstadoItemEpp,
+): Promise<SomaEntregaEpp> {
+  return apiRequest<SomaEntregaEpp>(`/api/proyectos/${proyectoId}/soma/epps/items/${itemId}/estado`, {
+    method: 'PUT',
+    body: JSON.stringify({ estado }),
+  })
+}
+
+export function listarMaterialesEpp(proyectoId: number): Promise<SomaEppMaterial[]> {
+  return apiRequest<SomaEppMaterial[]>(`/api/proyectos/${proyectoId}/soma/epps/materiales`)
+}
+
+export function descargarKardexEpp(proyectoId: number, personaId: number, filename: string): Promise<void> {
+  return downloadAuthenticatedFile(`/api/proyectos/${proyectoId}/soma/epps/kardex/${personaId}/pdf`, filename)
 }

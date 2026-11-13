@@ -312,6 +312,18 @@ export type TipoMovimientoAlmacen =
   | 'DEVOLUCION_PROVEEDOR'
   | 'DEVOLUCION_ALMACEN'
 
+export type TipoEpp =
+  | 'CABEZA'
+  | 'VISUAL'
+  | 'AUDITIVO'
+  | 'RESPIRATORIO'
+  | 'MANOS'
+  | 'PIES'
+  | 'CAIDAS_ALTURA'
+  | 'CUERPO_ROPA'
+  | 'COLECTIVO'
+  | 'EMERGENCIA'
+
 export type MaterialCatalogo = {
   id: number
   codigo: string
@@ -321,6 +333,10 @@ export type MaterialCatalogo = {
   stockMinimo: number
   critico: boolean
   activo: boolean
+  esEpp: boolean
+  tipoEpp: TipoEpp | null
+  vidaUtilDias: number | null
+  normaCertificacion: string | null
 }
 
 export type MaterialRequest = {
@@ -331,6 +347,10 @@ export type MaterialRequest = {
   stockMinimo?: number | null
   critico?: boolean
   activo?: boolean
+  esEpp?: boolean
+  tipoEpp?: TipoEpp | null
+  vidaUtilDias?: number | null
+  normaCertificacion?: string | null
 }
 
 export type StockItem = {

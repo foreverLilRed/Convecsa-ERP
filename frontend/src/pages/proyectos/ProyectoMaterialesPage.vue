@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { fieldInputClass } from './fieldClasses'
+import { fieldInputClass, fieldSelectClass } from './fieldClasses'
 import { getSession } from '@/services/auth/authService'
 import {
   actualizarMaterial,
@@ -22,9 +22,23 @@ import {
   listarMateriales,
 } from '@/services/construccion/construccionService'
 import { esAlmacen } from '@/types/auth'
-import type { MaterialCatalogo } from '@/types/construccion'
+import type { MaterialCatalogo, TipoEpp } from '@/types/construccion'
 
 const inputClass = `mt-1.5 ${fieldInputClass}`
+const selectClass = `mt-1.5 ${fieldSelectClass}`
+
+const TIPOS_EPP: { valor: TipoEpp; label: string }[] = [
+  { valor: 'CABEZA', label: 'Cabeza' },
+  { valor: 'VISUAL', label: 'Visual' },
+  { valor: 'AUDITIVO', label: 'Auditivo' },
+  { valor: 'RESPIRATORIO', label: 'Respiratorio' },
+  { valor: 'MANOS', label: 'Manos' },
+  { valor: 'PIES', label: 'Pies' },
+  { valor: 'CAIDAS_ALTURA', label: 'Caídas de altura' },
+  { valor: 'CUERPO_ROPA', label: 'Cuerpo / ropa' },
+  { valor: 'COLECTIVO', label: 'Colectivo' },
+  { valor: 'EMERGENCIA', label: 'Emergencia' },
+]
 
 const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
 const loading = ref(true)
@@ -41,6 +55,10 @@ const materialForm = reactive({
   stockMinimo: '0',
   critico: false,
   activo: true,
+  esEpp: false,
+  tipoEpp: '' as TipoEpp | '',
+  vidaUtilDias: '',
+  normaCertificacion: '',
 })
 
 onMounted(() => {
@@ -67,6 +85,10 @@ function limpiarMaterial() {
   materialForm.stockMinimo = '0'
   materialForm.critico = false
   materialForm.activo = true
+  materialForm.esEpp = false
+  materialForm.tipoEpp = ''
+  materialForm.vidaUtilDias = ''
+  materialForm.normaCertificacion = ''
 }
 
 function editarMaterial(item: MaterialCatalogo) {
@@ -78,10 +100,18 @@ function editarMaterial(item: MaterialCatalogo) {
   materialForm.stockMinimo = String(item.stockMinimo)
   materialForm.critico = item.critico
   materialForm.activo = item.activo
+  materialForm.esEpp = item.esEpp
+  materialForm.tipoEpp = item.tipoEpp ?? ''
+  materialForm.vidaUtilDias = item.vidaUtilDias == null ? '' : String(item.vidaUtilDias)
+  materialForm.normaCertificacion = item.normaCertificacion ?? ''
 }
 
 async function onGuardarMaterial() {
   if (!puedeEditar.value) {
+    return
+  }
+  if (materialForm.esEpp && !materialForm.tipoEpp) {
+    toast.error('Indique el tipo de EPP.')
     return
   }
   saving.value = true
@@ -94,6 +124,10 @@ async function onGuardarMaterial() {
       stockMinimo: Number(materialForm.stockMinimo || '0'),
       critico: materialForm.critico,
       activo: materialForm.activo,
+      esEpp: materialForm.esEpp,
+      tipoEpp: materialForm.esEpp ? (materialForm.tipoEpp as TipoEpp) : null,
+      vidaUtilDias: materialForm.esEpp && materialForm.vidaUtilDias ? Number(materialForm.vidaUtilDias) : null,
+      normaCertificacion: materialForm.esEpp ? materialForm.normaCertificacion || null : null,
     }
     if (materialForm.id) {
       await actualizarMaterial(materialForm.id, request)
@@ -149,6 +183,23 @@ async function onGuardarMaterial() {
             <label class="text-sm font-medium text-slate-700" for="mat-minimo">Stock mínimo</label>
             <Input id="mat-minimo" v-model="materialForm.stockMinimo" :class="inputClass" placeholder="0" />
           </div>
+          <template v-if="materialForm.esEpp">
+            <div>
+              <label class="text-sm font-medium text-slate-700" for="mat-tipo-epp">Tipo de EPP</label>
+              <select id="mat-tipo-epp" v-model="materialForm.tipoEpp" :class="selectClass">
+                <option value="">Seleccione tipo</option>
+                <option v-for="tipo in TIPOS_EPP" :key="tipo.valor" :value="tipo.valor">{{ tipo.label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700" for="mat-vida-util">Vida útil (días)</label>
+              <Input id="mat-vida-util" v-model="materialForm.vidaUtilDias" :class="inputClass" placeholder="Opcional" />
+            </div>
+            <div>
+              <label class="text-sm font-medium text-slate-700" for="mat-norma">Norma / certificación</label>
+              <Input id="mat-norma" v-model="materialForm.normaCertificacion" :class="inputClass" placeholder="Opcional" maxlength="80" />
+            </div>
+          </template>
         </div>
         <div v-if="puedeEditar" class="mb-4 flex flex-wrap items-center gap-3">
           <label class="flex items-center gap-2 text-sm text-slate-600">
@@ -158,6 +209,10 @@ async function onGuardarMaterial() {
           <label class="flex items-center gap-2 text-sm text-slate-600">
             <input v-model="materialForm.activo" type="checkbox" />
             Activo
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-600">
+            <input v-model="materialForm.esEpp" type="checkbox" />
+            Es EPP
           </label>
           <Button
             class="bg-palette-navy text-white hover:bg-palette-royal"
@@ -177,6 +232,7 @@ async function onGuardarMaterial() {
               <TableHead>Unidad</TableHead>
               <TableHead>Familia</TableHead>
               <TableHead>Mínimo</TableHead>
+              <TableHead>EPP</TableHead>
               <TableHead v-if="puedeEditar"></TableHead>
             </TableRow>
           </TableHeader>
@@ -187,11 +243,12 @@ async function onGuardarMaterial() {
               <TableCell>{{ item.unidad }}</TableCell>
               <TableCell>{{ item.familia }}</TableCell>
               <TableCell>{{ qtyFmt.format(item.stockMinimo) }}</TableCell>
+              <TableCell>{{ item.esEpp ? (TIPOS_EPP.find((tipo) => tipo.valor === item.tipoEpp)?.label ?? 'Sí') : '—' }}</TableCell>
               <TableCell v-if="puedeEditar">
                 <Button variant="outline" size="sm" type="button" @click="editarMaterial(item)">Editar</Button>
               </TableCell>
             </TableRow>
-            <TableEmpty v-if="!materiales.length" :colspan="puedeEditar ? 6 : 5">
+            <TableEmpty v-if="!materiales.length" :colspan="puedeEditar ? 7 : 6">
               Aún no hay materiales en el catálogo.
             </TableEmpty>
           </TableBody>

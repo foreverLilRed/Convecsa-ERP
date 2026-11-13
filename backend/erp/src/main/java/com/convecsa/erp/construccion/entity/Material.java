@@ -1,7 +1,10 @@
 package com.convecsa.erp.construccion.entity;
 
+import com.convecsa.erp.construccion.domain.TipoEpp;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -42,4 +45,17 @@ public class Material {
 
     @Column(nullable = false)
     private boolean activo = true;
+
+    @Column(name = "es_epp", nullable = false)
+    private boolean esEpp;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_epp", length = 40)
+    private TipoEpp tipoEpp;
+
+    @Column(name = "vida_util_dias")
+    private Integer vidaUtilDias;
+
+    @Column(name = "norma_certificacion", length = 80)
+    private String normaCertificacion;
 }

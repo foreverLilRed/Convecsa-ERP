@@ -2,17 +2,27 @@ package com.convecsa.erp.soma.controller;
 
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
+import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
+import com.convecsa.erp.soma.dto.SomaEntregaEppRequest;
+import com.convecsa.erp.soma.dto.SomaEppItemEstadoRequest;
+import com.convecsa.erp.soma.dto.SomaEppMaterialDTO;
 import com.convecsa.erp.soma.dto.SomaResumenObraDTO;
 import com.convecsa.erp.soma.dto.SomaSctrNominaGuardarRequest;
 import com.convecsa.erp.soma.dto.SomaSctrPolizaDTO;
 import com.convecsa.erp.soma.dto.SomaSctrPolizaRequest;
 import com.convecsa.erp.soma.dto.SomaTrabajadorObraDTO;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
+import com.convecsa.erp.soma.service.InterfazSomaEppService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -31,6 +41,7 @@ public class SomaObraController {
     private final InterfazSomaObraService somaObraService;
     private final InterfazSomaEmoService somaEmoService;
     private final InterfazSomaSctrService somaSctrService;
+    private final InterfazSomaEppService somaEppService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -76,5 +87,41 @@ public class SomaObraController {
     @PostMapping("/sctr/{polizaId}/anular")
     public SomaSctrPolizaDTO anularSctr(@PathVariable Long proyectoId, @PathVariable Long polizaId) {
         return somaSctrService.anular(proyectoId, polizaId);
+    }
+
+    @GetMapping("/epps")
+    public List<SomaEntregaEppDTO> listarEpps(@PathVariable Long proyectoId) {
+        return somaEppService.listar(proyectoId);
+    }
+
+    @PostMapping("/epps")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaEntregaEppDTO crearEpp(@PathVariable Long proyectoId, @RequestBody SomaEntregaEppRequest request) {
+        return somaEppService.crear(proyectoId, request);
+    }
+
+    @PutMapping("/epps/items/{itemId}/estado")
+    public SomaEntregaEppDTO cambiarEstadoItemEpp(
+            @PathVariable Long proyectoId,
+            @PathVariable Long itemId,
+            @RequestBody SomaEppItemEstadoRequest request) {
+        return somaEppService.cambiarEstadoItem(proyectoId, itemId, request);
+    }
+
+    @GetMapping("/epps/materiales")
+    public List<SomaEppMaterialDTO> listarMaterialesEpp(@PathVariable Long proyectoId) {
+        return somaEppService.listarMateriales(proyectoId);
+    }
+
+    @GetMapping(value = "/epps/kardex/{personaId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> kardexEppPdf(@PathVariable Long proyectoId, @PathVariable Long personaId) {
+        byte[] pdf = somaEppService.kardexPdf(proyectoId, personaId);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("kardex-epp-" + personaId + ".pdf", StandardCharsets.UTF_8)
+                .build());
+        headers.setContentLength(pdf.length);
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 }

@@ -1,5 +1,6 @@
 package com.convecsa.erp.construccion.dto;
 
+import com.convecsa.erp.construccion.domain.TipoEpp;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -33,4 +34,13 @@ public class MaterialRequest {
     private Boolean critico;
 
     private Boolean activo;
+
+    private Boolean esEpp;
+
+    private TipoEpp tipoEpp;
+
+    private Integer vidaUtilDias;
+
+    @Size(max = 80)
+    private String normaCertificacion;
 }

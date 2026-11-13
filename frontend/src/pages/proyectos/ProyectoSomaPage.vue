@@ -30,21 +30,30 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { listarPersonalObra, subirDocumentoObra } from '@/services/construccion/construccionService'
+import { listarPersonalObra, obtenerPresupuesto, subirDocumentoObra } from '@/services/construccion/construccionService'
 import {
   anularPolizaSctr,
+  cambiarEstadoItemEpp,
+  crearEntregaEpp,
   crearPolizaSctr,
+  descargarKardexEpp,
   guardarNominaSctr,
   listarEmosObra,
+  listarEntregasEpp,
+  listarMaterialesEpp,
   listarPolizasSctr,
   obtenerResumenSoma,
   registrarEmoObra,
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
-import type { PersonalObra } from '@/types/construccion'
+import type { PartidaPresupuesto, PersonalObra } from '@/types/construccion'
 import type {
   AptitudEmo,
+  EstadoItemEpp,
+  MotivoEntregaEpp,
   SomaEmo,
+  SomaEntregaEpp,
+  SomaEppMaterial,
   SomaResumenObra,
   SomaSctrNominaFila,
   SomaSctrPoliza,
@@ -52,7 +61,8 @@ import type {
 } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'resumen' | 'vigilancia' | 'sctr'
+type TabSoma = 'resumen' | 'vigilancia' | 'sctr' | 'epp'
+type EppItemDraft = { materialId: string; cantidad: string; talla: string }
 
 const inputClass = fieldInputClass
 const selectClass = fieldSelectClass
@@ -92,6 +102,21 @@ const MESES = [
 const anioActual = new Date().getFullYear()
 const ANIOS = [anioActual - 1, anioActual, anioActual + 1]
 const money = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' })
+const qtyFmt = new Intl.NumberFormat('es-PE', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
+
+const MOTIVOS_EPP: { valor: MotivoEntregaEpp; label: string }[] = [
+  { valor: 'DOTACION_INICIAL', label: 'Dotación inicial' },
+  { valor: 'RENOVACION_DESGASTE', label: 'Renovación por desgaste' },
+  { valor: 'REPOSICION_PERDIDA', label: 'Reposición por pérdida' },
+  { valor: 'TRABAJO_ESPECIAL', label: 'Trabajo especial' },
+]
+
+const ESTADOS_EPP: { valor: EstadoItemEpp; label: string }[] = [
+  { valor: 'VIGENTE', label: 'Vigente' },
+  { valor: 'DEVUELTO', label: 'Devuelto' },
+  { valor: 'DETERIORADO', label: 'Deteriorado' },
+  { valor: 'EXTRAVIADO', label: 'Extraviado' },
+]
 
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
@@ -108,6 +133,22 @@ const polizaSeleccionadaId = ref<number | null>(null)
 const nominaEdicion = ref<SomaSctrNominaFila[]>([])
 const sctrFileInput = ref<HTMLInputElement | null>(null)
 const sctrSaving = ref(false)
+const entregasEpp = ref<SomaEntregaEpp[]>([])
+const materialesEpp = ref<SomaEppMaterial[]>([])
+const partidas = ref<PartidaPresupuesto[]>([])
+const eppPersonaSearch = ref('')
+const eppSaving = ref(false)
+const eppItems = ref<EppItemDraft[]>([{ materialId: '', cantidad: '', talla: '' }])
+
+const eppForm = reactive({
+  personaId: null as number | null,
+  motivo: 'DOTACION_INICIAL' as MotivoEntregaEpp,
+  fechaEntrega: hoyIso(),
+  partidaId: '',
+  descontarAlmacen: true,
+  firmadoTrabajador: false,
+  observaciones: '',
+})
 
 const form = reactive({
   personaId: null as number | null,
@@ -140,6 +181,10 @@ const personaSeleccionada = computed(
   () => personal.value.find((item) => item.personaId === form.personaId) ?? null,
 )
 
+const eppPersonaSeleccionada = computed(
+  () => personal.value.find((item) => item.personaId === eppForm.personaId) ?? null,
+)
+
 const opcionesPersona = computed(() => {
   const q = personaSearch.value.trim().toLowerCase()
   const lista = q
@@ -152,6 +197,45 @@ const opcionesPersona = computed(() => {
     return [seleccion, ...lista]
   }
   return lista
+})
+
+const opcionesEppPersona = computed(() => {
+  const q = eppPersonaSearch.value.trim().toLowerCase()
+  const lista = q
+    ? personal.value.filter((item) =>
+        `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+      )
+    : personal.value
+  const seleccion = eppPersonaSeleccionada.value
+  if (seleccion && !lista.some((item) => item.personaId === seleccion.personaId)) {
+    return [seleccion, ...lista]
+  }
+  return lista
+})
+
+const partidasVigentes = computed(() =>
+  partidas.value.filter((item): item is PartidaPresupuesto & { id: number } => item.id != null),
+)
+
+const historialEppPorPersona = computed(() => {
+  const grupos = new Map<
+    number,
+    { personaId: number; personaNombre: string; numeroDocumento: string; entregas: SomaEntregaEpp[] }
+  >()
+  for (const entrega of entregasEpp.value) {
+    let grupo = grupos.get(entrega.personaId)
+    if (!grupo) {
+      grupo = {
+        personaId: entrega.personaId,
+        personaNombre: entrega.personaNombre || `Persona ${entrega.personaId}`,
+        numeroDocumento: entrega.numeroDocumento || '',
+        entregas: [],
+      }
+      grupos.set(entrega.personaId, grupo)
+    }
+    grupo.entregas.push(entrega)
+  }
+  return [...grupos.values()]
 })
 
 function hoyIso(): string {
@@ -258,22 +342,76 @@ function onPersonaChange(value: unknown) {
   form.personaId = Number.isFinite(id) ? id : null
 }
 
+function onEppPersonaChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  eppForm.personaId = Number.isFinite(id) ? id : null
+}
+
+function motivoEppLabel(motivo: MotivoEntregaEpp): string {
+  return MOTIVOS_EPP.find((item) => item.valor === motivo)?.label ?? motivo
+}
+
+function estadoEppLabel(estado: EstadoItemEpp): string {
+  return ESTADOS_EPP.find((item) => item.valor === estado)?.label ?? estado
+}
+
+function estadoEppBadge(estado: EstadoItemEpp): 'success' | 'default' | 'secondary' {
+  if (estado === 'VIGENTE') {
+    return 'success'
+  }
+  if (estado === 'DEVUELTO') {
+    return 'default'
+  }
+  return 'secondary'
+}
+
+function resetEppForm() {
+  eppForm.personaId = null
+  eppForm.motivo = 'DOTACION_INICIAL'
+  eppForm.fechaEntrega = hoyIso()
+  eppForm.partidaId = ''
+  eppForm.descontarAlmacen = true
+  eppForm.firmadoTrabajador = false
+  eppForm.observaciones = ''
+  eppPersonaSearch.value = ''
+  eppItems.value = [{ materialId: '', cantidad: '', talla: '' }]
+}
+
+function agregarItemEpp() {
+  eppItems.value.push({ materialId: '', cantidad: '', talla: '' })
+}
+
+function quitarItemEpp(index: number) {
+  if (eppItems.value.length === 1) {
+    eppItems.value = [{ materialId: '', cantidad: '', talla: '' }]
+    return
+  }
+  eppItems.value.splice(index, 1)
+}
+
 async function load() {
   if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
     return
   }
   loading.value = true
   try {
-    const [resumenObra, listaEmos, listaPersonal, listaPolizas] = await Promise.all([
-      obtenerResumenSoma(proyectoId.value),
-      listarEmosObra(proyectoId.value),
-      listarPersonalObra(proyectoId.value),
-      listarPolizasSctr(proyectoId.value),
-    ])
+    const [resumenObra, listaEmos, listaPersonal, listaPolizas, listaEpps, listaMaterialesEpp, presupuesto] =
+      await Promise.all([
+        obtenerResumenSoma(proyectoId.value),
+        listarEmosObra(proyectoId.value),
+        listarPersonalObra(proyectoId.value),
+        listarPolizasSctr(proyectoId.value),
+        listarEntregasEpp(proyectoId.value),
+        listarMaterialesEpp(proyectoId.value),
+        obtenerPresupuesto(proyectoId.value).catch(() => null),
+      ])
     resumen.value = resumenObra
     emos.value = listaEmos
     personal.value = uniquePersonal(listaPersonal)
     polizas.value = listaPolizas
+    entregasEpp.value = listaEpps
+    materialesEpp.value = listaMaterialesEpp
+    partidas.value = presupuesto?.version?.estado === 'VIGENTE' ? presupuesto.version.partidas : []
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -283,6 +421,9 @@ async function load() {
     emos.value = []
     personal.value = []
     polizas.value = []
+    entregasEpp.value = []
+    materialesEpp.value = []
+    partidas.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -485,6 +626,77 @@ async function onAnularPoliza(item: SomaSctrPoliza) {
   }
 }
 
+async function onRegistrarEpp() {
+  if (!eppForm.personaId) {
+    toast.error('Seleccione una persona del personal de la obra.')
+    return
+  }
+  if (!eppForm.fechaEntrega) {
+    toast.error('Indique la fecha de entrega.')
+    return
+  }
+  if (eppForm.descontarAlmacen && !eppForm.partidaId) {
+    toast.error('Seleccione la partida para descontar de almacén.')
+    return
+  }
+  const items = eppItems.value
+    .map((item) => ({
+      materialId: Number(item.materialId),
+      cantidad: n(item.cantidad),
+      talla: item.talla.trim() || null,
+    }))
+    .filter((item) => Number.isFinite(item.materialId) && item.materialId > 0 && item.cantidad > 0)
+  if (!items.length) {
+    toast.error('Indique al menos un ítem de EPP con cantidad.')
+    return
+  }
+  eppSaving.value = true
+  try {
+    await crearEntregaEpp(proyectoId.value, {
+      personaId: eppForm.personaId,
+      fechaEntrega: eppForm.fechaEntrega,
+      motivo: eppForm.motivo,
+      firmadoTrabajador: eppForm.firmadoTrabajador,
+      descontarAlmacen: eppForm.descontarAlmacen,
+      partidaId: eppForm.descontarAlmacen ? Number(eppForm.partidaId) : null,
+      observaciones: eppForm.observaciones.trim() || null,
+      items,
+    })
+    toast.success('Entrega de EPP registrada.')
+    resetEppForm()
+    await load()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar la entrega de EPP.')
+  } finally {
+    eppSaving.value = false
+  }
+}
+
+async function onCambiarEstadoEpp(itemId: number, estado: EstadoItemEpp) {
+  try {
+    await cambiarEstadoItemEpp(proyectoId.value, itemId, estado)
+    await load()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo cambiar el estado.')
+  }
+}
+
+function onEstadoSelect(itemId: number, event: Event) {
+  const destino = event.target
+  if (!(destino instanceof HTMLSelectElement)) {
+    return
+  }
+  void onCambiarEstadoEpp(itemId, destino.value as EstadoItemEpp)
+}
+
+async function onDescargarKardex(personaId: number, nombre: string) {
+  try {
+    await descargarKardexEpp(proyectoId.value, personaId, `kardex-epp-${personaId}.pdf`)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : `No se pudo descargar el kardex de ${nombre}.`)
+  }
+}
+
 watch(proyectoId, () => {
   void load()
 })
@@ -501,6 +713,7 @@ onMounted(() => {
         <TabsTrigger value="resumen" :class="tabTriggerClass">Resumen</TabsTrigger>
         <TabsTrigger value="vigilancia" :class="tabTriggerClass">Vigilancia médica</TabsTrigger>
         <TabsTrigger value="sctr" :class="tabTriggerClass">SCTR</TabsTrigger>
+        <TabsTrigger value="epp" :class="tabTriggerClass">EPP</TabsTrigger>
       </TabsList>
 
       <TabsContent value="resumen" class="mt-4">
@@ -913,6 +1126,198 @@ onMounted(() => {
                 <TableEmpty v-if="!nominaEdicion.length" :colspan="5">Sin trabajadores en la nómina.</TableEmpty>
               </TableBody>
             </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="epp" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar entrega de EPP</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              El entregado por se toma del usuario autenticado. Si se descuenta de almacén se genera un vale de
+              salida con la partida vigente.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onRegistrarEpp">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-epp-persona">Persona</label>
+                  <Combobox
+                    :model-value="eppForm.personaId ?? undefined"
+                    ignore-filter
+                    class="min-w-0 w-full"
+                    @update:model-value="onEppPersonaChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-epp-persona"
+                          variant="outline"
+                          class="mt-1.5 h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(eppPersonaSeleccionada) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(eppPersonaSeleccionada) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList
+                      class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)"
+                      align="start"
+                    >
+                      <ComboboxInput v-model="eppPersonaSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal en esta obra.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesEppPersona"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-epp-motivo">Motivo</label>
+                  <select id="soma-epp-motivo" v-model="eppForm.motivo" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in MOTIVOS_EPP" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-epp-fecha">Fecha</label>
+                  <Input id="soma-epp-fecha" v-model="eppForm.fechaEntrega" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="flex items-center gap-2 pt-7 text-sm text-slate-600">
+                    <input v-model="eppForm.descontarAlmacen" type="checkbox" />
+                    Descontar de almacén
+                  </label>
+                </div>
+                <div v-if="eppForm.descontarAlmacen">
+                  <label class="text-sm font-medium text-slate-700" for="soma-epp-partida">Partida</label>
+                  <select id="soma-epp-partida" v-model="eppForm.partidaId" :class="selectClass" class="mt-1.5">
+                    <option value="">Seleccione partida</option>
+                    <option v-for="partida in partidasVigentes" :key="partida.id" :value="String(partida.id)">
+                      {{ partida.codigo }} — {{ partida.descripcion }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="flex items-center gap-2 pt-7 text-sm text-slate-600">
+                    <input v-model="eppForm.firmadoTrabajador" type="checkbox" />
+                    Firmado por el trabajador
+                  </label>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-epp-obs">Observaciones</label>
+                  <Textarea id="soma-epp-obs" v-model="eppForm.observaciones" class="mt-1.5" maxlength="400" />
+                </div>
+              </div>
+
+              <div>
+                <p class="text-sm font-medium text-slate-700">Ítems</p>
+                <div class="mt-2 space-y-2">
+                  <div
+                    v-for="(item, index) in eppItems"
+                    :key="index"
+                    class="grid gap-2 grid-cols-1 sm:grid-cols-[1fr_8rem_8rem_auto]"
+                  >
+                    <select v-model="item.materialId" :class="selectClass">
+                      <option value="">Material EPP</option>
+                      <option v-for="material in materialesEpp" :key="material.materialId" :value="String(material.materialId)">
+                        {{ material.codigo }} — {{ material.descripcion }} (stock {{ qtyFmt.format(material.stock) }})
+                      </option>
+                    </select>
+                    <Input v-model="item.cantidad" :class="inputClass" placeholder="Cantidad" />
+                    <Input v-model="item.talla" :class="inputClass" placeholder="Talla" maxlength="20" />
+                    <Button variant="outline" type="button" @click="quitarItemEpp(index)">Quitar</Button>
+                  </div>
+                </div>
+                <Button class="mt-3" variant="outline" type="button" @click="agregarItemEpp">Agregar ítem</Button>
+              </div>
+
+              <Button
+                class="bg-palette-navy text-white hover:bg-palette-royal"
+                type="submit"
+                :disabled="eppSaving"
+              >
+                Registrar entrega
+              </Button>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Historial por trabajador</h3>
+            <p v-if="!historialEppPorPersona.length" class="mt-3 text-sm text-slate-500">
+              Aún no hay entregas de EPP en esta obra.
+            </p>
+            <div v-for="grupo in historialEppPorPersona" :key="grupo.personaId" class="mt-4 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm font-medium text-slate-800">
+                  {{ grupo.personaNombre }}
+                  <span v-if="grupo.numeroDocumento" class="font-normal text-slate-500">· {{ grupo.numeroDocumento }}</span>
+                </p>
+                <Button variant="outline" size="sm" type="button" @click="onDescargarKardex(grupo.personaId, grupo.personaNombre)">
+                  Kardex PDF
+                </Button>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Cantidad</TableHead>
+                    <TableHead>Talla</TableHead>
+                    <TableHead>Motivo</TableHead>
+                    <TableHead>Vencimiento</TableHead>
+                    <TableHead>Estado</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <template v-for="entrega in grupo.entregas" :key="entrega.id">
+                    <TableRow v-for="item in entrega.items" :key="item.id">
+                      <TableCell>{{ fechaLabel(entrega.fechaEntrega) }}</TableCell>
+                      <TableCell>{{ item.materialCodigo }} — {{ item.materialDescripcion }}</TableCell>
+                      <TableCell>{{ qtyFmt.format(item.cantidad) }}</TableCell>
+                      <TableCell>{{ item.talla || '—' }}</TableCell>
+                      <TableCell>{{ motivoEppLabel(entrega.motivo) }}</TableCell>
+                      <TableCell>{{ fechaLabel(item.fechaVencimientoEstimada) }}</TableCell>
+                      <TableCell>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <Badge :variant="estadoEppBadge(item.estadoItem)">{{ estadoEppLabel(item.estadoItem) }}</Badge>
+                          <select
+                            :class="selectClass"
+                            :value="item.estadoItem"
+                            @change="onEstadoSelect(item.id, $event)"
+                          >
+                            <option v-for="estado in ESTADOS_EPP" :key="estado.valor" :value="estado.valor">
+                              {{ estado.label }}
+                            </option>
+                          </select>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </template>
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </template>
       </TabsContent>

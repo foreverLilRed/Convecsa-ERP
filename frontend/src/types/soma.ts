@@ -105,3 +105,59 @@ export type SomaTrabajadorObra = {
   fechaIngreso: string | null
   fechaCese: string | null
 }
+
+export type MotivoEntregaEpp = 'DOTACION_INICIAL' | 'RENOVACION_DESGASTE' | 'REPOSICION_PERDIDA' | 'TRABAJO_ESPECIAL'
+
+export type EstadoItemEpp = 'VIGENTE' | 'DEVUELTO' | 'DETERIORADO' | 'EXTRAVIADO'
+
+export type SomaEntregaEppItem = {
+  id: number
+  materialId: number
+  materialCodigo: string | null
+  materialDescripcion: string | null
+  cantidad: number
+  talla: string | null
+  fechaVencimientoEstimada: string | null
+  estadoItem: EstadoItemEpp
+}
+
+export type SomaEntregaEpp = {
+  id: number
+  proyectoId: number
+  personaId: number
+  personaNombre: string | null
+  numeroDocumento: string | null
+  valeSalidaId: number | null
+  fechaEntrega: string
+  motivo: MotivoEntregaEpp
+  firmadoTrabajador: boolean
+  entregadoPor: string
+  observaciones: string | null
+  createdAt: string
+  items: SomaEntregaEppItem[]
+}
+
+export type SomaEntregaEppRequest = {
+  personaId: number
+  fechaEntrega: string
+  motivo: MotivoEntregaEpp
+  firmadoTrabajador?: boolean
+  descontarAlmacen?: boolean
+  partidaId?: number | null
+  observaciones?: string | null
+  items: Array<{
+    materialId: number
+    cantidad: number
+    talla?: string | null
+  }>
+}
+
+export type SomaEppMaterial = {
+  materialId: number
+  codigo: string
+  descripcion: string
+  unidad: string | null
+  tipoEpp: string | null
+  vidaUtilDias: number | null
+  stock: number
+}

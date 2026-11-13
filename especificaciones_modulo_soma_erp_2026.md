@@ -13,7 +13,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S0 | Base: rol `INGENIERO_SOMA`, paquete `soma`, pestaña SOMA vacía | V57 | Hecho |
 | S1 | Historial EMO y sincronización con `Persona` | V58 | Hecho |
 | S2 | Pólizas SCTR mensuales por obra | V59 | Hecho |
-| S3 | Entrega de EPP integrada con almacén | V60 | Pendiente |
+| S3 | Entrega de EPP integrada con almacén | V60 | Hecho |
 | S4 | Capacitaciones e inducción de hombre nuevo | V61 | Pendiente |
 | S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Pendiente |
 | S6 | Matriz IPERC por partida | V62 | Pendiente |
@@ -405,6 +405,15 @@ CREATE TABLE soma_entrega_epp_item (
 - Exige `partidaId` cuando se descuenta.
 
 **Definición de terminado:** una entrega con descuento genera un vale visible en la pestaña Almacén y reduce el saldo en el kardex.
+
+**Notas de implementación (S3)**
+- `entregadoPor` se toma de `AuditoriaObraRegistrar.usuarioActual()`; el formulario no lo pide.
+- El selector de persona reutiliza el personal de la obra (`listarPersonalObra`), igual que S1.
+- La partida sale del presupuesto vigente (`obtenerPresupuesto`), igual que el vale de Almacén.
+- Con `descontarAlmacen = true` (default) se llama `InterfazAlmacenService.crearVale` en la misma transacción; si el stock no alcanza, no se guarda la entrega. Con `false` no hay vale (EPP de terceros).
+- `PUT .../epps/items/{itemId}/estado` no reingresa stock.
+- El kardex PDF usa `templates/soma/kardex-epp.html` y `BoletaPdfService.convertir`, con membrete de `NominaDocumentoConfiguracion`.
+- `es_epp` es un flag global del catálogo de empresa, no por obra. En local se verificó: entrega con descuento creó vale nº 1 y el stock bajó de 10 a 8.
 
 ---
 

@@ -9,6 +9,8 @@ public interface MaterialRepository extends JpaRepository<Material, Long> {
 
     List<Material> findAllByOrderByCodigoAsc();
 
+    List<Material> findByEsEppTrueAndActivoTrueOrderByCodigoAsc();
+
     Optional<Material> findByCodigoIgnoreCase(String codigo);
 
     boolean existsByCodigoIgnoreCase(String codigo);

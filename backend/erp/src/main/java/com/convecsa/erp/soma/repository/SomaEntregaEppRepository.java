@@ -1,0 +1,19 @@
+package com.convecsa.erp.soma.repository;
+
+import com.convecsa.erp.soma.entity.SomaEntregaEpp;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface SomaEntregaEppRepository extends JpaRepository<SomaEntregaEpp, Long> {
+
+    @EntityGraph(attributePaths = {"persona", "items", "items.material", "valeSalida"})
+    List<SomaEntregaEpp> findByProyectoIdOrderByFechaEntregaDescIdDesc(Long proyectoId);
+
+    @EntityGraph(attributePaths = {"persona", "items", "items.material", "valeSalida"})
+    Optional<SomaEntregaEpp> findByIdAndProyectoId(Long id, Long proyectoId);
+
+    @EntityGraph(attributePaths = {"persona", "items", "items.material", "valeSalida"})
+    List<SomaEntregaEpp> findByProyectoIdAndPersonaIdOrderByFechaEntregaDescIdDesc(Long proyectoId, Long personaId);
+}

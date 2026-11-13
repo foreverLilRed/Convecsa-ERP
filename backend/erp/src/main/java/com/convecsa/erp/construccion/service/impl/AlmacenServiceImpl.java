@@ -610,6 +610,23 @@ public class AlmacenServiceImpl implements InterfazAlmacenService {
         if (request.getActivo() != null) {
             material.setActivo(request.getActivo());
         }
+        boolean esEpp = Boolean.TRUE.equals(request.getEsEpp());
+        material.setEsEpp(esEpp);
+        if (esEpp) {
+            if (request.getTipoEpp() == null) {
+                throw new IllegalArgumentException("El tipo de EPP es obligatorio");
+            }
+            if (request.getVidaUtilDias() != null && request.getVidaUtilDias() <= 0) {
+                throw new IllegalArgumentException("La vida útil debe ser mayor que cero");
+            }
+            material.setTipoEpp(request.getTipoEpp());
+            material.setVidaUtilDias(request.getVidaUtilDias());
+            material.setNormaCertificacion(blankToNull(request.getNormaCertificacion()));
+        } else {
+            material.setTipoEpp(null);
+            material.setVidaUtilDias(null);
+            material.setNormaCertificacion(null);
+        }
     }
 
     private void reemplazarItemsReq(RequerimientoObra req, List<RequerimientoItemRequest> filas, Proyecto proyecto) {
@@ -913,6 +930,10 @@ public class AlmacenServiceImpl implements InterfazAlmacenService {
                 .stockMinimo(qty(material.getStockMinimo()))
                 .critico(material.isCritico())
                 .activo(material.isActivo())
+                .esEpp(material.isEsEpp())
+                .tipoEpp(material.getTipoEpp())
+                .vidaUtilDias(material.getVidaUtilDias())
+                .normaCertificacion(material.getNormaCertificacion())
                 .build();
     }
 
