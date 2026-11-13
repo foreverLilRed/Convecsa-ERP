@@ -30,39 +30,50 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { listarPersonalObra, obtenerPresupuesto, subirDocumentoObra } from '@/services/construccion/construccionService'
+import {
+  listarCuadrillasObra,
+  listarPersonalObra,
+  obtenerPresupuesto,
+  subirDocumentoObra,
+} from '@/services/construccion/construccionService'
 import {
   anularPolizaSctr,
   cambiarEstadoItemEpp,
+  crearCapacitacionObra,
   crearEntregaEpp,
   crearPolizaSctr,
   descargarKardexEpp,
   guardarNominaSctr,
+  listarCapacitacionesObra,
   listarEmosObra,
   listarEntregasEpp,
   listarMaterialesEpp,
   listarPolizasSctr,
   obtenerResumenSoma,
+  precargarCuadrillaCapacitacion,
   registrarEmoObra,
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
-import type { PartidaPresupuesto, PersonalObra } from '@/types/construccion'
+import type { CuadrillaObra, PartidaPresupuesto, PersonalObra } from '@/types/construccion'
 import type {
   AptitudEmo,
   EstadoItemEpp,
   MotivoEntregaEpp,
+  SomaCapacitacion,
   SomaEmo,
   SomaEntregaEpp,
   SomaEppMaterial,
   SomaResumenObra,
   SomaSctrNominaFila,
   SomaSctrPoliza,
+  TipoCapacitacionSoma,
   TipoEmo,
 } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'resumen' | 'vigilancia' | 'sctr' | 'epp'
+type TabSoma = 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones'
 type EppItemDraft = { materialId: string; cantidad: string; talla: string }
+type CapAsistenteDraft = { personaId: number; nota: string; aprobado: boolean }
 
 const inputClass = fieldInputClass
 const selectClass = fieldSelectClass
@@ -118,6 +129,13 @@ const ESTADOS_EPP: { valor: EstadoItemEpp; label: string }[] = [
   { valor: 'EXTRAVIADO', label: 'Extraviado' },
 ]
 
+const TIPOS_CAP: { valor: TipoCapacitacionSoma; label: string }[] = [
+  { valor: 'INDUCCION_HOMBRE_NUEVO', label: 'Inducción de hombre nuevo' },
+  { valor: 'CAPACITACION_PROGRAMADA', label: 'Capacitación programada' },
+  { valor: 'ENTRENAMIENTO_ESPECIFICO_ALTO_RIESGO', label: 'Entrenamiento de alto riesgo' },
+  { valor: 'SIMULACRO_EMERGENCIA', label: 'Simulacro de emergencia' },
+]
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('resumen')
@@ -139,6 +157,25 @@ const partidas = ref<PartidaPresupuesto[]>([])
 const eppPersonaSearch = ref('')
 const eppSaving = ref(false)
 const eppItems = ref<EppItemDraft[]>([{ materialId: '', cantidad: '', talla: '' }])
+const capacitaciones = ref<SomaCapacitacion[]>([])
+const cuadrillas = ref<CuadrillaObra[]>([])
+const capSaving = ref(false)
+const capPersonaSearch = ref('')
+const capCuadrillaId = ref('')
+const capFileInput = ref<HTMLInputElement | null>(null)
+const capAsistentes = ref<CapAsistenteDraft[]>([])
+const capAgregarPersonaId = ref<number | null>(null)
+
+const capForm = reactive({
+  tipo: 'INDUCCION_HOMBRE_NUEVO' as TipoCapacitacionSoma,
+  tema: '',
+  fecha: hoyIso(),
+  horasDuracion: '4',
+  expositorNombre: '',
+  expositorEntidad: '',
+  puntajeSimulacro: '',
+  observaciones: '',
+})
 
 const eppForm = reactive({
   personaId: null as number | null,
@@ -211,6 +248,24 @@ const opcionesEppPersona = computed(() => {
     return [seleccion, ...lista]
   }
   return lista
+})
+
+const capPersonaSeleccionada = computed(
+  () => personal.value.find((item) => item.personaId === capAgregarPersonaId.value) ?? null,
+)
+
+const opcionesCapPersona = computed(() => {
+  const ids = new Set(capAsistentes.value.map((item) => item.personaId))
+  const q = capPersonaSearch.value.trim().toLowerCase()
+  return personal.value.filter((item) => {
+    if (ids.has(item.personaId)) {
+      return false
+    }
+    if (!q) {
+      return true
+    }
+    return `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q)
+  })
 })
 
 const partidasVigentes = computed(() =>
@@ -395,16 +450,27 @@ async function load() {
   }
   loading.value = true
   try {
-    const [resumenObra, listaEmos, listaPersonal, listaPolizas, listaEpps, listaMaterialesEpp, presupuesto] =
-      await Promise.all([
-        obtenerResumenSoma(proyectoId.value),
-        listarEmosObra(proyectoId.value),
-        listarPersonalObra(proyectoId.value),
-        listarPolizasSctr(proyectoId.value),
-        listarEntregasEpp(proyectoId.value),
-        listarMaterialesEpp(proyectoId.value),
-        obtenerPresupuesto(proyectoId.value).catch(() => null),
-      ])
+    const [
+      resumenObra,
+      listaEmos,
+      listaPersonal,
+      listaPolizas,
+      listaEpps,
+      listaMaterialesEpp,
+      presupuesto,
+      listaCaps,
+      listaCuadrillas,
+    ] = await Promise.all([
+      obtenerResumenSoma(proyectoId.value),
+      listarEmosObra(proyectoId.value),
+      listarPersonalObra(proyectoId.value),
+      listarPolizasSctr(proyectoId.value),
+      listarEntregasEpp(proyectoId.value),
+      listarMaterialesEpp(proyectoId.value),
+      obtenerPresupuesto(proyectoId.value).catch(() => null),
+      listarCapacitacionesObra(proyectoId.value),
+      listarCuadrillasObra(proyectoId.value).catch(() => []),
+    ])
     resumen.value = resumenObra
     emos.value = listaEmos
     personal.value = uniquePersonal(listaPersonal)
@@ -412,6 +478,8 @@ async function load() {
     entregasEpp.value = listaEpps
     materialesEpp.value = listaMaterialesEpp
     partidas.value = presupuesto?.version?.estado === 'VIGENTE' ? presupuesto.version.partidas : []
+    capacitaciones.value = listaCaps
+    cuadrillas.value = listaCuadrillas
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -424,6 +492,8 @@ async function load() {
     entregasEpp.value = []
     materialesEpp.value = []
     partidas.value = []
+    capacitaciones.value = []
+    cuadrillas.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -689,6 +759,149 @@ function onEstadoSelect(itemId: number, event: Event) {
   void onCambiarEstadoEpp(itemId, destino.value as EstadoItemEpp)
 }
 
+function tipoCapLabel(tipo: TipoCapacitacionSoma): string {
+  return TIPOS_CAP.find((item) => item.valor === tipo)?.label ?? tipo
+}
+
+function personaDeId(personaId: number): PersonalObra | null {
+  return personal.value.find((item) => item.personaId === personaId) ?? null
+}
+
+function asistenteCapLabel(personaId: number, fallback: string | null): string {
+  const persona = personaDeId(personaId)
+  if (persona) {
+    return personaLabel(persona)
+  }
+  return fallback || `Persona ${personaId}`
+}
+
+function resetCapForm() {
+  capForm.tipo = 'INDUCCION_HOMBRE_NUEVO'
+  capForm.tema = ''
+  capForm.fecha = hoyIso()
+  capForm.horasDuracion = '4'
+  capForm.expositorNombre = ''
+  capForm.expositorEntidad = ''
+  capForm.puntajeSimulacro = ''
+  capForm.observaciones = ''
+  capAsistentes.value = []
+  capCuadrillaId.value = ''
+  capPersonaSearch.value = ''
+  capAgregarPersonaId.value = null
+  if (capFileInput.value) {
+    capFileInput.value.value = ''
+  }
+}
+
+function onCapPersonaChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  capAgregarPersonaId.value = Number.isFinite(id) ? id : null
+}
+
+function agregarAsistenteCap() {
+  if (!capAgregarPersonaId.value) {
+    toast.error('Seleccione una persona para agregar.')
+    return
+  }
+  if (capAsistentes.value.some((item) => item.personaId === capAgregarPersonaId.value)) {
+    toast.error('La persona ya está en la lista de asistentes.')
+    return
+  }
+  capAsistentes.value.push({ personaId: capAgregarPersonaId.value, nota: '', aprobado: true })
+  capAgregarPersonaId.value = null
+  capPersonaSearch.value = ''
+}
+
+function quitarAsistenteCap(personaId: number) {
+  capAsistentes.value = capAsistentes.value.filter((item) => item.personaId !== personaId)
+}
+
+async function onPrecargarCuadrilla() {
+  if (!capCuadrillaId.value) {
+    toast.error('Seleccione una cuadrilla.')
+    return
+  }
+  try {
+    const filas = await precargarCuadrillaCapacitacion(proyectoId.value, Number(capCuadrillaId.value))
+    const vistos = new Set(capAsistentes.value.map((item) => item.personaId))
+    for (const fila of filas) {
+      if (vistos.has(fila.personaId)) {
+        continue
+      }
+      vistos.add(fila.personaId)
+      capAsistentes.value.push({ personaId: fila.personaId, nota: '', aprobado: fila.aprobado })
+    }
+    if (!filas.length) {
+      toast.error('La cuadrilla no tiene miembros.')
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo precargar la cuadrilla.')
+  }
+}
+
+async function onRegistrarCapacitacion() {
+  if (!capForm.tema.trim()) {
+    toast.error('Indique el tema.')
+    return
+  }
+  if (!capForm.fecha) {
+    toast.error('Indique la fecha.')
+    return
+  }
+  if (!capForm.expositorNombre.trim()) {
+    toast.error('Indique el expositor.')
+    return
+  }
+  const horas = n(capForm.horasDuracion)
+  if (!(horas > 0)) {
+    toast.error('Las horas deben ser mayores que cero.')
+    return
+  }
+  if (capForm.tipo === 'INDUCCION_HOMBRE_NUEVO' && horas < 4) {
+    toast.error('La inducción de hombre nuevo debe durar al menos 4 horas.')
+    return
+  }
+  if (!capAsistentes.value.length) {
+    toast.error('Indique al menos un asistente.')
+    return
+  }
+  capSaving.value = true
+  try {
+    const archivo = capFileInput.value?.files?.[0]
+    let evidenciaDocId: number | null = null
+    if (archivo) {
+      const documento = await subirDocumentoObra(proyectoId.value, 'EVIDENCIA_SOMA', archivo)
+      evidenciaDocId = documento.id
+    }
+    await crearCapacitacionObra(proyectoId.value, {
+      tipo: capForm.tipo,
+      tema: capForm.tema.trim(),
+      fecha: capForm.fecha,
+      horasDuracion: horas,
+      expositorNombre: capForm.expositorNombre.trim(),
+      expositorEntidad: capForm.expositorEntidad.trim() || null,
+      puntajeSimulacro:
+        capForm.tipo === 'SIMULACRO_EMERGENCIA' && capForm.puntajeSimulacro.trim()
+          ? n(capForm.puntajeSimulacro)
+          : null,
+      observaciones: capForm.observaciones.trim() || null,
+      evidenciaDocId,
+      asistentes: capAsistentes.value.map((item) => ({
+        personaId: item.personaId,
+        nota: item.nota.trim() ? n(item.nota) : null,
+        aprobado: item.aprobado,
+      })),
+    })
+    toast.success('Capacitación registrada.')
+    resetCapForm()
+    await load()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar la capacitación.')
+  } finally {
+    capSaving.value = false
+  }
+}
+
 async function onDescargarKardex(personaId: number, nombre: string) {
   try {
     await descargarKardexEpp(proyectoId.value, personaId, `kardex-epp-${personaId}.pdf`)
@@ -714,6 +927,7 @@ onMounted(() => {
         <TabsTrigger value="vigilancia" :class="tabTriggerClass">Vigilancia médica</TabsTrigger>
         <TabsTrigger value="sctr" :class="tabTriggerClass">SCTR</TabsTrigger>
         <TabsTrigger value="epp" :class="tabTriggerClass">EPP</TabsTrigger>
+        <TabsTrigger value="capacitaciones" :class="tabTriggerClass">Capacitaciones</TabsTrigger>
       </TabsList>
 
       <TabsContent value="resumen" class="mt-4">
@@ -1318,6 +1532,187 @@ onMounted(() => {
                 </TableBody>
               </Table>
             </div>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="capacitaciones" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar capacitación</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              La inducción de hombre nuevo exige al menos 4 horas. Si hay nota, se aprueba con 11 o más.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onRegistrarCapacitacion">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-tipo">Tipo</label>
+                  <select id="soma-cap-tipo" v-model="capForm.tipo" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in TIPOS_CAP" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-tema">Tema</label>
+                  <Input id="soma-cap-tema" v-model="capForm.tema" :class="inputClass" class="mt-1.5" maxlength="240" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-fecha">Fecha</label>
+                  <Input id="soma-cap-fecha" v-model="capForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-horas">Horas</label>
+                  <Input id="soma-cap-horas" v-model="capForm.horasDuracion" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-expositor">Expositor</label>
+                  <Input id="soma-cap-expositor" v-model="capForm.expositorNombre" :class="inputClass" class="mt-1.5" maxlength="160" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-entidad">Entidad</label>
+                  <Input id="soma-cap-entidad" v-model="capForm.expositorEntidad" :class="inputClass" class="mt-1.5" maxlength="160" />
+                </div>
+                <div v-if="capForm.tipo === 'SIMULACRO_EMERGENCIA'">
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-puntaje">Puntaje simulacro</label>
+                  <Input id="soma-cap-puntaje" v-model="capForm.puntajeSimulacro" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-file">Evidencia (opcional)</label>
+                  <input
+                    id="soma-cap-file"
+                    ref="capFileInput"
+                    class="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm file:mr-2 file:h-full file:rounded file:border-0 file:bg-slate-100 file:px-3 file:text-sm"
+                    type="file"
+                  >
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-cap-obs">Observaciones</label>
+                  <Textarea id="soma-cap-obs" v-model="capForm.observaciones" class="mt-1.5" maxlength="1000" />
+                </div>
+              </div>
+
+              <div>
+                <p class="text-sm font-medium text-slate-700">Asistentes</p>
+                <div class="mt-2 grid gap-2 grid-cols-1 sm:grid-cols-[1fr_auto] lg:grid-cols-[1fr_12rem_auto]">
+                  <Combobox
+                    :model-value="capAgregarPersonaId ?? undefined"
+                    ignore-filter
+                    class="min-w-0 w-full"
+                    @update:model-value="onCapPersonaChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(capPersonaSeleccionada) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(capPersonaSeleccionada) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="capPersonaSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesCapPersona"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                  <Button variant="outline" type="button" @click="agregarAsistenteCap">Agregar</Button>
+                </div>
+                <div class="mt-3 grid gap-2 grid-cols-1 sm:grid-cols-[1fr_auto]">
+                  <select v-model="capCuadrillaId" :class="selectClass">
+                    <option value="">Cuadrilla</option>
+                    <option v-for="cuadrilla in cuadrillas" :key="cuadrilla.id" :value="String(cuadrilla.id)">
+                      {{ cuadrilla.codigo }} — {{ cuadrilla.nombre }}
+                    </option>
+                  </select>
+                  <Button variant="outline" type="button" @click="onPrecargarCuadrilla">Precargar cuadrilla</Button>
+                </div>
+                <Table class="mt-3">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Persona</TableHead>
+                      <TableHead>Nota</TableHead>
+                      <TableHead>Aprobado</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="asistente in capAsistentes" :key="asistente.personaId">
+                      <TableCell>{{ asistenteCapLabel(asistente.personaId, null) }}</TableCell>
+                      <TableCell>
+                        <Input v-model="asistente.nota" :class="inputClass" placeholder="0-20" />
+                      </TableCell>
+                      <TableCell>
+                        <input v-model="asistente.aprobado" type="checkbox" :disabled="!!asistente.nota.trim()" class="size-4 rounded border-slate-300">
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" type="button" @click="quitarAsistenteCap(asistente.personaId)">
+                          Quitar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableEmpty v-if="!capAsistentes.length" :colspan="4">Sin asistentes.</TableEmpty>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <Button class="bg-palette-navy text-white hover:bg-palette-royal" type="submit" :disabled="capSaving">
+                Registrar
+              </Button>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Historial</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Tema</TableHead>
+                  <TableHead>Horas</TableHead>
+                  <TableHead>Expositor</TableHead>
+                  <TableHead>Asistentes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="item in capacitaciones" :key="item.id">
+                  <TableCell>{{ fechaLabel(item.fecha) }}</TableCell>
+                  <TableCell>{{ tipoCapLabel(item.tipo) }}</TableCell>
+                  <TableCell>{{ item.tema }}</TableCell>
+                  <TableCell>{{ qtyFmt.format(item.horasDuracion) }}</TableCell>
+                  <TableCell>{{ item.expositorNombre }}</TableCell>
+                  <TableCell>
+                    {{ item.asistentes.filter((fila) => fila.aprobado).length }}/{{ item.asistentes.length }} aprobados
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!capacitaciones.length" :colspan="6">Aún no hay capacitaciones en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
           </div>
         </template>
       </TabsContent>

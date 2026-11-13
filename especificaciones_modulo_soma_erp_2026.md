@@ -14,7 +14,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S1 | Historial EMO y sincronización con `Persona` | V58 | Hecho |
 | S2 | Pólizas SCTR mensuales por obra | V59 | Hecho |
 | S3 | Entrega de EPP integrada con almacén | V60 | Hecho |
-| S4 | Capacitaciones e inducción de hombre nuevo | V61 | Pendiente |
+| S4 | Capacitaciones e inducción de hombre nuevo | V61 | Hecho |
 | S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Pendiente |
 | S6 | Matriz IPERC por partida | V62 | Pendiente |
 | S7 | Charla diaria y ATS | V63 | Pendiente |
@@ -474,6 +474,13 @@ CREATE INDEX idx_soma_cap_asistente_persona ON soma_capacitacion_asistente (pers
 - La regla de nota 11.
 - Rechaza una inducción de menos de 4 horas.
 - La precarga desde cuadrilla.
+
+**Notas de implementación (S4)**
+- Asistentes se eligen del personal de la obra (`listarPersonalObra`). La precarga es `GET .../capacitaciones/precargar-cuadrilla?cuadrillaId=` (miembro activo = fila en `cuadrilla_miembro`).
+- Evidencia opcional: `subirDocumentoObra(..., 'EVIDENCIA_SOMA')` y `evidenciaDocId` en el POST.
+- Inducción vigente para S5: `SomaCapacitacionRepository.existsByProyectoIdAndTipoAndAsistentesPersonaIdAndAsistentesAprobadoTrue`.
+- `GET /api/soma/capacitaciones?anio=` lista el año completo (obras + corporativas). El POST corporativo y `/soma/capacitaciones` quedan para S17.
+- La obra local `0000` no tiene `contrato_cc`; el combobox de persona y las cuadrillas salen vacíos. La inducción de 4 h y la nota 11 se verificaron por API con `personaId=1`.
 
 ---
 

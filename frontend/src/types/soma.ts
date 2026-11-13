@@ -161,3 +161,51 @@ export type SomaEppMaterial = {
   vidaUtilDias: number | null
   stock: number
 }
+
+export type TipoCapacitacionSoma =
+  | 'INDUCCION_HOMBRE_NUEVO'
+  | 'CAPACITACION_PROGRAMADA'
+  | 'ENTRENAMIENTO_ESPECIFICO_ALTO_RIESGO'
+  | 'SIMULACRO_EMERGENCIA'
+
+export type SomaCapacitacionAsistente = {
+  id: number | null
+  personaId: number
+  personaNombre: string | null
+  numeroDocumento: string | null
+  nota: number | null
+  aprobado: boolean
+}
+
+export type SomaCapacitacion = {
+  id: number
+  proyectoId: number | null
+  tipo: TipoCapacitacionSoma
+  tema: string
+  fecha: string
+  horasDuracion: number
+  expositorNombre: string
+  expositorEntidad: string | null
+  puntajeSimulacro: number | null
+  observaciones: string | null
+  evidenciaDocId: number | null
+  createdAt: string
+  asistentes: SomaCapacitacionAsistente[]
+}
+
+export type SomaCapacitacionRequest = {
+  tipo: TipoCapacitacionSoma
+  tema: string
+  fecha: string
+  horasDuracion: number
+  expositorNombre: string
+  expositorEntidad?: string | null
+  puntajeSimulacro?: number | null
+  observaciones?: string | null
+  evidenciaDocId?: number | null
+  asistentes: Array<{
+    personaId: number
+    nota?: number | null
+    aprobado?: boolean
+  }>
+}

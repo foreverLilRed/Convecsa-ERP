@@ -1,7 +1,9 @@
 package com.convecsa.erp.soma.controller;
 
+import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
+import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import java.time.LocalDate;
 import java.util.List;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SomaCorporativoController {
 
     private final InterfazSomaEmoService somaEmoService;
+    private final InterfazSomaCapacitacionService somaCapacitacionService;
 
     @GetMapping("/emos")
     public List<SomaEmoDTO> listarEmos(
@@ -34,5 +37,10 @@ public class SomaCorporativoController {
     public SomaEmoDTO registrarEmo(@RequestBody SomaEmoRequest request) {
         Long proyectoId = request == null ? null : request.getProyectoId();
         return somaEmoService.registrar(proyectoId, request);
+    }
+
+    @GetMapping("/capacitaciones")
+    public List<SomaCapacitacionDTO> listarCapacitaciones(@RequestParam Integer anio) {
+        return somaCapacitacionService.listarCorporativo(anio);
     }
 }

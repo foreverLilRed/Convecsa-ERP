@@ -1,6 +1,9 @@
 import { apiRequest, downloadAuthenticatedFile } from '@/services/http'
 import type {
   EstadoItemEpp,
+  SomaCapacitacion,
+  SomaCapacitacionAsistente,
+  SomaCapacitacionRequest,
   SomaEmo,
   SomaEmoRequest,
   SomaEntregaEpp,
@@ -89,4 +92,33 @@ export function listarMaterialesEpp(proyectoId: number): Promise<SomaEppMaterial
 
 export function descargarKardexEpp(proyectoId: number, personaId: number, filename: string): Promise<void> {
   return downloadAuthenticatedFile(`/api/proyectos/${proyectoId}/soma/epps/kardex/${personaId}/pdf`, filename)
+}
+
+export function listarCapacitacionesObra(proyectoId: number): Promise<SomaCapacitacion[]> {
+  return apiRequest<SomaCapacitacion[]>(`/api/proyectos/${proyectoId}/soma/capacitaciones`)
+}
+
+export function crearCapacitacionObra(
+  proyectoId: number,
+  request: SomaCapacitacionRequest,
+): Promise<SomaCapacitacion> {
+  return apiRequest<SomaCapacitacion>(`/api/proyectos/${proyectoId}/soma/capacitaciones`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function precargarCuadrillaCapacitacion(
+  proyectoId: number,
+  cuadrillaId: number,
+): Promise<SomaCapacitacionAsistente[]> {
+  const params = new URLSearchParams({ cuadrillaId: String(cuadrillaId) })
+  return apiRequest<SomaCapacitacionAsistente[]>(
+    `/api/proyectos/${proyectoId}/soma/capacitaciones/precargar-cuadrilla?${params}`,
+  )
+}
+
+export function listarCapacitacionesCorporativo(anio: number): Promise<SomaCapacitacion[]> {
+  const params = new URLSearchParams({ anio: String(anio) })
+  return apiRequest<SomaCapacitacion[]>(`/api/soma/capacitaciones?${params}`)
 }

@@ -1,5 +1,8 @@
 package com.convecsa.erp.soma.controller;
 
+import com.convecsa.erp.soma.dto.SomaCapacitacionAsistenteDTO;
+import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
+import com.convecsa.erp.soma.dto.SomaCapacitacionRequest;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
@@ -11,6 +14,7 @@ import com.convecsa.erp.soma.dto.SomaSctrNominaGuardarRequest;
 import com.convecsa.erp.soma.dto.SomaSctrPolizaDTO;
 import com.convecsa.erp.soma.dto.SomaSctrPolizaRequest;
 import com.convecsa.erp.soma.dto.SomaTrabajadorObraDTO;
+import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEppService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
@@ -42,6 +46,7 @@ public class SomaObraController {
     private final InterfazSomaEmoService somaEmoService;
     private final InterfazSomaSctrService somaSctrService;
     private final InterfazSomaEppService somaEppService;
+    private final InterfazSomaCapacitacionService somaCapacitacionService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -123,5 +128,23 @@ public class SomaObraController {
                 .build());
         headers.setContentLength(pdf.length);
         return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/capacitaciones")
+    public List<SomaCapacitacionDTO> listarCapacitaciones(@PathVariable Long proyectoId) {
+        return somaCapacitacionService.listar(proyectoId);
+    }
+
+    @PostMapping("/capacitaciones")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaCapacitacionDTO crearCapacitacion(
+            @PathVariable Long proyectoId, @RequestBody SomaCapacitacionRequest request) {
+        return somaCapacitacionService.crear(proyectoId, request);
+    }
+
+    @GetMapping("/capacitaciones/precargar-cuadrilla")
+    public List<SomaCapacitacionAsistenteDTO> precargarCuadrilla(
+            @PathVariable Long proyectoId, @RequestParam Long cuadrillaId) {
+        return somaCapacitacionService.precargarCuadrilla(proyectoId, cuadrillaId);
     }
 }
