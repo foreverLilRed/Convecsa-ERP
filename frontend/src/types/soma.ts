@@ -369,3 +369,88 @@ export type SomaCharlaAtsRequest = {
     observacion?: string | null
   }>
 }
+
+export type TipoInspeccionSoma =
+  | 'PLANEADA_MENSUAL'
+  | 'INOPINADA_DIARIA'
+  | 'EPP'
+  | 'EXTINTORES_EMERGENCIA'
+  | 'INSTALACIONES_ELECTRICAS_G050'
+  | 'ANDAMIOS_ESCALERAS'
+  | 'ORDEN_LIMPIEZA'
+  | 'ALMACEN_MATPEL'
+  | 'SUBCONTRATISTA'
+
+export type ClasificacionHallazgoSoma = 'ACTO_SUBESTANDAR' | 'CONDICION_SUBESTANDAR'
+
+export type PotencialPerdidaSoma = 'ALTO_GRAVE' | 'MEDIO_MODERADO' | 'BAJO_LEVE'
+
+export type EstadoHallazgoSoma = 'ABIERTO' | 'EN_PROCESO' | 'LEVANTADO'
+
+export type SomaHallazgo = {
+  id: number
+  proyectoId: number
+  inspeccionId: number | null
+  inspeccionAreaFrente: string | null
+  clasificacion: ClasificacionHallazgoSoma
+  potencialPerdida: PotencialPerdidaSoma
+  descripcion: string
+  ubicacion: string | null
+  accionCorrectiva: string
+  responsablePersonaId: number | null
+  responsableNombre: string | null
+  fechaDeteccion: string
+  fechaLimite: string
+  fechaCierre: string | null
+  paralizacionFrente: boolean
+  evidenciaAntesDocId: number | null
+  evidenciaDespuesDocId: number | null
+  estado: EstadoHallazgoSoma
+  vencido: boolean
+  createdAt: string
+}
+
+export type SomaInspeccion = {
+  id: number
+  proyectoId: number
+  tipo: TipoInspeccionSoma
+  fecha: string
+  areaFrente: string
+  subcontratoId: number | null
+  subcontratoNombre: string | null
+  inspectorPersonaId: number | null
+  inspectorNombre: string | null
+  puntajeCumplimiento: number | null
+  observaciones: string | null
+  createdAt: string
+  hallazgos: SomaHallazgo[]
+}
+
+export type SomaInspeccionRequest = {
+  tipo: TipoInspeccionSoma
+  fecha: string
+  areaFrente: string
+  subcontratoId?: number | null
+  inspectorPersonaId?: number | null
+  puntajeCumplimiento?: number | null
+  observaciones?: string | null
+}
+
+export type SomaHallazgoRequest = {
+  inspeccionId?: number | null
+  clasificacion: ClasificacionHallazgoSoma
+  potencialPerdida: PotencialPerdidaSoma
+  descripcion: string
+  ubicacion?: string | null
+  accionCorrectiva: string
+  responsablePersonaId?: number | null
+  fechaDeteccion: string
+  fechaLimite: string
+  paralizacionFrente?: boolean
+  evidenciaAntesDocId?: number | null
+}
+
+export type SomaHallazgoLevantarRequest = {
+  evidenciaDespuesDocId: number
+  fechaCierre?: string | null
+}

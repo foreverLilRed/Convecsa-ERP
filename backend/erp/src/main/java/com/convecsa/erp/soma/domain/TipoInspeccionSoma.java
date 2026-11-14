@@ -1,0 +1,13 @@
+package com.convecsa.erp.soma.domain;
+
+public enum TipoInspeccionSoma {
+    PLANEADA_MENSUAL,
+    INOPINADA_DIARIA,
+    EPP,
+    EXTINTORES_EMERGENCIA,
+    INSTALACIONES_ELECTRICAS_G050,
+    ANDAMIOS_ESCALERAS,
+    ORDEN_LIMPIEZA,
+    ALMACEN_MATPEL,
+    SUBCONTRATISTA
+}

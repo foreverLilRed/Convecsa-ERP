@@ -7,6 +7,12 @@ import type {
   SomaCharlaAsistente,
   SomaCharlaAts,
   SomaCharlaAtsRequest,
+  EstadoHallazgoSoma,
+  SomaHallazgo,
+  SomaHallazgoLevantarRequest,
+  SomaHallazgoRequest,
+  SomaInspeccion,
+  SomaInspeccionRequest,
   SomaEmo,
   SomaEmoRequest,
   SomaEntregaEpp,
@@ -206,4 +212,55 @@ export function precargarCuadrillaCharlaAts(
   return apiRequest<SomaCharlaAsistente[]>(
     `/api/proyectos/${proyectoId}/soma/charlas-ats/precargar-cuadrilla?${params}`,
   )
+}
+
+export function listarInspeccionesObra(proyectoId: number): Promise<SomaInspeccion[]> {
+  return apiRequest<SomaInspeccion[]>(`/api/proyectos/${proyectoId}/soma/inspecciones`)
+}
+
+export function crearInspeccionObra(proyectoId: number, request: SomaInspeccionRequest): Promise<SomaInspeccion> {
+  return apiRequest<SomaInspeccion>(`/api/proyectos/${proyectoId}/soma/inspecciones`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarHallazgosObra(
+  proyectoId: number,
+  estado?: EstadoHallazgoSoma | null,
+  vencidos?: boolean | null,
+): Promise<SomaHallazgo[]> {
+  const params = new URLSearchParams()
+  if (estado) {
+    params.set('estado', estado)
+  }
+  if (vencidos != null) {
+    params.set('vencidos', String(vencidos))
+  }
+  const qs = params.toString()
+  return apiRequest<SomaHallazgo[]>(`/api/proyectos/${proyectoId}/soma/hallazgos${qs ? `?${qs}` : ''}`)
+}
+
+export function crearHallazgoObra(proyectoId: number, request: SomaHallazgoRequest): Promise<SomaHallazgo> {
+  return apiRequest<SomaHallazgo>(`/api/proyectos/${proyectoId}/soma/hallazgos`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function marcarHallazgoEnProcesoObra(proyectoId: number, hallazgoId: number): Promise<SomaHallazgo> {
+  return apiRequest<SomaHallazgo>(`/api/proyectos/${proyectoId}/soma/hallazgos/${hallazgoId}/en-proceso`, {
+    method: 'PUT',
+  })
+}
+
+export function levantarHallazgoObra(
+  proyectoId: number,
+  hallazgoId: number,
+  request: SomaHallazgoLevantarRequest,
+): Promise<SomaHallazgo> {
+  return apiRequest<SomaHallazgo>(`/api/proyectos/${proyectoId}/soma/hallazgos/${hallazgoId}/levantar`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
 }

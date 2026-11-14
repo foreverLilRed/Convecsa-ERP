@@ -19,7 +19,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S6 | Matriz IPERC por partida | V62 | Hecho |
 | S7 | Charla diaria y ATS | V63 | Hecho |
 | S8 | PETAR y cruce con tareo | V64 | Pendiente |
-| S9 | Inspecciones y hallazgos | V65 | Pendiente |
+| S9 | Inspecciones y hallazgos | V64 | Hecho |
 | S10 | Check-list pre-uso de equipos | V66 | Pendiente |
 | S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Pendiente |
 | S12 | Estadísticas HHT, IF, IS, IA | — | Pendiente |
@@ -783,6 +783,12 @@ CREATE INDEX idx_soma_hallazgo_obra_estado ON soma_hallazgo (proyecto_id, estado
 - La paralización inserta la bitácora y exige `ALTO_GRAVE`.
 - Levantar exige evidencia.
 - El cálculo de `vencido`.
+
+**Notas de implementación (S9)**
+- Flyway real: `V64__soma_inspeccion_hallazgo.sql` (siguiente libre tras V63). S8 (PETAR) usará V65.
+- `vencido` es derivado (`estado <> LEVANTADO AND fecha_limite < hoy`); no se persiste.
+- Hallazgo suelto permitido (`inspeccion_id` nulo). Paralización (`ALTO_GRAVE`) inserta bitácora y audita `PARALIZAR_FRENTE_SOMA`.
+- En local, `0000` no exige subcontrato: el POST de inspección usó `INOPINADA_DIARIA`. Levantar exige `EVIDENCIA_SOMA` de la misma obra.
 
 ---
 

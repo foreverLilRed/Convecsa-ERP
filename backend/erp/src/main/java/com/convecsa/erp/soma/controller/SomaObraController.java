@@ -6,7 +6,13 @@ import com.convecsa.erp.soma.dto.SomaCapacitacionRequest;
 import com.convecsa.erp.soma.dto.SomaCharlaAsistenteDTO;
 import com.convecsa.erp.soma.dto.SomaCharlaAtsDTO;
 import com.convecsa.erp.soma.dto.SomaCharlaAtsRequest;
+import com.convecsa.erp.soma.domain.EstadoHallazgoSoma;
+import com.convecsa.erp.soma.dto.SomaHallazgoDTO;
+import com.convecsa.erp.soma.dto.SomaHallazgoLevantarRequest;
+import com.convecsa.erp.soma.dto.SomaHallazgoRequest;
 import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
+import com.convecsa.erp.soma.dto.SomaInspeccionDTO;
+import com.convecsa.erp.soma.dto.SomaInspeccionRequest;
 import com.convecsa.erp.soma.dto.SomaIpercFilaDTO;
 import com.convecsa.erp.soma.dto.SomaIpercFilaRequest;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
@@ -25,6 +31,7 @@ import com.convecsa.erp.soma.service.InterfazSomaCharlaAtsService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEppService;
 import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
+import com.convecsa.erp.soma.service.InterfazSomaInspeccionService;
 import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
@@ -60,6 +67,7 @@ public class SomaObraController {
     private final InterfazSomaHabilitacionService somaHabilitacionService;
     private final InterfazSomaIpercService somaIpercService;
     private final InterfazSomaCharlaAtsService somaCharlaAtsService;
+    private final InterfazSomaInspeccionService somaInspeccionService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -213,5 +221,46 @@ public class SomaObraController {
             @RequestParam Long cuadrillaId,
             @RequestParam(required = false) LocalDate fecha) {
         return somaCharlaAtsService.precargarCuadrilla(proyectoId, cuadrillaId, fecha);
+    }
+
+    @GetMapping("/inspecciones")
+    public List<SomaInspeccionDTO> listarInspecciones(@PathVariable Long proyectoId) {
+        return somaInspeccionService.listarInspecciones(proyectoId);
+    }
+
+    @PostMapping("/inspecciones")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaInspeccionDTO crearInspeccion(
+            @PathVariable Long proyectoId, @RequestBody SomaInspeccionRequest request) {
+        return somaInspeccionService.crearInspeccion(proyectoId, request);
+    }
+
+    @GetMapping("/hallazgos")
+    public List<SomaHallazgoDTO> listarHallazgos(
+            @PathVariable Long proyectoId,
+            @RequestParam(required = false) EstadoHallazgoSoma estado,
+            @RequestParam(required = false) Boolean vencidos) {
+        return somaInspeccionService.listarHallazgos(proyectoId, estado, vencidos);
+    }
+
+    @PostMapping("/hallazgos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaHallazgoDTO crearHallazgo(
+            @PathVariable Long proyectoId, @RequestBody SomaHallazgoRequest request) {
+        return somaInspeccionService.crearHallazgo(proyectoId, request);
+    }
+
+    @PutMapping("/hallazgos/{hallazgoId}/en-proceso")
+    public SomaHallazgoDTO marcarHallazgoEnProceso(
+            @PathVariable Long proyectoId, @PathVariable Long hallazgoId) {
+        return somaInspeccionService.marcarEnProceso(proyectoId, hallazgoId);
+    }
+
+    @PutMapping("/hallazgos/{hallazgoId}/levantar")
+    public SomaHallazgoDTO levantarHallazgo(
+            @PathVariable Long proyectoId,
+            @PathVariable Long hallazgoId,
+            @RequestBody SomaHallazgoLevantarRequest request) {
+        return somaInspeccionService.levantar(proyectoId, hallazgoId, request);
     }
 }

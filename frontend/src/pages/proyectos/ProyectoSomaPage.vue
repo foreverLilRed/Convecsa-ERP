@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   listarCuadrillasObra,
   listarPersonalObra,
+  listarSubcontratosObra,
   obtenerPresupuesto,
   subirDocumentoObra,
 } from '@/services/construccion/construccionService'
@@ -42,6 +43,8 @@ import {
   actualizarIpercObra,
   crearCapacitacionObra,
   crearCharlaAtsObra,
+  crearHallazgoObra,
+  crearInspeccionObra,
   crearEntregaEpp,
   crearIpercObra,
   crearPolizaSctr,
@@ -53,16 +56,20 @@ import {
   listarEmosObra,
   listarEntregasEpp,
   listarHabilitacionObra,
+  listarHallazgosObra,
+  listarInspeccionesObra,
   listarIpercObra,
   listarMaterialesEpp,
   listarPolizasSctr,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
+  levantarHallazgoObra,
+  marcarHallazgoEnProcesoObra,
   precargarCuadrillaCharlaAts,
   registrarEmoObra,
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
-import type { CuadrillaObra, PartidaPresupuesto, PersonalObra } from '@/types/construccion'
+import type { CuadrillaObra, PartidaPresupuesto, PersonalObra, SubcontratoObra } from '@/types/construccion'
 import type {
   AptitudEmo,
   EstadoItemEpp,
@@ -70,7 +77,12 @@ import type {
   MotivoEntregaEpp,
   NivelRiesgoIperc,
   SomaCapacitacion,
+  ClasificacionHallazgoSoma,
+  EstadoHallazgoSoma,
+  PotencialPerdidaSoma,
   SomaCharlaAts,
+  SomaHallazgo,
+  SomaInspeccion,
   SomaEmo,
   SomaEntregaEpp,
   SomaEppMaterial,
@@ -81,12 +93,13 @@ import type {
   SomaSctrPoliza,
   TipoCapacitacionSoma,
   TipoEmo,
+  TipoInspeccionSoma,
   TipoPeligroIperc,
 } from '@/types/soma'
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'inspecciones'
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
 type EppItemDraft = { materialId: string; cantidad: string; talla: string }
 type CapAsistenteDraft = { personaId: number; nota: string; aprobado: boolean }
@@ -167,6 +180,36 @@ const TIPOS_PELIGRO_IPERC: { valor: TipoPeligroIperc; label: string }[] = [
 
 const ESCALA_IPERC = [1, 2, 3, 4, 5]
 
+const TIPOS_INSPECCION: { valor: TipoInspeccionSoma; label: string }[] = [
+  { valor: 'PLANEADA_MENSUAL', label: 'Planeada mensual' },
+  { valor: 'INOPINADA_DIARIA', label: 'Inopinada diaria' },
+  { valor: 'EPP', label: 'EPP' },
+  { valor: 'EXTINTORES_EMERGENCIA', label: 'Extintores y emergencia' },
+  { valor: 'INSTALACIONES_ELECTRICAS_G050', label: 'Instalaciones eléctricas G.050' },
+  { valor: 'ANDAMIOS_ESCALERAS', label: 'Andamios y escaleras' },
+  { valor: 'ORDEN_LIMPIEZA', label: 'Orden y limpieza' },
+  { valor: 'ALMACEN_MATPEL', label: 'Almacén MATPEL' },
+  { valor: 'SUBCONTRATISTA', label: 'Subcontratista' },
+]
+
+const CLASIFICACIONES_HALLAZGO: { valor: ClasificacionHallazgoSoma; label: string }[] = [
+  { valor: 'ACTO_SUBESTANDAR', label: 'Acto subestándar' },
+  { valor: 'CONDICION_SUBESTANDAR', label: 'Condición subestándar' },
+]
+
+const POTENCIALES_HALLAZGO: { valor: PotencialPerdidaSoma; label: string }[] = [
+  { valor: 'ALTO_GRAVE', label: 'Alto / grave' },
+  { valor: 'MEDIO_MODERADO', label: 'Medio / moderado' },
+  { valor: 'BAJO_LEVE', label: 'Bajo / leve' },
+]
+
+const ESTADOS_HALLAZGO: { valor: EstadoHallazgoSoma | ''; label: string }[] = [
+  { valor: '', label: 'Todos' },
+  { valor: 'ABIERTO', label: 'Abierto' },
+  { valor: 'EN_PROCESO', label: 'En proceso' },
+  { valor: 'LEVANTADO', label: 'Levantado' },
+]
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('habilitacion')
@@ -211,6 +254,15 @@ const charlaAgregarPersonaId = ref<number | null>(null)
 const charlaExpositorSearch = ref('')
 const charlaPasos = ref<PasoAtsDraft[]>([{ paso: '', peligros: '', controles: '' }])
 const charlaAsistentes = ref<CharlaAsistenteDraft[]>([])
+const inspecciones = ref<SomaInspeccion[]>([])
+const hallazgos = ref<SomaHallazgo[]>([])
+const subcontratos = ref<SubcontratoObra[]>([])
+const inspeccionSaving = ref(false)
+const hallazgoSaving = ref(false)
+const inspectorSearch = ref('')
+const responsableSearch = ref('')
+const filtroEstadoHallazgo = ref<EstadoHallazgoSoma | ''>('')
+const filtroVencidosHallazgo = ref(false)
 
 const capForm = reactive({
   tipo: 'INDUCCION_HOMBRE_NUEVO' as TipoCapacitacionSoma,
@@ -255,6 +307,29 @@ const charlaForm = reactive({
   eppVerificado: false,
   herramientasVerif: false,
   observaciones: '',
+})
+
+const inspeccionForm = reactive({
+  tipo: 'INOPINADA_DIARIA' as TipoInspeccionSoma,
+  fecha: hoyIso(),
+  areaFrente: '',
+  subcontratoId: '',
+  inspectorPersonaId: null as number | null,
+  puntajeCumplimiento: '',
+  observaciones: '',
+})
+
+const hallazgoForm = reactive({
+  inspeccionId: '',
+  clasificacion: 'CONDICION_SUBESTANDAR' as ClasificacionHallazgoSoma,
+  potencialPerdida: 'MEDIO_MODERADO' as PotencialPerdidaSoma,
+  descripcion: '',
+  ubicacion: '',
+  accionCorrectiva: '',
+  responsablePersonaId: null as number | null,
+  fechaDeteccion: hoyIso(),
+  fechaLimite: hoyIso(),
+  paralizacionFrente: false,
 })
 
 const eppForm = reactive({
@@ -389,6 +464,46 @@ const opcionesCharlaPersona = computed(() => {
 
 const charlasAtsDelDia = computed(() =>
   charlasAts.value.filter((item) => item.fecha === charlaForm.fecha),
+)
+
+const inspectorSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === inspeccionForm.inspectorPersonaId) ?? null,
+)
+
+const opcionesInspector = computed(() => {
+  const q = inspectorSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const responsableSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === hallazgoForm.responsablePersonaId) ?? null,
+)
+
+const opcionesResponsable = computed(() => {
+  const q = responsableSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const hallazgosFiltrados = computed(() =>
+  hallazgos.value.filter((item) => {
+    if (filtroEstadoHallazgo.value && item.estado !== filtroEstadoHallazgo.value) {
+      return false
+    }
+    if (filtroVencidosHallazgo.value && !item.vencido) {
+      return false
+    }
+    return true
+  }),
 )
 
 const filasHabilitacion = computed(() => {
@@ -826,6 +941,198 @@ async function onRegistrarCharlaAts() {
   }
 }
 
+function onInspectorChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  inspeccionForm.inspectorPersonaId = Number.isFinite(id) ? id : null
+}
+
+function onResponsableChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  hallazgoForm.responsablePersonaId = Number.isFinite(id) ? id : null
+}
+
+function resetInspeccionForm() {
+  inspeccionForm.tipo = 'INOPINADA_DIARIA'
+  inspeccionForm.fecha = hoyIso()
+  inspeccionForm.areaFrente = ''
+  inspeccionForm.subcontratoId = ''
+  inspeccionForm.inspectorPersonaId = null
+  inspeccionForm.puntajeCumplimiento = ''
+  inspeccionForm.observaciones = ''
+  inspectorSearch.value = ''
+}
+
+function resetHallazgoForm() {
+  hallazgoForm.inspeccionId = ''
+  hallazgoForm.clasificacion = 'CONDICION_SUBESTANDAR'
+  hallazgoForm.potencialPerdida = 'MEDIO_MODERADO'
+  hallazgoForm.descripcion = ''
+  hallazgoForm.ubicacion = ''
+  hallazgoForm.accionCorrectiva = ''
+  hallazgoForm.responsablePersonaId = null
+  hallazgoForm.fechaDeteccion = hoyIso()
+  hallazgoForm.fechaLimite = hoyIso()
+  hallazgoForm.paralizacionFrente = false
+  responsableSearch.value = ''
+}
+
+function tipoInspeccionLabel(tipo: TipoInspeccionSoma): string {
+  return TIPOS_INSPECCION.find((item) => item.valor === tipo)?.label ?? tipo
+}
+
+function clasificacionHallazgoLabel(valor: ClasificacionHallazgoSoma): string {
+  return CLASIFICACIONES_HALLAZGO.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function potencialHallazgoLabel(valor: PotencialPerdidaSoma): string {
+  return POTENCIALES_HALLAZGO.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function estadoHallazgoLabel(valor: EstadoHallazgoSoma): string {
+  return ESTADOS_HALLAZGO.find((item) => item.valor === valor)?.label ?? valor
+}
+
+async function recargarInspeccionesYHallazgos() {
+  const [listaInspecciones, listaHallazgos] = await Promise.all([
+    listarInspeccionesObra(proyectoId.value),
+    listarHallazgosObra(proyectoId.value),
+  ])
+  inspecciones.value = listaInspecciones
+  hallazgos.value = listaHallazgos
+}
+
+async function onRegistrarInspeccion() {
+  if (!inspeccionForm.fecha) {
+    toast.error('Indique la fecha.')
+    return
+  }
+  if (!inspeccionForm.areaFrente.trim()) {
+    toast.error('Indique el área o frente.')
+    return
+  }
+  if (inspeccionForm.tipo === 'SUBCONTRATISTA' && !inspeccionForm.subcontratoId) {
+    toast.error('Seleccione el subcontrato.')
+    return
+  }
+  let puntaje: number | null = null
+  if (inspeccionForm.puntajeCumplimiento.trim()) {
+    puntaje = n(inspeccionForm.puntajeCumplimiento)
+    if (!Number.isFinite(puntaje) || puntaje < 0 || puntaje > 100) {
+      toast.error('El puntaje debe estar entre 0 y 100.')
+      return
+    }
+  }
+  inspeccionSaving.value = true
+  try {
+    await crearInspeccionObra(proyectoId.value, {
+      tipo: inspeccionForm.tipo,
+      fecha: inspeccionForm.fecha,
+      areaFrente: inspeccionForm.areaFrente.trim(),
+      subcontratoId: inspeccionForm.subcontratoId ? Number(inspeccionForm.subcontratoId) : null,
+      inspectorPersonaId: inspeccionForm.inspectorPersonaId,
+      puntajeCumplimiento: puntaje,
+      observaciones: inspeccionForm.observaciones.trim() || null,
+    })
+    toast.success('Inspección registrada.')
+    resetInspeccionForm()
+    await recargarInspeccionesYHallazgos()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar la inspección.')
+  } finally {
+    inspeccionSaving.value = false
+  }
+}
+
+async function onRegistrarHallazgo() {
+  if (!hallazgoForm.descripcion.trim()) {
+    toast.error('Indique la descripción.')
+    return
+  }
+  if (!hallazgoForm.accionCorrectiva.trim()) {
+    toast.error('Indique la acción correctiva.')
+    return
+  }
+  if (!hallazgoForm.fechaDeteccion || !hallazgoForm.fechaLimite) {
+    toast.error('Indique las fechas de detección y límite.')
+    return
+  }
+  if (hallazgoForm.fechaLimite < hallazgoForm.fechaDeteccion) {
+    toast.error('La fecha límite no puede ser anterior a la de detección.')
+    return
+  }
+  if (hallazgoForm.paralizacionFrente && hallazgoForm.potencialPerdida !== 'ALTO_GRAVE') {
+    toast.error('La paralización solo se permite con potencial alto / grave.')
+    return
+  }
+  hallazgoSaving.value = true
+  try {
+    await crearHallazgoObra(proyectoId.value, {
+      inspeccionId: hallazgoForm.inspeccionId ? Number(hallazgoForm.inspeccionId) : null,
+      clasificacion: hallazgoForm.clasificacion,
+      potencialPerdida: hallazgoForm.potencialPerdida,
+      descripcion: hallazgoForm.descripcion.trim(),
+      ubicacion: hallazgoForm.ubicacion.trim() || null,
+      accionCorrectiva: hallazgoForm.accionCorrectiva.trim(),
+      responsablePersonaId: hallazgoForm.responsablePersonaId,
+      fechaDeteccion: hallazgoForm.fechaDeteccion,
+      fechaLimite: hallazgoForm.fechaLimite,
+      paralizacionFrente: hallazgoForm.paralizacionFrente,
+    })
+    toast.success(
+      hallazgoForm.paralizacionFrente ? 'Hallazgo registrado y frente paralizado.' : 'Hallazgo registrado.',
+    )
+    resetHallazgoForm()
+    await recargarInspeccionesYHallazgos()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el hallazgo.')
+  } finally {
+    hallazgoSaving.value = false
+  }
+}
+
+async function onEnProcesoHallazgo(hallazgo: SomaHallazgo) {
+  hallazgoSaving.value = true
+  try {
+    await marcarHallazgoEnProcesoObra(proyectoId.value, hallazgo.id)
+    toast.success('Hallazgo en proceso.')
+    await recargarInspeccionesYHallazgos()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo actualizar el hallazgo.')
+  } finally {
+    hallazgoSaving.value = false
+  }
+}
+
+async function onLevantarHallazgo(hallazgo: SomaHallazgo, event: Event) {
+  const input = event.target as HTMLInputElement
+  const archivo = input.files?.[0]
+  if (!archivo) {
+    toast.error('Adjunte la evidencia de cierre.')
+    return
+  }
+  hallazgoSaving.value = true
+  try {
+    const documento = await subirDocumentoObra(proyectoId.value, 'EVIDENCIA_SOMA', archivo)
+    await levantarHallazgoObra(proyectoId.value, hallazgo.id, { evidenciaDespuesDocId: documento.id })
+    toast.success('Hallazgo levantado.')
+    await recargarInspeccionesYHallazgos()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo levantar el hallazgo.')
+  } finally {
+    hallazgoSaving.value = false
+    input.value = ''
+  }
+}
+
+watch(
+  () => hallazgoForm.potencialPerdida,
+  (valor) => {
+    if (valor !== 'ALTO_GRAVE') {
+      hallazgoForm.paralizacionFrente = false
+    }
+  },
+)
+
 async function recargarHabilitacion() {
   if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
     return
@@ -947,6 +1254,9 @@ async function load() {
       listaCuadrillas,
       listaIperc,
       listaCharlas,
+      listaInspecciones,
+      listaHallazgos,
+      listaSubcontratos,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -964,6 +1274,9 @@ async function load() {
         incluirInactivosIperc.value,
       ),
       listarCharlasAtsObra(proyectoId.value),
+      listarInspeccionesObra(proyectoId.value),
+      listarHallazgosObra(proyectoId.value),
+      listarSubcontratosObra(proyectoId.value).catch(() => []),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -977,6 +1290,9 @@ async function load() {
     cuadrillas.value = listaCuadrillas
     filasIperc.value = listaIperc
     charlasAts.value = listaCharlas
+    inspecciones.value = listaInspecciones
+    hallazgos.value = listaHallazgos
+    subcontratos.value = listaSubcontratos
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -994,6 +1310,9 @@ async function load() {
     cuadrillas.value = []
     filasIperc.value = []
     charlasAts.value = []
+    inspecciones.value = []
+    hallazgos.value = []
+    subcontratos.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -1445,6 +1764,7 @@ onMounted(() => {
         <TabsTrigger value="capacitaciones" :class="tabTriggerClass">Capacitaciones</TabsTrigger>
         <TabsTrigger value="iperc" :class="tabTriggerClass">IPERC</TabsTrigger>
         <TabsTrigger value="charlaAts" :class="tabTriggerClass">Charla y ATS</TabsTrigger>
+        <TabsTrigger value="inspecciones" :class="tabTriggerClass">Inspecciones</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -2828,6 +3148,317 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!charlasAtsDelDia.length" :colspan="4">Sin charlas en esta fecha.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="inspecciones" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar inspección</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              La inspección a subcontratista exige un subcontrato de la obra. Los hallazgos se cargan aparte.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onRegistrarInspeccion">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-tipo">Tipo</label>
+                  <select id="soma-insp-tipo" v-model="inspeccionForm.tipo" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in TIPOS_INSPECCION" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-fecha">Fecha</label>
+                  <Input id="soma-insp-fecha" v-model="inspeccionForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-area">Área / frente</label>
+                  <Input id="soma-insp-area" v-model="inspeccionForm.areaFrente" :class="inputClass" class="mt-1.5" maxlength="160" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-sub">Subcontrato</label>
+                  <select id="soma-insp-sub" v-model="inspeccionForm.subcontratoId" :class="selectClass" class="mt-1.5">
+                    <option value="">Sin subcontrato</option>
+                    <option v-for="item in subcontratos" :key="item.id" :value="String(item.id)">
+                      {{ item.especialidad }} — {{ item.subcontratistaRazon }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-puntaje">Puntaje (0-100)</label>
+                  <Input id="soma-insp-puntaje" v-model="inspeccionForm.puntajeCumplimiento" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-inspector">Inspector</label>
+                  <Combobox
+                    :model-value="inspeccionForm.inspectorPersonaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onInspectorChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-insp-inspector"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(inspectorSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(inspectorSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="inspectorSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesInspector"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-insp-obs">Observaciones</label>
+                  <Textarea id="soma-insp-obs" v-model="inspeccionForm.observaciones" class="mt-1.5" maxlength="1000" />
+                </div>
+              </div>
+              <Button type="submit" :disabled="inspeccionSaving">
+                {{ inspeccionSaving ? 'Guardando…' : 'Registrar inspección' }}
+              </Button>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar hallazgo</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Puede nacer de una inspección o ir suelto. La paralización de frente exige potencial alto / grave.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onRegistrarHallazgo">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-insp">Inspección</label>
+                  <select id="soma-hall-insp" v-model="hallazgoForm.inspeccionId" :class="selectClass" class="mt-1.5">
+                    <option value="">Suelto</option>
+                    <option v-for="item in inspecciones" :key="item.id" :value="String(item.id)">
+                      {{ item.fecha }} · {{ item.areaFrente }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-clasif">Clasificación</label>
+                  <select id="soma-hall-clasif" v-model="hallazgoForm.clasificacion" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in CLASIFICACIONES_HALLAZGO" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-pot">Potencial</label>
+                  <select id="soma-hall-pot" v-model="hallazgoForm.potencialPerdida" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in POTENCIALES_HALLAZGO" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-ubi">Ubicación</label>
+                  <Input id="soma-hall-ubi" v-model="hallazgoForm.ubicacion" :class="inputClass" class="mt-1.5" maxlength="200" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-det">Detección</label>
+                  <Input id="soma-hall-det" v-model="hallazgoForm.fechaDeteccion" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-lim">Fecha límite</label>
+                  <Input id="soma-hall-lim" v-model="hallazgoForm.fechaLimite" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-resp">Responsable</label>
+                  <Combobox
+                    :model-value="hallazgoForm.responsablePersonaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onResponsableChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-hall-resp"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(responsableSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(responsableSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="responsableSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesResponsable"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-desc">Descripción</label>
+                  <Textarea id="soma-hall-desc" v-model="hallazgoForm.descripcion" class="mt-1.5" maxlength="1000" required />
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-hall-acc">Acción correctiva</label>
+                  <Textarea id="soma-hall-acc" v-model="hallazgoForm.accionCorrectiva" class="mt-1.5" maxlength="1000" required />
+                </div>
+                <label class="flex items-center gap-2 text-sm text-slate-600">
+                  <input
+                    v-model="hallazgoForm.paralizacionFrente"
+                    type="checkbox"
+                    :disabled="hallazgoForm.potencialPerdida !== 'ALTO_GRAVE'"
+                  />
+                  Paralización de frente
+                </label>
+              </div>
+              <Button type="submit" :disabled="hallazgoSaving">
+                {{ hallazgoSaving ? 'Guardando…' : 'Registrar hallazgo' }}
+              </Button>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Inspecciones</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Área</TableHead>
+                  <TableHead>Hallazgos</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in inspecciones" :key="fila.id">
+                  <TableCell>{{ fila.fecha }}</TableCell>
+                  <TableCell>{{ tipoInspeccionLabel(fila.tipo) }}</TableCell>
+                  <TableCell>
+                    <p>{{ fila.areaFrente }}</p>
+                    <p class="text-xs text-slate-500">{{ fila.inspectorNombre || 'Sin inspector' }}</p>
+                  </TableCell>
+                  <TableCell>
+                    <p v-for="item in fila.hallazgos" :key="item.id" class="text-sm">
+                      {{ item.descripcion }}
+                      <Badge v-if="item.vencido" variant="secondary">Vencido</Badge>
+                    </p>
+                    <span v-if="!fila.hallazgos.length" class="text-sm text-slate-500">Sin hallazgos</span>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!inspecciones.length" :colspan="4">Sin inspecciones en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <div class="flex flex-wrap items-end gap-3">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-hall-filtro-estado">Estado</label>
+                <select id="soma-hall-filtro-estado" v-model="filtroEstadoHallazgo" :class="selectClass" class="mt-1.5">
+                  <option v-for="item in ESTADOS_HALLAZGO" :key="item.valor || 'todos'" :value="item.valor">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <label class="flex items-center gap-2 pb-2 text-sm text-slate-600">
+                <input v-model="filtroVencidosHallazgo" type="checkbox" />
+                Solo vencidos
+              </label>
+            </div>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Hallazgo</TableHead>
+                  <TableHead>Potencial</TableHead>
+                  <TableHead>Límite</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="item in hallazgosFiltrados" :key="item.id">
+                  <TableCell>
+                    <p>{{ item.descripcion }}</p>
+                    <p class="text-xs text-slate-500">
+                      {{ clasificacionHallazgoLabel(item.clasificacion) }}
+                      · {{ item.inspeccionAreaFrente || 'Suelto' }}
+                    </p>
+                  </TableCell>
+                  <TableCell>{{ potencialHallazgoLabel(item.potencialPerdida) }}</TableCell>
+                  <TableCell>
+                    {{ item.fechaLimite }}
+                    <Badge v-if="item.vencido" variant="secondary">Vencido</Badge>
+                  </TableCell>
+                  <TableCell>{{ estadoHallazgoLabel(item.estado) }}</TableCell>
+                  <TableCell>
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <Button
+                        v-if="item.estado === 'ABIERTO'"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        :disabled="hallazgoSaving"
+                        @click="onEnProcesoHallazgo(item)"
+                      >
+                        En proceso
+                      </Button>
+                      <label
+                        v-if="item.estado !== 'LEVANTADO'"
+                        class="inline-flex h-8 cursor-pointer items-center rounded-lg border border-slate-200 px-3 text-sm"
+                      >
+                        Levantar
+                        <input
+                          class="sr-only"
+                          type="file"
+                          :disabled="hallazgoSaving"
+                          @change="onLevantarHallazgo(item, $event)"
+                        >
+                      </label>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!hallazgosFiltrados.length" :colspan="5">Sin hallazgos.</TableEmpty>
               </TableBody>
             </Table>
           </div>
