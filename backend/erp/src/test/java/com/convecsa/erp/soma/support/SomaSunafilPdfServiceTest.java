@@ -26,18 +26,44 @@ class SomaSunafilPdfServiceTest {
         assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
     }
 
+    @Test
+    void formato3NoVacioYEmpiezaConPdf() {
+        byte[] pdf = servicio.generar(documento(3, List.of(List.of("13/11/2026", "FISICO_RUIDO", "0000"))));
+        assertTrue(pdf.length > 100);
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
+    }
+
+    @Test
+    void formato4SinFilasSigueSiendoPdf() {
+        byte[] pdf = servicio.generar(documento(4, List.of()));
+        assertTrue(pdf.length > 100);
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
+    }
+
+    @Test
+    void formato5NoVacioYEmpiezaConPdf() {
+        byte[] pdf = servicio.generar(documento(5, List.of(List.of("11", "100", "0"))));
+        assertTrue(pdf.length > 100);
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
+    }
+
+    @Test
+    void formato6SinFilasSigueSiendoPdf() {
+        byte[] pdf = servicio.generar(documento(6, List.of()));
+        assertTrue(pdf.length > 100);
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
+    }
+
     private static SomaSunafilDocumentoDTO documento(int formato, List<List<String>> filas) {
         return SomaSunafilDocumentoDTO.builder()
                 .formato(formato)
-                .titulo(formato == 1 ? "Registro de eventos SST" : "Registro de EMO")
+                .titulo("Registro SUNAFIL " + formato)
                 .razonSocial("Convecsa SAC")
                 .ruc("20100000000")
                 .domicilio("Lima")
                 .alcance("0000 — Obra piloto")
                 .periodo("Histórico")
-                .columnas(formato == 1
-                        ? List.of("N°", "Tipo", "Obra")
-                        : List.of("Trabajador", "Tipo", "Obra"))
+                .columnas(List.of("Col1", "Col2", "Obra"))
                 .filas(filas)
                 .build();
     }

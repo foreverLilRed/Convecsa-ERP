@@ -26,7 +26,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Hecho |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Hecho |
 | S15 | Alertas SOMA en la ficha de obra | — | Hecho |
-| S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | En curso (S16.1 Hecho) |
+| S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | En curso (S16.1–S16.3 Hecho) |
 | S17 | Vistas corporativas `/soma/*` y menú | — | Pendiente |
 
 > **Numeración Flyway:** los números de la columna "Migración" suponen que la última versión existente es `V56`. Antes de crear un archivo, el agente lista `backend/erp/src/main/resources/db/migration/` y usa **el siguiente número libre**, manteniendo el sufijo descriptivo (`__soma_...`).
@@ -1130,6 +1130,14 @@ Cada alerta trae un mensaje con la cantidad (por ejemplo, "3 trabajadores con EM
 - Formatos 1 (eventos SST) y 2 (EMO) en PDF (`BoletaPdfService`) y Excel (POI). Formatos 3–8 responden 400 «aún no implementado».
 - El formato 2 de esta spec es EMO; las enfermedades ocupacionales van en el formato 1 (`ENFERMEDAD_OCUPACIONAL`).
 - UI de descarga (`/soma/formatos`) queda para S17. `SomaAcceso.exigirSomaCorporativo()` delega en `exigirSoma()`.
+
+**Notas S16.2**
+- Formatos 3 (`soma_monitoreo`) y 4 (`soma_inspeccion` + hallazgo huérfano sin inspección). Formatos 5–8 siguen en 400.
+- Sin migración. Misma API y membrete de S16.1.
+
+**Notas S16.3**
+- Formato 5 reutiliza S12 (`porObra` / `corporativo`) sin recálculo. Si no hay `anio`, usa el año Lima actual. Formato 6: una fila por ítem de `soma_entrega_epp`.
+- Formatos 7–8 siguen en 400. Sin migración.
 
 ---
 

@@ -9,22 +9,38 @@ import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.nomina.entity.NominaDocumentoConfiguracion;
 import com.convecsa.erp.nomina.repository.NominaDocumentoConfiguracionRepository;
 import com.convecsa.erp.persona.entity.Persona;
+import com.convecsa.erp.construccion.entity.Material;
+import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
+import com.convecsa.erp.soma.dto.SomaEstadisticaMesDTO;
 import com.convecsa.erp.soma.dto.SomaSunafilDocumentoDTO;
 import com.convecsa.erp.soma.entity.SomaEmoExamen;
 import com.convecsa.erp.soma.entity.SomaEventoSst;
+import com.convecsa.erp.soma.entity.SomaHallazgo;
+import com.convecsa.erp.soma.entity.SomaInspeccion;
+import com.convecsa.erp.soma.entity.SomaEntregaEpp;
+import com.convecsa.erp.soma.entity.SomaEntregaEppItem;
+import com.convecsa.erp.soma.entity.SomaMonitoreo;
 import com.convecsa.erp.soma.repository.SomaEmoExamenRepository;
+import com.convecsa.erp.soma.repository.SomaEntregaEppRepository;
 import com.convecsa.erp.soma.repository.SomaEventoSstRepository;
+import com.convecsa.erp.soma.repository.SomaHallazgoRepository;
+import com.convecsa.erp.soma.repository.SomaInspeccionRepository;
+import com.convecsa.erp.soma.repository.SomaMonitoreoRepository;
+import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
 import com.convecsa.erp.soma.service.InterfazSomaSunafilService;
 import com.convecsa.erp.soma.support.SomaAcceso;
 import com.convecsa.erp.soma.support.SomaSunafilExcelExporter;
 import com.convecsa.erp.soma.support.SomaSunafilPdfService;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -65,6 +81,53 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
             "Médico",
             "CMP",
             "Obra");
+    private static final List<String> COLUMNAS_MONITOREO = List.of(
+            "Fecha",
+            "Tipo agente",
+            "Parámetro",
+            "Punto",
+            "Valor",
+            "LMP",
+            "Unidad",
+            "Cumple LMP",
+            "Laboratorio",
+            "Obra");
+    private static final List<String> COLUMNAS_INSPECCION = List.of(
+            "Fecha inspección",
+            "Tipo",
+            "Área",
+            "Inspector",
+            "Puntaje",
+            "Fecha detección",
+            "Clasificación",
+            "Potencial",
+            "Estado",
+            "Descripción",
+            "Responsable",
+            "Fecha límite",
+            "Obra");
+    private static final List<String> COLUMNAS_ESTADISTICA = List.of(
+            "Mes",
+            "HHT",
+            "Accidentes",
+            "Días perdidos",
+            "IF",
+            "IS",
+            "IA",
+            "Días sin accidente");
+    private static final List<String> COLUMNAS_EPP = List.of(
+            "Fecha",
+            "Trabajador",
+            "DNI",
+            "Motivo",
+            "Material",
+            "Cantidad",
+            "Talla",
+            "Estado",
+            "Vencimiento",
+            "Firmado",
+            "Entregado por",
+            "Obra");
 
     private final AccesoObraService accesoObraService;
     private final SomaAcceso somaAcceso;
@@ -73,6 +136,11 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
     private final NominaDocumentoConfiguracionRepository configuracionRepository;
     private final SomaEventoSstRepository somaEventoSstRepository;
     private final SomaEmoExamenRepository somaEmoExamenRepository;
+    private final SomaMonitoreoRepository somaMonitoreoRepository;
+    private final SomaInspeccionRepository somaInspeccionRepository;
+    private final SomaHallazgoRepository somaHallazgoRepository;
+    private final InterfazSomaEstadisticaService somaEstadisticaService;
+    private final SomaEntregaEppRepository somaEntregaEppRepository;
     private final SomaSunafilPdfService somaSunafilPdfService;
     private final SomaSunafilExcelExporter somaSunafilExcelExporter;
 
@@ -81,23 +149,32 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
     public ArchivoDescargaDTO exportar(int formato, Long proyectoId, Integer anio, Integer mes, String tipo) {
         validarConsulta(formato, anio, mes, tipo);
         Proyecto proyecto = exigirAlcance(proyectoId);
+        Integer anioEstadistica = anio;
+        if (formato == 5 && anioEstadistica == null) {
+            anioEstadistica = LocalDate.now(ZONA_LIMA).getYear();
+        }
         SomaSunafilDocumentoDTO documento = switch (formato) {
             case 1 -> documentoEventos(proyecto, anio, mes);
             case 2 -> documentoEmos(proyecto, anio, mes);
+            case 3 -> documentoMonitoreos(proyecto, anio, mes);
+            case 4 -> documentoInspecciones(proyecto, anio, mes);
+            case 5 -> documentoEstadisticas(proyecto, anioEstadistica, mes);
+            case 6 -> documentoEpp(proyecto, anio, mes);
             default -> throw new IllegalArgumentException("Formato " + formato + " aún no implementado");
         };
         boolean pdf = "pdf".equals(tipo.trim().toLowerCase(Locale.ROOT));
         byte[] contenido = pdf
                 ? somaSunafilPdfService.generar(documento)
                 : somaSunafilExcelExporter.exportar(documento);
-        return new ArchivoDescargaDTO(nombre(formato, proyecto, anio, mes, pdf), pdf ? MIME_PDF : MIME_XLSX, contenido);
+        Integer anioArchivo = formato == 5 ? anioEstadistica : anio;
+        return new ArchivoDescargaDTO(nombre(formato, proyecto, anioArchivo, mes, pdf), pdf ? MIME_PDF : MIME_XLSX, contenido);
     }
 
     private void validarConsulta(int formato, Integer anio, Integer mes, String tipo) {
         if (formato < 1 || formato > 8) {
             throw new IllegalArgumentException("Formato inválido");
         }
-        if (formato > 2) {
+        if (formato > 6) {
             throw new IllegalArgumentException("Formato " + formato + " aún no implementado");
         }
         if (tipo == null || tipo.isBlank()) {
@@ -196,6 +273,180 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
                 filas);
     }
 
+    private SomaSunafilDocumentoDTO documentoMonitoreos(Proyecto proyecto, Integer anio, Integer mes) {
+        List<List<String>> filas = new ArrayList<>();
+        for (SomaMonitoreo item : cargarMonitoreos(proyecto)) {
+            if (!enPeriodo(item.getFecha(), anio, mes)) {
+                continue;
+            }
+            filas.add(List.of(
+                    fecha(item.getFecha()),
+                    item.getTipoAgente() == null ? "" : item.getTipoAgente().name(),
+                    nulo(item.getParametroMedido()),
+                    nulo(item.getPuntoMedicion()),
+                    decimal(item.getValorMedido()),
+                    decimal(item.getLimitePermisible()),
+                    nulo(item.getUnidad()),
+                    item.isCumpleLmp() ? "Sí" : "No",
+                    nulo(item.getLaboratorioNombre()),
+                    codigoObra(item.getProyecto(), proyecto)));
+        }
+        return documento(
+                3,
+                "Registro de monitoreo de agentes (R.M. 050-2013-TR)",
+                proyecto,
+                anio,
+                mes,
+                COLUMNAS_MONITOREO,
+                filas);
+    }
+
+    private SomaSunafilDocumentoDTO documentoInspecciones(Proyecto proyecto, Integer anio, Integer mes) {
+        List<SomaInspeccion> inspecciones = cargarInspecciones(proyecto).stream()
+                .filter(item -> enPeriodo(item.getFecha(), anio, mes))
+                .toList();
+        List<SomaHallazgo> hallazgos = cargarHallazgos(proyecto);
+        Map<Long, List<SomaHallazgo>> porInspeccion = new LinkedHashMap<>();
+        for (SomaHallazgo hallazgo : hallazgos) {
+            if (hallazgo.getInspeccion() == null || hallazgo.getInspeccion().getId() == null) {
+                continue;
+            }
+            porInspeccion
+                    .computeIfAbsent(hallazgo.getInspeccion().getId(), clave -> new ArrayList<>())
+                    .add(hallazgo);
+        }
+        List<List<String>> filas = new ArrayList<>();
+        for (SomaInspeccion inspeccion : inspecciones) {
+            List<SomaHallazgo> deInspeccion = inspeccion.getId() == null
+                    ? List.of()
+                    : porInspeccion.getOrDefault(inspeccion.getId(), List.of());
+            if (deInspeccion.isEmpty()) {
+                filas.add(filaInspeccion(inspeccion, null, proyecto));
+            } else {
+                for (SomaHallazgo hallazgo : deInspeccion) {
+                    filas.add(filaInspeccion(inspeccion, hallazgo, proyecto));
+                }
+            }
+        }
+        for (SomaHallazgo hallazgo : hallazgos) {
+            if (hallazgo.getInspeccion() != null) {
+                continue;
+            }
+            if (!enPeriodo(hallazgo.getFechaDeteccion(), anio, mes)) {
+                continue;
+            }
+            filas.add(filaInspeccion(null, hallazgo, proyecto));
+        }
+        return documento(
+                4,
+                "Registro de inspecciones internas de SST (R.M. 050-2013-TR)",
+                proyecto,
+                anio,
+                mes,
+                COLUMNAS_INSPECCION,
+                filas);
+    }
+
+    private List<String> filaInspeccion(SomaInspeccion inspeccion, SomaHallazgo hallazgo, Proyecto alcance) {
+        Proyecto obra = inspeccion != null ? inspeccion.getProyecto() : (hallazgo == null ? null : hallazgo.getProyecto());
+        return List.of(
+                inspeccion == null ? "" : fecha(inspeccion.getFecha()),
+                inspeccion == null || inspeccion.getTipo() == null ? "" : inspeccion.getTipo().name(),
+                inspeccion == null ? "" : nulo(inspeccion.getAreaFrente()),
+                inspeccion == null ? "" : nombrePersona(inspeccion.getInspector()),
+                inspeccion == null ? "" : decimal(inspeccion.getPuntajeCumplimiento()),
+                hallazgo == null ? "" : fecha(hallazgo.getFechaDeteccion()),
+                hallazgo == null || hallazgo.getClasificacion() == null ? "" : hallazgo.getClasificacion().name(),
+                hallazgo == null || hallazgo.getPotencialPerdida() == null ? "" : hallazgo.getPotencialPerdida().name(),
+                hallazgo == null || hallazgo.getEstado() == null ? "" : hallazgo.getEstado().name(),
+                hallazgo == null ? "" : nulo(hallazgo.getDescripcion()),
+                hallazgo == null ? "" : nombrePersona(hallazgo.getResponsable()),
+                hallazgo == null ? "" : fecha(hallazgo.getFechaLimite()),
+                codigoObra(obra, alcance));
+    }
+
+    private SomaSunafilDocumentoDTO documentoEstadisticas(Proyecto proyecto, Integer anio, Integer mes) {
+        SomaEstadisticaAnioDTO stats = proyecto == null
+                ? somaEstadisticaService.corporativo(anio)
+                : somaEstadisticaService.porObra(proyecto.getId(), anio);
+        List<List<String>> filas = new ArrayList<>();
+        List<SomaEstadisticaMesDTO> meses = stats.getMeses() == null ? List.of() : stats.getMeses();
+        if (mes != null) {
+            if (mes >= 1 && mes <= meses.size()) {
+                filas.add(filaEstadistica(meses.get(mes - 1), null));
+            }
+        } else {
+            for (SomaEstadisticaMesDTO fila : meses) {
+                filas.add(filaEstadistica(fila, null));
+            }
+        }
+        if (stats.getAcumulado() != null) {
+            filas.add(filaEstadistica(stats.getAcumulado(), stats.getDiasSinAccidente()));
+        }
+        return documento(
+                5,
+                "Estadísticas de SST — HHT, IF, IS, IA (R.M. 050-2013-TR)",
+                proyecto,
+                anio,
+                mes,
+                COLUMNAS_ESTADISTICA,
+                filas);
+    }
+
+    private static List<String> filaEstadistica(SomaEstadisticaMesDTO fila, Integer diasSinAccidente) {
+        String mes = fila.getMes() == null ? "Acumulado" : String.valueOf(fila.getMes());
+        return List.of(
+                mes,
+                decimal(fila.getHht()),
+                String.valueOf(fila.getAccidentes()),
+                String.valueOf(fila.getDiasPerdidos()),
+                decimal(fila.getIndiceFrecuencia()),
+                decimal(fila.getIndiceSeveridad()),
+                decimal(fila.getIndiceAccidentabilidad()),
+                diasSinAccidente == null ? "" : String.valueOf(diasSinAccidente));
+    }
+
+    private SomaSunafilDocumentoDTO documentoEpp(Proyecto proyecto, Integer anio, Integer mes) {
+        List<List<String>> filas = new ArrayList<>();
+        for (SomaEntregaEpp entrega : cargarEpp(proyecto)) {
+            if (!enPeriodo(entrega.getFechaEntrega(), anio, mes)) {
+                continue;
+            }
+            List<SomaEntregaEppItem> items = entrega.getItems() == null ? List.of() : entrega.getItems();
+            if (items.isEmpty()) {
+                continue;
+            }
+            for (SomaEntregaEppItem item : items) {
+                Material material = item.getMaterial();
+                String materialTxt = material == null
+                        ? ""
+                        : (nulo(material.getCodigo()) + " — " + nulo(material.getDescripcion())).trim();
+                Persona persona = entrega.getPersona();
+                filas.add(List.of(
+                        fecha(entrega.getFechaEntrega()),
+                        nombrePersona(persona),
+                        persona == null ? "" : nulo(persona.getNumeroDocumento()),
+                        entrega.getMotivo() == null ? "" : entrega.getMotivo().name(),
+                        materialTxt,
+                        decimal(item.getCantidad()),
+                        nulo(item.getTalla()),
+                        item.getEstadoItem() == null ? "" : item.getEstadoItem().name(),
+                        fecha(item.getFechaVencimientoEstimada()),
+                        entrega.isFirmadoTrabajador() ? "Sí" : "No",
+                        nulo(entrega.getEntregadoPor()),
+                        codigoObra(entrega.getProyecto(), proyecto)));
+            }
+        }
+        return documento(
+                6,
+                "Registro de equipos de seguridad o emergencia (R.M. 050-2013-TR)",
+                proyecto,
+                anio,
+                mes,
+                COLUMNAS_EPP,
+                filas);
+    }
+
     private List<SomaEventoSst> cargarEventos(Proyecto proyecto) {
         if (proyecto != null) {
             return somaEventoSstRepository.findByProyectoIdOrderByFechaHoraDescNumeroDesc(proyecto.getId());
@@ -227,6 +478,66 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
         return todos.stream()
                 .filter(emo -> emo.getProyecto() != null && obras.contains(emo.getProyecto().getId()))
                 .toList();
+    }
+
+    private List<SomaMonitoreo> cargarMonitoreos(Proyecto proyecto) {
+        if (proyecto != null) {
+            return somaMonitoreoRepository.findByProyectoIdOrderByFechaDescIdDesc(proyecto.getId());
+        }
+        if (AccesoObraService.esGerencia(accesoObraService.usuarioActual().getRol())) {
+            return somaMonitoreoRepository.findAllByOrderByFechaDescIdDesc();
+        }
+        List<Long> obras = obrasAsignadas();
+        if (obras.isEmpty()) {
+            return List.of();
+        }
+        return somaMonitoreoRepository.findByProyectoIdInOrderByFechaDescIdDesc(obras);
+    }
+
+    private List<SomaInspeccion> cargarInspecciones(Proyecto proyecto) {
+        if (proyecto != null) {
+            return somaInspeccionRepository.findByProyectoIdOrderByFechaDescIdDesc(proyecto.getId());
+        }
+        if (AccesoObraService.esGerencia(accesoObraService.usuarioActual().getRol())) {
+            return somaInspeccionRepository.findAllByOrderByFechaDescIdDesc();
+        }
+        List<Long> obras = obrasAsignadas();
+        if (obras.isEmpty()) {
+            return List.of();
+        }
+        return somaInspeccionRepository.findByProyectoIdInOrderByFechaDescIdDesc(obras);
+    }
+
+    private List<SomaHallazgo> cargarHallazgos(Proyecto proyecto) {
+        if (proyecto != null) {
+            return somaHallazgoRepository.findByProyectoIdOrderByFechaDeteccionDescIdDesc(proyecto.getId());
+        }
+        if (AccesoObraService.esGerencia(accesoObraService.usuarioActual().getRol())) {
+            return somaHallazgoRepository.findAllByOrderByFechaDeteccionDescIdDesc();
+        }
+        List<Long> obras = obrasAsignadas();
+        if (obras.isEmpty()) {
+            return List.of();
+        }
+        return somaHallazgoRepository.findByProyectoIdInOrderByFechaDeteccionDescIdDesc(obras);
+    }
+
+    private List<SomaEntregaEpp> cargarEpp(Proyecto proyecto) {
+        if (proyecto != null) {
+            return somaEntregaEppRepository.findByProyectoIdOrderByFechaEntregaDescIdDesc(proyecto.getId());
+        }
+        if (AccesoObraService.esGerencia(accesoObraService.usuarioActual().getRol())) {
+            return somaEntregaEppRepository.findAllByOrderByFechaEntregaDescIdDesc();
+        }
+        List<Long> obras = obrasAsignadas();
+        if (obras.isEmpty()) {
+            return List.of();
+        }
+        return somaEntregaEppRepository.findByProyectoIdInOrderByFechaEntregaDescIdDesc(obras);
+    }
+
+    private List<Long> obrasAsignadas() {
+        return usuarioProyectoRepository.findProyectoIdsByUsuarioId(accesoObraService.usuarioActual().getId());
     }
 
     private SomaSunafilDocumentoDTO documento(
@@ -318,6 +629,13 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
 
     private static String fecha(LocalDate valor) {
         return valor == null ? "" : FECHA.format(valor);
+    }
+
+    private static String decimal(BigDecimal valor) {
+        if (valor == null) {
+            return "";
+        }
+        return valor.stripTrailingZeros().toPlainString();
     }
 
     private static String nulo(String valor) {
