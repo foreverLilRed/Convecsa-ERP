@@ -11,4 +11,7 @@ public class SomaResumenObraDTO {
     private final String codigoObra;
     private final String nombreObra;
     private final String supervisorSsoma;
+    private final int habilitados;
+    private final int bloqueados;
+    private final int emosPorVencer30Dias;
 }

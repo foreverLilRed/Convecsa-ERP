@@ -3,6 +3,7 @@ package com.convecsa.erp.soma.controller;
 import com.convecsa.erp.soma.dto.SomaCapacitacionAsistenteDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionRequest;
+import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
@@ -17,8 +18,10 @@ import com.convecsa.erp.soma.dto.SomaTrabajadorObraDTO;
 import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEppService;
+import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
+import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -47,10 +50,17 @@ public class SomaObraController {
     private final InterfazSomaSctrService somaSctrService;
     private final InterfazSomaEppService somaEppService;
     private final InterfazSomaCapacitacionService somaCapacitacionService;
+    private final InterfazSomaHabilitacionService somaHabilitacionService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
         return somaObraService.obtenerResumen(proyectoId);
+    }
+
+    @GetMapping("/habilitacion")
+    public SomaHabilitacionDTO habilitacion(
+            @PathVariable Long proyectoId, @RequestParam(required = false) LocalDate fecha) {
+        return somaHabilitacionService.evaluarObra(proyectoId, fecha);
     }
 
     @GetMapping("/emos")

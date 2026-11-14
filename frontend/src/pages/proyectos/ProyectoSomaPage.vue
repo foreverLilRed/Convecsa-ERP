@@ -47,6 +47,7 @@ import {
   listarCapacitacionesObra,
   listarEmosObra,
   listarEntregasEpp,
+  listarHabilitacionObra,
   listarMaterialesEpp,
   listarPolizasSctr,
   obtenerResumenSoma,
@@ -58,11 +59,13 @@ import type { CuadrillaObra, PartidaPresupuesto, PersonalObra } from '@/types/co
 import type {
   AptitudEmo,
   EstadoItemEpp,
+  EstadoHabilitacionSoma,
   MotivoEntregaEpp,
   SomaCapacitacion,
   SomaEmo,
   SomaEntregaEpp,
   SomaEppMaterial,
+  SomaHabilitacion,
   SomaResumenObra,
   SomaSctrNominaFila,
   SomaSctrPoliza,
@@ -71,7 +74,8 @@ import type {
 } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones'
+type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
 type EppItemDraft = { materialId: string; cantidad: string; talla: string }
 type CapAsistenteDraft = { personaId: number; nota: string; aprobado: boolean }
 
@@ -138,10 +142,13 @@ const TIPOS_CAP: { valor: TipoCapacitacionSoma; label: string }[] = [
 
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
-const tab = ref<TabSoma>('resumen')
+const tab = ref<TabSoma>('habilitacion')
 const loading = ref(true)
 const saving = ref(false)
 const resumen = ref<SomaResumenObra | null>(null)
+const habilitacion = ref<SomaHabilitacion | null>(null)
+const fechaHabilitacion = ref(hoyIso())
+const filtroHabilitacion = ref<FiltroHabilitacion>('TODOS')
 const emos = ref<SomaEmo[]>([])
 const personal = ref<PersonalObra[]>([])
 const personaSearch = ref('')
@@ -272,6 +279,14 @@ const partidasVigentes = computed(() =>
   partidas.value.filter((item): item is PartidaPresupuesto & { id: number } => item.id != null),
 )
 
+const filasHabilitacion = computed(() => {
+  const filas = habilitacion.value?.filas ?? []
+  if (filtroHabilitacion.value === 'TODOS') {
+    return filas
+  }
+  return filas.filter((fila) => fila.estado === filtroHabilitacion.value)
+})
+
 const historialEppPorPersona = computed(() => {
   const grupos = new Map<
     number,
@@ -355,6 +370,33 @@ function fechaLabel(valor: string | null | undefined): string {
 
 function emoVencido(item: SomaEmo): boolean {
   return item.fechaVencimiento < hoyIso()
+}
+
+function estadoHabilitacionBadge(estado: EstadoHabilitacionSoma): 'success' | 'secondary' {
+  return estado === 'HABILITADO' ? 'success' : 'secondary'
+}
+
+function estadoHabilitacionLabel(estado: EstadoHabilitacionSoma): string {
+  return estado === 'HABILITADO' ? 'Habilitado' : 'Bloqueado'
+}
+
+function motivosLabel(motivos: string[]): string {
+  return motivos.length ? motivos.join(' · ') : '—'
+}
+
+async function recargarHabilitacion() {
+  if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
+    return
+  }
+  try {
+    habilitacion.value = await listarHabilitacionObra(
+      proyectoId.value,
+      fechaHabilitacion.value || undefined,
+    )
+  } catch (err) {
+    habilitacion.value = null
+    toast.error(err instanceof Error ? err.message : 'No se pudo cargar la habilitación.')
+  }
 }
 
 function aptitudBadgeVariant(item: SomaEmo): 'success' | 'default' | 'secondary' {
@@ -452,6 +494,7 @@ async function load() {
   try {
     const [
       resumenObra,
+      listaHabilitacion,
       listaEmos,
       listaPersonal,
       listaPolizas,
@@ -462,6 +505,7 @@ async function load() {
       listaCuadrillas,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
+      listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
       listarEmosObra(proyectoId.value),
       listarPersonalObra(proyectoId.value),
       listarPolizasSctr(proyectoId.value),
@@ -472,6 +516,7 @@ async function load() {
       listarCuadrillasObra(proyectoId.value).catch(() => []),
     ])
     resumen.value = resumenObra
+    habilitacion.value = listaHabilitacion
     emos.value = listaEmos
     personal.value = uniquePersonal(listaPersonal)
     polizas.value = listaPolizas
@@ -486,6 +531,7 @@ async function load() {
     }
   } catch (err) {
     resumen.value = null
+    habilitacion.value = null
     emos.value = []
     personal.value = []
     polizas.value = []
@@ -914,6 +960,13 @@ watch(proyectoId, () => {
   void load()
 })
 
+watch(fechaHabilitacion, () => {
+  if (loading.value) {
+    return
+  }
+  void recargarHabilitacion()
+})
+
 onMounted(() => {
   void load()
 })
@@ -923,12 +976,85 @@ onMounted(() => {
   <div class="mt-4 space-y-4">
     <Tabs v-model="tab">
       <TabsList :class="tabsListClass">
+        <TabsTrigger value="habilitacion" :class="tabTriggerClass">Habilitación</TabsTrigger>
         <TabsTrigger value="resumen" :class="tabTriggerClass">Resumen</TabsTrigger>
         <TabsTrigger value="vigilancia" :class="tabTriggerClass">Vigilancia médica</TabsTrigger>
         <TabsTrigger value="sctr" :class="tabTriggerClass">SCTR</TabsTrigger>
         <TabsTrigger value="epp" :class="tabTriggerClass">EPP</TabsTrigger>
         <TabsTrigger value="capacitaciones" :class="tabTriggerClass">Capacitaciones</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="habilitacion" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Semáforo de habilitación</h3>
+            <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-hab-fecha">Fecha</label>
+                <Input
+                  id="soma-hab-fecha"
+                  v-model="fechaHabilitacion"
+                  type="date"
+                  :class="inputClass"
+                  class="mt-1.5"
+                />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-hab-filtro">Estado</label>
+                <select id="soma-hab-filtro" v-model="filtroHabilitacion" :class="selectClass" class="mt-1.5">
+                  <option value="TODOS">Todos</option>
+                  <option value="HABILITADO">Habilitados</option>
+                  <option value="BLOQUEADO">Bloqueados</option>
+                </select>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-500">Habilitados</p>
+                <p class="mt-1 text-lg font-semibold text-palette-navy">{{ habilitacion?.habilitados ?? 0 }}</p>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-slate-500">Bloqueados</p>
+                <p class="mt-1 text-lg font-semibold text-palette-navy">{{ habilitacion?.bloqueados ?? 0 }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Persona</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Motivos</TableHead>
+                  <TableHead>Restricciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in filasHabilitacion" :key="fila.personaId">
+                  <TableCell>{{ fila.apellidos }}, {{ fila.nombres }}</TableCell>
+                  <TableCell>{{ fila.numeroDocumento }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="estadoHabilitacionBadge(fila.estado)">
+                      {{ estadoHabilitacionLabel(fila.estado) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{{ motivosLabel(fila.motivos) }}</TableCell>
+                  <TableCell>{{ fila.restricciones || '—' }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!filasHabilitacion.length" :colspan="5">
+                  Sin trabajadores activos en la fecha seleccionada.
+                </TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
 
       <TabsContent value="resumen" class="mt-4">
         <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
@@ -950,6 +1076,18 @@ onMounted(() => {
             <div>
               <dt class="text-sm font-medium text-slate-500">Supervisor SSOMA</dt>
               <dd class="mt-1 text-sm text-slate-900">{{ resumen?.supervisorSsoma ?? 'Sin asignar' }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">Habilitados</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ resumen?.habilitados ?? 0 }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">Bloqueados</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ resumen?.bloqueados ?? 0 }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">EMO por vencer (30 días)</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ resumen?.emosPorVencer30Dias ?? 0 }}</dd>
             </div>
           </dl>
         </div>

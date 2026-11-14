@@ -17,6 +17,7 @@ public interface SomaSctrPolizaRepository extends JpaRepository<SomaSctrPoliza, 
 
     boolean existsByProyectoIdAndAnioAndMes(Long proyectoId, int anio, int mes);
 
+    @EntityGraph(attributePaths = {"nomina", "nomina.persona"})
     Optional<SomaSctrPoliza> findByProyectoIdAndAnioAndMesAndEstado(
             Long proyectoId, int anio, int mes, EstadoSctrPoliza estado);
 }

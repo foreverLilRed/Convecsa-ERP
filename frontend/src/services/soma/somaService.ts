@@ -9,6 +9,7 @@ import type {
   SomaEntregaEpp,
   SomaEntregaEppRequest,
   SomaEppMaterial,
+  SomaHabilitacion,
   SomaResumenObra,
   SomaSctrNominaGuardarRequest,
   SomaSctrPoliza,
@@ -18,6 +19,15 @@ import type {
 
 export function obtenerResumenSoma(proyectoId: number): Promise<SomaResumenObra> {
   return apiRequest<SomaResumenObra>(`/api/proyectos/${proyectoId}/soma/resumen`)
+}
+
+export function listarHabilitacionObra(proyectoId: number, fecha?: string): Promise<SomaHabilitacion> {
+  const params = new URLSearchParams()
+  if (fecha) {
+    params.set('fecha', fecha)
+  }
+  const qs = params.toString()
+  return apiRequest<SomaHabilitacion>(`/api/proyectos/${proyectoId}/soma/habilitacion${qs ? `?${qs}` : ''}`)
 }
 
 export function listarEmosObra(proyectoId: number): Promise<SomaEmo[]> {

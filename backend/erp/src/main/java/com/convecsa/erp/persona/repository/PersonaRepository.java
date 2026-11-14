@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -31,6 +32,10 @@ public interface PersonaRepository extends JpaRepository<Persona, Long>, JpaSpec
     Optional<Persona> findByNumeroDocumento(String numeroDocumento);
 
     List<Persona> findByNumeroDocumentoIn(Collection<String> numerosDocumento);
+
+    @EntityGraph(attributePaths = "documentosChecklist")
+    @Query("select distinct p from Persona p where p.id in :ids")
+    List<Persona> findAllWithChecklistByIdIn(@Param("ids") Collection<Long> ids);
 
     boolean existsByTipoDocumentoAndNumeroDocumento(TipoDocumento tipoDocumento, String numeroDocumento);
 

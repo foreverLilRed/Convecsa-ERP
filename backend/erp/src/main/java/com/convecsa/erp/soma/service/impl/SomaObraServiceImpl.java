@@ -6,8 +6,11 @@ import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.persona.entity.Persona;
+import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
 import com.convecsa.erp.soma.dto.SomaResumenObraDTO;
+import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +21,7 @@ public class SomaObraServiceImpl implements InterfazSomaObraService {
 
     private final ProyectoRepository proyectoRepository;
     private final ProyectoResponsableRepository proyectoResponsableRepository;
+    private final InterfazSomaHabilitacionService somaHabilitacionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -29,11 +33,15 @@ public class SomaObraServiceImpl implements InterfazSomaObraService {
                 .map(fila -> nombreCompleto(fila.getPersona()))
                 .findFirst()
                 .orElse(null);
+        SomaHabilitacionDTO semaforo = somaHabilitacionService.evaluarObra(proyectoId, LocalDate.now());
         return SomaResumenObraDTO.builder()
                 .proyectoId(proyecto.getId())
                 .codigoObra(proyecto.getCodigo())
                 .nombreObra(proyecto.getNombre())
                 .supervisorSsoma(supervisor)
+                .habilitados(semaforo.getHabilitados())
+                .bloqueados(semaforo.getBloqueados())
+                .emosPorVencer30Dias(semaforo.getEmosPorVencer30Dias())
                 .build();
     }
 

@@ -15,7 +15,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S2 | Pólizas SCTR mensuales por obra | V59 | Hecho |
 | S3 | Entrega de EPP integrada con almacén | V60 | Hecho |
 | S4 | Capacitaciones e inducción de hombre nuevo | V61 | Hecho |
-| S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Pendiente |
+| S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Hecho |
 | S6 | Matriz IPERC por partida | V62 | Pendiente |
 | S7 | Charla diaria y ATS | V63 | Pendiente |
 | S8 | PETAR y cruce con tareo | V64 | Pendiente |
@@ -509,6 +509,12 @@ Un EMO `APTO_CON_RESTRICCION` habilita, pero el DTO expone las restricciones par
 **Tests (`SomaHabilitacionServiceImplTest`):** un caso por criterio que falla, un caso totalmente habilitado y un caso de restricción que habilita.
 
 **Definición de terminado:** el semáforo coincide con los datos cargados en S1–S4.
+
+**Notas de implementación (S5)**
+- Población = `buscarActivos(proyectoId, fecha, fecha)` (el día de `fecha`, no el mes entero), deduplicada por `personaId`. Si `fecha` no viene en el query, se usa `LocalDate.now()`.
+- SCTR se evalúa del **mes de `fecha`** (póliza `VIGENTE` con `incluidoSalud && incluidoPension`). El EMO es el último examen **global** de la persona, no por obra.
+- RETCC falla si no hay fila de checklist o si el estado no es `CONFORME`/`NO_APLICA`. `APTO_CON_RESTRICCION` habilita y el DTO expone `restricciones`.
+- La obra local `0000` no tiene `contrato_cc`; `GET .../habilitacion` devuelve lista vacía. Los 5 criterios, el caso habilitado y la restricción se cubrieron con `SomaHabilitacionServiceImplTest`.
 
 ---
 

@@ -1,5 +1,6 @@
 package com.convecsa.erp.soma.repository;
 
+import com.convecsa.erp.soma.domain.MotivoEntregaEpp;
 import com.convecsa.erp.soma.entity.SomaEntregaEpp;
 import java.util.List;
 import java.util.Optional;
@@ -16,4 +17,6 @@ public interface SomaEntregaEppRepository extends JpaRepository<SomaEntregaEpp, 
 
     @EntityGraph(attributePaths = {"persona", "items", "items.material", "valeSalida"})
     List<SomaEntregaEpp> findByProyectoIdAndPersonaIdOrderByFechaEntregaDescIdDesc(Long proyectoId, Long personaId);
+
+    boolean existsByProyectoIdAndPersonaIdAndMotivo(Long proyectoId, Long personaId, MotivoEntregaEpp motivo);
 }

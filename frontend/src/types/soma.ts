@@ -3,6 +3,29 @@ export type SomaResumenObra = {
   codigoObra: string
   nombreObra: string
   supervisorSsoma: string | null
+  habilitados: number
+  bloqueados: number
+  emosPorVencer30Dias: number
+}
+
+export type EstadoHabilitacionSoma = 'HABILITADO' | 'BLOQUEADO'
+
+export type SomaHabilitacionFila = {
+  personaId: number
+  nombres: string
+  apellidos: string
+  numeroDocumento: string
+  estado: EstadoHabilitacionSoma
+  motivos: string[]
+  restricciones: string | null
+}
+
+export type SomaHabilitacion = {
+  fecha: string
+  habilitados: number
+  bloqueados: number
+  emosPorVencer30Dias: number
+  filas: SomaHabilitacionFila[]
 }
 
 export type TipoEmo = 'INGRESO' | 'PERIODICO' | 'RETIRO' | 'CAMBIO_PUESTO' | 'REINCORPORACION'
