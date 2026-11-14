@@ -28,6 +28,7 @@ import com.convecsa.erp.soma.domain.PotencialPerdidaSoma;
 import com.convecsa.erp.soma.domain.TipoAgenteMonitoreoSoma;
 import com.convecsa.erp.soma.domain.TipoEmo;
 import com.convecsa.erp.soma.domain.TipoEventoSst;
+import com.convecsa.erp.soma.domain.TipoCapacitacionSoma;
 import com.convecsa.erp.soma.domain.TipoInspeccionSoma;
 import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
 import com.convecsa.erp.soma.dto.SomaEstadisticaMesDTO;
@@ -38,7 +39,10 @@ import com.convecsa.erp.soma.entity.SomaEntregaEppItem;
 import com.convecsa.erp.soma.entity.SomaEventoSst;
 import com.convecsa.erp.soma.entity.SomaHallazgo;
 import com.convecsa.erp.soma.entity.SomaInspeccion;
+import com.convecsa.erp.soma.entity.SomaCapacitacion;
+import com.convecsa.erp.soma.entity.SomaCapacitacionAsistente;
 import com.convecsa.erp.soma.entity.SomaMonitoreo;
+import com.convecsa.erp.soma.repository.SomaCapacitacionRepository;
 import com.convecsa.erp.soma.repository.SomaEmoExamenRepository;
 import com.convecsa.erp.soma.repository.SomaEntregaEppRepository;
 import com.convecsa.erp.soma.repository.SomaEventoSstRepository;
@@ -92,6 +96,8 @@ class SomaSunafilServiceImplTest {
     @Mock
     private SomaEntregaEppRepository somaEntregaEppRepository;
     @Mock
+    private SomaCapacitacionRepository somaCapacitacionRepository;
+    @Mock
     private SomaSunafilPdfService somaSunafilPdfService;
     @Mock
     private SomaSunafilExcelExporter somaSunafilExcelExporter;
@@ -119,10 +125,10 @@ class SomaSunafilServiceImplTest {
     }
 
     @Test
-    void formato7NoImplementado() {
+    void formato9Invalido() {
         IllegalArgumentException ex = assertThrows(
-                IllegalArgumentException.class, () -> servicio.exportar(7, 10L, null, null, "pdf"));
-        assertTrue(ex.getMessage().contains("aún no implementado"));
+                IllegalArgumentException.class, () -> servicio.exportar(9, 10L, null, null, "pdf"));
+        assertEquals("Formato inválido", ex.getMessage());
     }
 
     @Test
@@ -270,6 +276,61 @@ class SomaSunafilServiceImplTest {
         verify(somaEntregaEppRepository, never()).findAllByOrderByFechaEntregaDescIdDesc();
     }
 
+    @Test
+    void formato7FiltraAsistentesPorMes() {
+        SomaCapacitacion noviembre = capacitacion(
+                LocalDate.of(2026, 11, 12),
+                "Inducción",
+                proyecto,
+                List.of(asistente(persona()), asistente(persona("Lopez", "Ana", "10101010"))));
+        SomaCapacitacion octubre = capacitacion(
+                LocalDate.of(2026, 10, 3),
+                "Simulacro",
+                proyecto,
+                List.of(asistente(persona())));
+        when(somaCapacitacionRepository.findByProyectoIdOrderByFechaDescIdDesc(10L))
+                .thenReturn(List.of(noviembre, octubre));
+
+        servicio.exportar(7, 10L, 2026, 11, "pdf");
+
+        ArgumentCaptor<SomaSunafilDocumentoDTO> captor = ArgumentCaptor.forClass(SomaSunafilDocumentoDTO.class);
+        verify(somaSunafilPdfService).generar(captor.capture());
+        SomaSunafilDocumentoDTO doc = captor.getValue();
+        assertEquals(7, doc.getFormato());
+        assertEquals(2, doc.getFilas().size());
+        assertEquals("INDUCCION_HOMBRE_NUEVO", doc.getFilas().get(0).get(1));
+        assertEquals("Inducción", doc.getFilas().get(0).get(2));
+        assertEquals("Rojas Pedro", doc.getFilas().get(0).get(7));
+        assertEquals("Lopez Ana", doc.getFilas().get(1).get(7));
+        assertEquals("Sí", doc.getFilas().get(0).get(10));
+        verify(somaCapacitacionRepository, never()).findAllByOrderByFechaDescIdDesc();
+        verify(somaCapacitacionRepository, never()).findByProyectoIdInOrderByFechaDescIdDesc(any());
+        verify(somaCapacitacionRepository, never()).findByProyectoIsNullOrderByFechaDescIdDesc();
+    }
+
+    @Test
+    void formato8VacioNoConsultaCapacitaciones() {
+        servicio.exportar(8, 10L, 2026, 11, "xlsx");
+
+        ArgumentCaptor<SomaSunafilDocumentoDTO> captor = ArgumentCaptor.forClass(SomaSunafilDocumentoDTO.class);
+        verify(somaSunafilExcelExporter).exportar(captor.capture());
+        SomaSunafilDocumentoDTO doc = captor.getValue();
+        assertEquals(8, doc.getFormato());
+        assertTrue(doc.getFilas().isEmpty());
+        assertTrue(doc.getTitulo().contains("auditorías"));
+        assertEquals(List.of(
+                "Fecha",
+                "Tipo",
+                "Alcance",
+                "Auditor líder",
+                "Empresa auditora",
+                "Resultado",
+                "No conformidades",
+                "Observaciones"), doc.getColumnas());
+        verify(somaCapacitacionRepository, never()).findByProyectoIdOrderByFechaDescIdDesc(any());
+        verify(somaCapacitacionRepository, never()).findAllByOrderByFechaDescIdDesc();
+    }
+
     private static SomaEventoSst evento(int numero, LocalDate fecha, Proyecto proyecto) {
         SomaEventoSst evento = new SomaEventoSst();
         evento.setNumero(numero);
@@ -385,12 +446,40 @@ class SomaSunafilServiceImplTest {
         return entrega;
     }
 
+    private static SomaCapacitacion capacitacion(
+            LocalDate fecha, String tema, Proyecto proyecto, List<SomaCapacitacionAsistente> asistentes) {
+        SomaCapacitacion sesion = new SomaCapacitacion();
+        sesion.setTipo(TipoCapacitacionSoma.INDUCCION_HOMBRE_NUEVO);
+        sesion.setTema(tema);
+        sesion.setFecha(fecha);
+        sesion.setHorasDuracion(new BigDecimal("4"));
+        sesion.setExpositorNombre("Ing. SST");
+        sesion.setExpositorEntidad("Convecsa");
+        sesion.setProyecto(proyecto);
+        for (SomaCapacitacionAsistente asistente : asistentes) {
+            sesion.addAsistente(asistente);
+        }
+        return sesion;
+    }
+
+    private static SomaCapacitacionAsistente asistente(Persona persona) {
+        SomaCapacitacionAsistente fila = new SomaCapacitacionAsistente();
+        fila.setPersona(persona);
+        fila.setNota(new BigDecimal("15"));
+        fila.setAprobado(true);
+        return fila;
+    }
+
     private static Persona persona() {
+        return persona("Rojas", "Pedro", "73567960");
+    }
+
+    private static Persona persona(String apellidos, String nombres, String dni) {
         Persona persona = new Persona();
-        persona.setId(5L);
-        persona.setApellidos("Rojas");
-        persona.setNombres("Pedro");
-        persona.setNumeroDocumento("73567960");
+        persona.setId((long) dni.hashCode());
+        persona.setApellidos(apellidos);
+        persona.setNombres(nombres);
+        persona.setNumeroDocumento(dni);
         return persona;
     }
 }

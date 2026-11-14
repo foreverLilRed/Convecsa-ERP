@@ -26,7 +26,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Hecho |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Hecho |
 | S15 | Alertas SOMA en la ficha de obra | — | Hecho |
-| S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | En curso (S16.1–S16.3 Hecho) |
+| S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | Hecho |
 | S17 | Vistas corporativas `/soma/*` y menú | — | Pendiente |
 
 > **Numeración Flyway:** los números de la columna "Migración" suponen que la última versión existente es `V56`. Antes de crear un archivo, el agente lista `backend/erp/src/main/resources/db/migration/` y usa **el siguiente número libre**, manteniendo el sufijo descriptivo (`__soma_...`).
@@ -1138,6 +1138,10 @@ Cada alerta trae un mensaje con la cantidad (por ejemplo, "3 trabajadores con EM
 **Notas S16.3**
 - Formato 5 reutiliza S12 (`porObra` / `corporativo`) sin recálculo. Si no hay `anio`, usa el año Lima actual. Formato 6: una fila por ítem de `soma_entrega_epp`.
 - Formatos 7–8 siguen en 400. Sin migración.
+
+**Notas S16.4**
+- Formato 7: una fila por asistente de `soma_capacitacion`. En alcance empresa incluye capacitaciones corporativas (`proyecto_id` nulo) además de las obras asignadas a `INGENIERO_SOMA`.
+- Formato 8: vacío con membrete (no hay tabla de auditorías SST). Formato 9 responde 400 «Formato inválido». S16 cerrado. Sin migración. UI de descarga queda para S17.
 
 ---
 

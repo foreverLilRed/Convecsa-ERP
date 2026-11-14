@@ -54,6 +54,20 @@ class SomaSunafilPdfServiceTest {
         assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
     }
 
+    @Test
+    void formato7NoVacioYEmpiezaConPdf() {
+        byte[] pdf = servicio.generar(documento(7, List.of(List.of("13/11/2026", "CAPACITACION_PROGRAMADA", "0000"))));
+        assertTrue(pdf.length > 100);
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
+    }
+
+    @Test
+    void formato8SinFilasSigueSiendoPdf() {
+        byte[] pdf = servicio.generar(documento(8, List.of()));
+        assertTrue(pdf.length > 100);
+        assertTrue(new String(pdf, 0, 4, StandardCharsets.ISO_8859_1).startsWith("%PDF"));
+    }
+
     private static SomaSunafilDocumentoDTO documento(int formato, List<List<String>> filas) {
         return SomaSunafilDocumentoDTO.builder()
                 .formato(formato)

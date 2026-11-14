@@ -17,9 +17,12 @@ import com.convecsa.erp.soma.entity.SomaEmoExamen;
 import com.convecsa.erp.soma.entity.SomaEventoSst;
 import com.convecsa.erp.soma.entity.SomaHallazgo;
 import com.convecsa.erp.soma.entity.SomaInspeccion;
+import com.convecsa.erp.soma.entity.SomaCapacitacion;
+import com.convecsa.erp.soma.entity.SomaCapacitacionAsistente;
 import com.convecsa.erp.soma.entity.SomaEntregaEpp;
 import com.convecsa.erp.soma.entity.SomaEntregaEppItem;
 import com.convecsa.erp.soma.entity.SomaMonitoreo;
+import com.convecsa.erp.soma.repository.SomaCapacitacionRepository;
 import com.convecsa.erp.soma.repository.SomaEmoExamenRepository;
 import com.convecsa.erp.soma.repository.SomaEntregaEppRepository;
 import com.convecsa.erp.soma.repository.SomaEventoSstRepository;
@@ -36,6 +39,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -128,6 +132,28 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
             "Firmado",
             "Entregado por",
             "Obra");
+    private static final List<String> COLUMNAS_CAPACITACION = List.of(
+            "Fecha",
+            "Tipo",
+            "Tema",
+            "Horas",
+            "Expositor",
+            "Entidad",
+            "Puntaje simulacro",
+            "Trabajador",
+            "DNI",
+            "Nota",
+            "Aprobado",
+            "Obra");
+    private static final List<String> COLUMNAS_AUDITORIA = List.of(
+            "Fecha",
+            "Tipo",
+            "Alcance",
+            "Auditor líder",
+            "Empresa auditora",
+            "Resultado",
+            "No conformidades",
+            "Observaciones");
 
     private final AccesoObraService accesoObraService;
     private final SomaAcceso somaAcceso;
@@ -141,6 +167,7 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
     private final SomaHallazgoRepository somaHallazgoRepository;
     private final InterfazSomaEstadisticaService somaEstadisticaService;
     private final SomaEntregaEppRepository somaEntregaEppRepository;
+    private final SomaCapacitacionRepository somaCapacitacionRepository;
     private final SomaSunafilPdfService somaSunafilPdfService;
     private final SomaSunafilExcelExporter somaSunafilExcelExporter;
 
@@ -160,6 +187,8 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
             case 4 -> documentoInspecciones(proyecto, anio, mes);
             case 5 -> documentoEstadisticas(proyecto, anioEstadistica, mes);
             case 6 -> documentoEpp(proyecto, anio, mes);
+            case 7 -> documentoCapacitaciones(proyecto, anio, mes);
+            case 8 -> documentoAuditorias(proyecto, anio, mes);
             default -> throw new IllegalArgumentException("Formato " + formato + " aún no implementado");
         };
         boolean pdf = "pdf".equals(tipo.trim().toLowerCase(Locale.ROOT));
@@ -173,9 +202,6 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
     private void validarConsulta(int formato, Integer anio, Integer mes, String tipo) {
         if (formato < 1 || formato > 8) {
             throw new IllegalArgumentException("Formato inválido");
-        }
-        if (formato > 6) {
-            throw new IllegalArgumentException("Formato " + formato + " aún no implementado");
         }
         if (tipo == null || tipo.isBlank()) {
             throw new IllegalArgumentException("El tipo debe ser pdf o xlsx");
@@ -447,6 +473,61 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
                 filas);
     }
 
+    private SomaSunafilDocumentoDTO documentoCapacitaciones(Proyecto proyecto, Integer anio, Integer mes) {
+        List<List<String>> filas = new ArrayList<>();
+        for (SomaCapacitacion sesion : cargarCapacitaciones(proyecto)) {
+            if (!enPeriodo(sesion.getFecha(), anio, mes)) {
+                continue;
+            }
+            List<SomaCapacitacionAsistente> asistentes =
+                    sesion.getAsistentes() == null ? List.of() : sesion.getAsistentes();
+            if (asistentes.isEmpty()) {
+                filas.add(filaCapacitacion(sesion, null, proyecto));
+            } else {
+                for (SomaCapacitacionAsistente asistente : asistentes) {
+                    filas.add(filaCapacitacion(sesion, asistente, proyecto));
+                }
+            }
+        }
+        return documento(
+                7,
+                "Registro de inducción, capacitación, entrenamiento y simulacros (R.M. 050-2013-TR)",
+                proyecto,
+                anio,
+                mes,
+                COLUMNAS_CAPACITACION,
+                filas);
+    }
+
+    private List<String> filaCapacitacion(
+            SomaCapacitacion sesion, SomaCapacitacionAsistente asistente, Proyecto alcance) {
+        Persona persona = asistente == null ? null : asistente.getPersona();
+        return List.of(
+                fecha(sesion.getFecha()),
+                sesion.getTipo() == null ? "" : sesion.getTipo().name(),
+                nulo(sesion.getTema()),
+                decimal(sesion.getHorasDuracion()),
+                nulo(sesion.getExpositorNombre()),
+                nulo(sesion.getExpositorEntidad()),
+                decimal(sesion.getPuntajeSimulacro()),
+                nombrePersona(persona),
+                persona == null ? "" : nulo(persona.getNumeroDocumento()),
+                asistente == null ? "" : decimal(asistente.getNota()),
+                asistente == null ? "" : (asistente.isAprobado() ? "Sí" : "No"),
+                codigoObra(sesion.getProyecto(), alcance));
+    }
+
+    private SomaSunafilDocumentoDTO documentoAuditorias(Proyecto proyecto, Integer anio, Integer mes) {
+        return documento(
+                8,
+                "Registro de auditorías del sistema de gestión de SST (R.M. 050-2013-TR)",
+                proyecto,
+                anio,
+                mes,
+                COLUMNAS_AUDITORIA,
+                List.of());
+    }
+
     private List<SomaEventoSst> cargarEventos(Proyecto proyecto) {
         if (proyecto != null) {
             return somaEventoSstRepository.findByProyectoIdOrderByFechaHoraDescNumeroDesc(proyecto.getId());
@@ -534,6 +615,24 @@ public class SomaSunafilServiceImpl implements InterfazSomaSunafilService {
             return List.of();
         }
         return somaEntregaEppRepository.findByProyectoIdInOrderByFechaEntregaDescIdDesc(obras);
+    }
+
+    private List<SomaCapacitacion> cargarCapacitaciones(Proyecto proyecto) {
+        if (proyecto != null) {
+            return somaCapacitacionRepository.findByProyectoIdOrderByFechaDescIdDesc(proyecto.getId());
+        }
+        if (AccesoObraService.esGerencia(accesoObraService.usuarioActual().getRol())) {
+            return somaCapacitacionRepository.findAllByOrderByFechaDescIdDesc();
+        }
+        List<Long> obras = obrasAsignadas();
+        List<SomaCapacitacion> deObras = obras.isEmpty()
+                ? new ArrayList<>()
+                : new ArrayList<>(somaCapacitacionRepository.findByProyectoIdInOrderByFechaDescIdDesc(obras));
+        deObras.addAll(somaCapacitacionRepository.findByProyectoIsNullOrderByFechaDescIdDesc());
+        deObras.sort(Comparator
+                .comparing(SomaCapacitacion::getFecha, Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(SomaCapacitacion::getId, Comparator.nullsLast(Comparator.reverseOrder())));
+        return deObras;
     }
 
     private List<Long> obrasAsignadas() {
