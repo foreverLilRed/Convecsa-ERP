@@ -3,7 +3,9 @@ package com.convecsa.erp.onboarding.service.impl;
 import com.convecsa.erp.common.exception.GeneracionOnboardingNoEncontradaException;
 import com.convecsa.erp.common.exception.PersonaNoEncontradaException;
 import com.convecsa.erp.common.web.PagedResponse;
+import com.convecsa.erp.contrato.entity.Adenda;
 import com.convecsa.erp.contrato.entity.Contrato;
+import com.convecsa.erp.contrato.repository.AdendaRepository;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
 import com.convecsa.erp.offboarding.support.CeseTokens;
@@ -17,6 +19,7 @@ import com.convecsa.erp.onboarding.entity.PlantillaOnboarding;
 import com.convecsa.erp.onboarding.repository.GeneracionOnboardingRepository;
 import com.convecsa.erp.onboarding.repository.PlantillaOnboardingRepository;
 import com.convecsa.erp.onboarding.service.InterfazOnboardingService;
+import com.convecsa.erp.onboarding.support.OnboardingDocumentoFuente;
 import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
@@ -45,6 +48,7 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
     private final GeneracionOnboardingRepository generacionOnboardingRepository;
     private final PersonaRepository personaRepository;
     private final ContratoRepository contratoRepository;
+    private final AdendaRepository adendaRepository;
     private final ContratoPlantillaService contratoPlantillaService;
 
     @Override
@@ -134,6 +138,27 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
 
     private void prepararContrato(Contrato contrato, Persona persona) {
         contrato.setPersona(persona);
+        if (contrato.getTipoPlantilla() != null) {
+            contrato.getTipoPlantilla().getPlantilla();
+        }
+        if (contrato.getCategoriaContrato() != null && contrato.getCategoriaContrato().getRegimenLaboral() != null) {
+            contrato.getCategoriaContrato().getRegimenLaboral().getLabel();
+        }
+    }
+
+    private Adenda adendaVigente(Contrato contrato) {
+        if (contrato.getId() == null) {
+            return null;
+        }
+        Adenda adenda = adendaRepository.findFirstByContratoIdOrderByIdDesc(contrato.getId()).orElse(null);
+        if (adenda == null) {
+            return null;
+        }
+        adenda.setContrato(contrato);
+        if (adenda.getPlantillaContrato() != null) {
+            adenda.getPlantillaContrato().getPlantilla();
+        }
+        return adenda;
     }
 
     private String renderPaquete(Persona persona, Contrato contrato, List<String> codigos) {
@@ -146,10 +171,17 @@ public class OnboardingServiceImpl implements InterfazOnboardingService {
             throw new IllegalArgumentException("Debe indicar al menos un código de plantilla");
         }
         Map<String, PlantillaOnboarding> porCodigo = validarPlantillas(codigos);
+        Adenda adenda = adendaVigente(contrato);
         List<String> htmls = new ArrayList<>();
         for (String codigo : codigos) {
-            htmls.add(contratoPlantillaService.render(
-                    porCodigo.get(codigo).getPlantilla(), persona, contrato, extras));
+            htmls.add(OnboardingDocumentoFuente.htmlDeCodigo(
+                    codigo,
+                    porCodigo.get(codigo).getPlantilla(),
+                    persona,
+                    contrato,
+                    adenda,
+                    extras,
+                    contratoPlantillaService));
         }
         return OnboardingHtmlPacket.unir(htmls);
     }

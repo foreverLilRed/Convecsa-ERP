@@ -1,6 +1,7 @@
 package com.convecsa.erp.mof.support;
 
 import com.convecsa.erp.mof.dto.MofPuestoDTO;
+import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -20,7 +21,7 @@ public class MofDocumentoService {
         for (MofPuestoDTO puesto : puestos) {
             cards.append(card(puesto));
         }
-        return """
+        return OnboardingHtmlPacket.conEstiloImpresion("""
                 <!DOCTYPE html>
                 <html lang="es">
                 <head>
@@ -66,7 +67,7 @@ public class MofDocumentoService {
                   </div>
                 </body>
                 </html>
-                """.formatted(cards);
+                """.formatted(cards));
     }
 
     private static String card(MofPuestoDTO puesto) {

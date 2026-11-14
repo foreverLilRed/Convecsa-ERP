@@ -109,6 +109,7 @@ import com.convecsa.erp.nomina.repository.AfpTasaRepository;
 import com.convecsa.erp.nomina.repository.NominaDocumentoConfiguracionRepository;
 import com.convecsa.erp.nomina.support.BoletaCorreoService;
 import com.convecsa.erp.nomina.support.BoletaPdfService;
+import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
 import java.io.IOException;
@@ -803,7 +804,8 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         List<TareoCcDia> dias = tareoCcDiaRepository.findByPeriodoIdAndPersonaIdOrderByFechaAsc(
                 periodoId, boleta.getPersona().getId());
         BigDecimal[] tarifas = tarifasDe(boleta);
-        return boletaCcPlantillaService.render(boleta, configuracion, dias, tarifas[0], tarifas[1]);
+        return OnboardingHtmlPacket.conEstiloImpresion(
+                boletaCcPlantillaService.render(boleta, configuracion, dias, tarifas[0], tarifas[1]));
     }
 
     @Override

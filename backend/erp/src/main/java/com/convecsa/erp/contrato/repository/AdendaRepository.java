@@ -1,6 +1,7 @@
 package com.convecsa.erp.contrato.repository;
 
 import com.convecsa.erp.contrato.entity.Adenda;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -12,4 +13,7 @@ public interface AdendaRepository extends JpaRepository<Adenda, Long> {
 
     @EntityGraph(attributePaths = {"contrato", "contrato.persona", "plantillaContrato"})
     Page<Adenda> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"contrato", "contrato.persona", "plantillaContrato"})
+    Optional<Adenda> findFirstByContratoIdOrderByIdDesc(Long contratoId);
 }

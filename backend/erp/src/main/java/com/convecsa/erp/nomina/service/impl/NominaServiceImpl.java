@@ -279,6 +279,8 @@ public class NominaServiceImpl implements InterfazNominaService {
         String html = boletaPlantillaService.render(boleta, plantilla, cargarConfiguracionDocumento());
         if (imprimir) {
             html = OnboardingHtmlPacket.conImpresionAutomatica(html);
+        } else {
+            html = OnboardingHtmlPacket.conEstiloImpresion(html);
         }
         return new BoletaDocumentoHtml(html, nombreArchivo(boleta));
     }

@@ -14,6 +14,8 @@ class OnboardingHtmlPacketTest {
         String unido = OnboardingHtmlPacket.unir(List.of(html));
         assertTrue(unido.contains("<p>Uno</p>"));
         assertTrue(unido.contains("overflow: visible !important"));
+        assertTrue(unido.contains("background: transparent !important"));
+        assertTrue(unido.contains("<head>"));
         assertFalse(unido.contains("class=\"onboarding-page\""));
     }
 
@@ -38,6 +40,8 @@ class OnboardingHtmlPacketTest {
         String conPrint = OnboardingHtmlPacket.conImpresionAutomatica(html);
         assertTrue(conPrint.contains("window.print()"));
         assertTrue(conPrint.contains("overflow: visible !important"));
+        assertTrue(conPrint.contains("background: transparent !important"));
+        assertTrue(conPrint.contains("print-color-adjust: economy"));
         assertTrue(conPrint.contains("</body>"));
         assertTrue(conPrint.indexOf("window.print()") < conPrint.toLowerCase().indexOf("</body>"));
     }

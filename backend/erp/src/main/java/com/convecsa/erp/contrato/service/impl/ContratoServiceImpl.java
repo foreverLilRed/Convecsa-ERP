@@ -40,6 +40,7 @@ import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.contrato.repository.RegimenLaboralRepository;
 import com.convecsa.erp.contrato.service.InterfazContratoService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
+import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.convecsa.erp.nomina.repository.AfpRepository;
 import com.convecsa.erp.persona.entity.Persona;
 import com.convecsa.erp.persona.repository.PersonaRepository;
@@ -179,7 +180,7 @@ public class ContratoServiceImpl implements InterfazContratoService {
         if (contrato.getCategoriaContrato() != null && contrato.getCategoriaContrato().getRegimenLaboral() != null) {
             contrato.getCategoriaContrato().getRegimenLaboral().getLabel();
         }
-        return contratoPlantillaService.render(contrato);
+        return OnboardingHtmlPacket.conEstiloImpresion(contratoPlantillaService.render(contrato));
     }
 
     @Override

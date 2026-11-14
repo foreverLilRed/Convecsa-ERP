@@ -11,14 +11,35 @@ public final class OnboardingHtmlPacket {
     private static final String ESTILO_PAGINACION = """
             <style>
             @media print {
-              html, body { height: auto !important; max-height: none !important; overflow: visible !important; }
-              .pg, .page, .page-wrap, .onboarding-page {
+              html, body {
                 height: auto !important;
                 max-height: none !important;
                 overflow: visible !important;
+                background: #fff !important;
+                background-color: #fff !important;
+              }
+              .pg, .page, .page-wrap, .onboarding-page, .doc-card, .wrap {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+                background: #fff !important;
+                background-color: #fff !important;
               }
               .onboarding-page { page-break-after: always; break-after: page; }
               .onboarding-page:last-child { page-break-after: auto; break-after: auto; }
+              *, *::before, *::after {
+                background: transparent !important;
+                background-color: transparent !important;
+                background-image: none !important;
+                box-shadow: none !important;
+                color: #111 !important;
+                -webkit-print-color-adjust: economy !important;
+                print-color-adjust: economy !important;
+              }
+              html, body, .pg, .page, .page-wrap, .onboarding-page, .doc-card, .wrap {
+                background: #fff !important;
+                background-color: #fff !important;
+              }
             }
             </style>
             """;
@@ -85,6 +106,10 @@ public final class OnboardingHtmlPacket {
         return conPaginas + script;
     }
 
+    public static String conEstiloImpresion(String html) {
+        return conPaginacionAbierta(html);
+    }
+
     static String conPaginacionAbierta(String html) {
         if (html == null || html.isBlank()) {
             return "";
@@ -93,7 +118,16 @@ public final class OnboardingHtmlPacket {
         if (cierreHead >= 0) {
             return html.substring(0, cierreHead) + ESTILO_PAGINACION + html.substring(cierreHead);
         }
-        return ESTILO_PAGINACION + html;
+        int htmlOpen = html.toLowerCase().indexOf("<html");
+        if (htmlOpen >= 0) {
+            int tagEnd = html.indexOf('>', htmlOpen);
+            if (tagEnd >= 0) {
+                return html.substring(0, tagEnd + 1)
+                        + "<head>" + ESTILO_PAGINACION + "</head>"
+                        + html.substring(tagEnd + 1);
+            }
+        }
+        return "<html><head>" + ESTILO_PAGINACION + "</head><body>" + html + "</body></html>";
     }
 
     static String estilosDe(String html) {

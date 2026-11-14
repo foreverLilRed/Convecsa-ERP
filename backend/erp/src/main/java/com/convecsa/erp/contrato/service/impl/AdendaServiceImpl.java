@@ -15,6 +15,7 @@ import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.contrato.repository.PlantillaContratoRepository;
 import com.convecsa.erp.contrato.service.InterfazAdendaService;
 import com.convecsa.erp.contrato.support.ContratoPlantillaService;
+import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.convecsa.erp.persona.entity.Persona;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -97,7 +98,7 @@ public class AdendaServiceImpl implements InterfazAdendaService {
         if (adenda.getPlantillaContrato() != null) {
             adenda.getPlantillaContrato().getPlantilla();
         }
-        return contratoPlantillaService.render(adenda);
+        return OnboardingHtmlPacket.conEstiloImpresion(contratoPlantillaService.render(adenda));
     }
 
     private static Map<String, String> copiarMetadata(

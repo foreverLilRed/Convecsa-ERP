@@ -74,6 +74,11 @@
       </li>
       <li>Genere el expediente. Luego puede ver, descargar o imprimir cada generación.</li>
     </ol>
+    <p class="mt-3 text-sm leading-relaxed text-slate-600">
+      El <strong>DOC-01</strong> (contrato) no se edita en Onboarding: usa la plantilla del contrato activo, la misma
+      de <strong>Plantillas de Contrato</strong>. El <strong>DOC-02</strong> usa la plantilla de la última adenda si
+      existe; si no hay adenda, queda el modelo del expediente.
+    </p>
     <p class="mt-3 text-sm font-medium text-palette-navy">Offboarding</p>
     <p class="mt-2 text-sm leading-relaxed text-slate-600">
       En el panel de ceses registre el cese, calcule la liquidación y genere los documentos de salida a partir de las

@@ -2,6 +2,7 @@ package com.convecsa.erp.contrato.support;
 
 import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
+import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.convecsa.erp.persona.entity.Persona;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +52,7 @@ public class ConstanciaTrabajoService {
         String nombre = esc(persona.getNombres() + " " + persona.getApellidos());
         String tipoDocumento = esc(persona.getTipoDocumento().name());
         String numeroDocumento = esc(persona.getNumeroDocumento());
-        return """
+        return OnboardingHtmlPacket.conEstiloImpresion("""
                 <!doctype html><html lang="es"><head><meta charset="utf-8">
                 <title>Constancia de trabajo - %s</title><style>
                 @page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;background:#dbe4ee;font-family:Arial,sans-serif;color:#1e293b}
@@ -72,7 +73,7 @@ public class ConstanciaTrabajoService {
                 <p class="fecha">Lima, %s</p><div class="firma"><strong>OROSCO MARTÍNEZ JORGE LUIS</strong><span>Gerente General · CONVECSA S.A.C.</span></div>
                 <div class="footer">CONVECSA S.A.C. · RUC 20601414067</div></main></body></html>
                 """.formatted(nombre, LOGO, nombre, tipoDocumento, numeroDocumento, periodo,
-                esc(cargo), proyectoTexto, FECHA.format(hoy));
+                esc(cargo), proyectoTexto, FECHA.format(hoy)));
     }
 
     private static String cargarLogo() {

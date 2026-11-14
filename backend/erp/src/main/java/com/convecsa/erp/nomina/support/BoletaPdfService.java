@@ -1,5 +1,6 @@
 package com.convecsa.erp.nomina.support;
 
+import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -15,7 +16,8 @@ public class BoletaPdfService {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
             builder.useFastMode();
-            builder.withHtmlContent(html.replaceAll("@import url\\([^;]+;", ""), null);
+            String listo = OnboardingHtmlPacket.conEstiloImpresion(html).replaceAll("@import url\\([^;]+;", "");
+            builder.withHtmlContent(listo, null);
             builder.toStream(output);
             builder.run();
             return output.toByteArray();

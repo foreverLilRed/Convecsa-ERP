@@ -76,7 +76,7 @@ const PRESETS: readonly Preset[] = [
     id: 'contratacion',
     label: 'Contrato, adenda y MOF',
     badge: '3 documentos',
-    description: 'Contrato de trabajo, adenda de prórroga y manual de funciones.',
+    description: 'Contrato y adenda según Plantillas de Contrato; MOF del expediente.',
     categorias: ['Contratación'],
   },
   {
@@ -604,6 +604,12 @@ onUnmounted(() => {
               </label>
               <p :id="`onboarding-doc-desc-${plantilla.codigo}`" class="mt-1 text-xs leading-relaxed text-slate-500">
                 {{ plantilla.descripcion }}
+              </p>
+              <p v-if="plantilla.codigo === 'DOC-01'" class="mt-1 text-[11px] text-palette-royal">
+                El HTML sale de la plantilla del contrato activo (Gestión Humana → Plantillas de Contrato).
+              </p>
+              <p v-else-if="plantilla.codigo === 'DOC-02'" class="mt-1 text-[11px] text-palette-royal">
+                Si el contrato tiene adenda, usa esa plantilla; si no, el modelo de onboarding.
               </p>
               <p class="mt-1 text-[11px] text-slate-400">
                 Base legal: <span class="font-medium text-slate-600">{{ plantilla.baseLegal }}</span>
