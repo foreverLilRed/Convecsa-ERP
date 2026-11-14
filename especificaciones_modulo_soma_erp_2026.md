@@ -26,7 +26,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Hecho |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Hecho |
 | S15 | Alertas SOMA en la ficha de obra | — | Hecho |
-| S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | Pendiente |
+| S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | En curso (S16.1 Hecho) |
 | S17 | Vistas corporativas `/soma/*` y menú | — | Pendiente |
 
 > **Numeración Flyway:** los números de la columna "Migración" suponen que la última versión existente es `V56`. Antes de crear un archivo, el agente lista `backend/erp/src/main/resources/db/migration/` y usa **el siguiente número libre**, manteniendo el sufijo descriptivo (`__soma_...`).
@@ -1124,6 +1124,12 @@ Cada alerta trae un mensaje con la cantidad (por ejemplo, "3 trabajadores con EM
 **API:** `GET /api/soma/formatos-sunafil/{formato}?proyectoId=&anio=&mes=&tipo=pdf|xlsx`. Con `proyectoId` informado, se exige acceso a la obra (`AccesoObraService.exigirObra`); sin él, se exige `exigirSomaCorporativo()`.
 
 **Tests:** `SomaSunafilExcelExporterTest` (abre el `.xlsx` generado con POI y verifica encabezado y filas) y `SomaSunafilPdfServiceTest` (el PDF no está vacío y empieza con `%PDF`).
+
+**Notas S16.1**
+- Sin migración (Flyway permanece en **V69**).
+- Formatos 1 (eventos SST) y 2 (EMO) en PDF (`BoletaPdfService`) y Excel (POI). Formatos 3–8 responden 400 «aún no implementado».
+- El formato 2 de esta spec es EMO; las enfermedades ocupacionales van en el formato 1 (`ENFERMEDAD_OCUPACIONAL`).
+- UI de descarga (`/soma/formatos`) queda para S17. `SomaAcceso.exigirSomaCorporativo()` delega en `exigirSoma()`.
 
 ---
 

@@ -1,5 +1,6 @@
 package com.convecsa.erp.soma.controller;
 
+import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
@@ -7,11 +8,18 @@ import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
 import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
+import com.convecsa.erp.soma.service.InterfazSomaSunafilService;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +35,7 @@ public class SomaCorporativoController {
     private final InterfazSomaEmoService somaEmoService;
     private final InterfazSomaCapacitacionService somaCapacitacionService;
     private final InterfazSomaEstadisticaService somaEstadisticaService;
+    private final InterfazSomaSunafilService somaSunafilService;
 
     @GetMapping("/emos")
     public List<SomaEmoDTO> listarEmos(
@@ -50,5 +59,25 @@ public class SomaCorporativoController {
     @GetMapping("/estadisticas")
     public SomaEstadisticaAnioDTO estadisticas(@RequestParam(required = false) Integer anio) {
         return somaEstadisticaService.corporativo(anio);
+    }
+
+    @GetMapping("/formatos-sunafil/{formato}")
+    public ResponseEntity<byte[]> formatoSunafil(
+            @PathVariable int formato,
+            @RequestParam(required = false) Long proyectoId,
+            @RequestParam(required = false) Integer anio,
+            @RequestParam(required = false) Integer mes,
+            @RequestParam String tipo) {
+        return archivo(somaSunafilService.exportar(formato, proyectoId, anio, mes, tipo));
+    }
+
+    private static ResponseEntity<byte[]> archivo(ArchivoDescargaDTO archivo) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(archivo.getContentType().split(";")[0]));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename(archivo.getFilename(), StandardCharsets.UTF_8)
+                .build());
+        headers.setContentLength(archivo.getContenido().length);
+        return new ResponseEntity<>(archivo.getContenido(), headers, HttpStatus.OK);
     }
 }

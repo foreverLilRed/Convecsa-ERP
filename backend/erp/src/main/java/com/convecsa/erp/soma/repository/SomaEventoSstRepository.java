@@ -28,6 +28,22 @@ public interface SomaEventoSstRepository extends JpaRepository<SomaEventoSst, Lo
         "partida",
         "personaAfectada",
         "subcontrato",
+        "proyecto"
+    })
+    List<SomaEventoSst> findAllByOrderByFechaHoraDescNumeroDesc();
+
+    @EntityGraph(attributePaths = {
+        "partida",
+        "personaAfectada",
+        "subcontrato",
+        "proyecto"
+    })
+    List<SomaEventoSst> findByProyectoIdInOrderByFechaHoraDescNumeroDesc(Collection<Long> proyectoIds);
+
+    @EntityGraph(attributePaths = {
+        "partida",
+        "personaAfectada",
+        "subcontrato",
         "informe",
         "hallazgos",
         "hallazgos.responsable",
