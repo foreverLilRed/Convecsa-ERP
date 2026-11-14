@@ -4,6 +4,8 @@ import com.convecsa.erp.soma.dto.SomaCapacitacionAsistenteDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionRequest;
 import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
+import com.convecsa.erp.soma.dto.SomaIpercFilaDTO;
+import com.convecsa.erp.soma.dto.SomaIpercFilaRequest;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
@@ -19,6 +21,7 @@ import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEppService;
 import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
+import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
 import java.time.LocalDate;
@@ -51,6 +54,7 @@ public class SomaObraController {
     private final InterfazSomaEppService somaEppService;
     private final InterfazSomaCapacitacionService somaCapacitacionService;
     private final InterfazSomaHabilitacionService somaHabilitacionService;
+    private final InterfazSomaIpercService somaIpercService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -138,6 +142,33 @@ public class SomaObraController {
                 .build());
         headers.setContentLength(pdf.length);
         return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/iperc")
+    public List<SomaIpercFilaDTO> listarIperc(
+            @PathVariable Long proyectoId,
+            @RequestParam(required = false) Long partidaId,
+            @RequestParam(required = false) Boolean incluirInactivos) {
+        return somaIpercService.listar(proyectoId, partidaId, incluirInactivos);
+    }
+
+    @PostMapping("/iperc")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaIpercFilaDTO crearIperc(@PathVariable Long proyectoId, @RequestBody SomaIpercFilaRequest request) {
+        return somaIpercService.crear(proyectoId, request);
+    }
+
+    @PutMapping("/iperc/{filaId}")
+    public SomaIpercFilaDTO actualizarIperc(
+            @PathVariable Long proyectoId,
+            @PathVariable Long filaId,
+            @RequestBody SomaIpercFilaRequest request) {
+        return somaIpercService.actualizar(proyectoId, filaId, request);
+    }
+
+    @PostMapping("/iperc/{filaId}/desactivar")
+    public SomaIpercFilaDTO desactivarIperc(@PathVariable Long proyectoId, @PathVariable Long filaId) {
+        return somaIpercService.desactivar(proyectoId, filaId);
     }
 
     @GetMapping("/capacitaciones")

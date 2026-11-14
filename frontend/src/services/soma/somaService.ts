@@ -10,6 +10,8 @@ import type {
   SomaEntregaEppRequest,
   SomaEppMaterial,
   SomaHabilitacion,
+  SomaIpercFila,
+  SomaIpercFilaRequest,
   SomaResumenObra,
   SomaSctrNominaGuardarRequest,
   SomaSctrPoliza,
@@ -102,6 +104,46 @@ export function listarMaterialesEpp(proyectoId: number): Promise<SomaEppMaterial
 
 export function descargarKardexEpp(proyectoId: number, personaId: number, filename: string): Promise<void> {
   return downloadAuthenticatedFile(`/api/proyectos/${proyectoId}/soma/epps/kardex/${personaId}/pdf`, filename)
+}
+
+export function listarIpercObra(
+  proyectoId: number,
+  partidaId?: number | null,
+  incluirInactivos?: boolean,
+): Promise<SomaIpercFila[]> {
+  const params = new URLSearchParams()
+  if (partidaId) {
+    params.set('partidaId', String(partidaId))
+  }
+  if (incluirInactivos) {
+    params.set('incluirInactivos', 'true')
+  }
+  const qs = params.toString()
+  return apiRequest<SomaIpercFila[]>(`/api/proyectos/${proyectoId}/soma/iperc${qs ? `?${qs}` : ''}`)
+}
+
+export function crearIpercObra(proyectoId: number, request: SomaIpercFilaRequest): Promise<SomaIpercFila> {
+  return apiRequest<SomaIpercFila>(`/api/proyectos/${proyectoId}/soma/iperc`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function actualizarIpercObra(
+  proyectoId: number,
+  filaId: number,
+  request: SomaIpercFilaRequest,
+): Promise<SomaIpercFila> {
+  return apiRequest<SomaIpercFila>(`/api/proyectos/${proyectoId}/soma/iperc/${filaId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function desactivarIpercObra(proyectoId: number, filaId: number): Promise<SomaIpercFila> {
+  return apiRequest<SomaIpercFila>(`/api/proyectos/${proyectoId}/soma/iperc/${filaId}/desactivar`, {
+    method: 'POST',
+  })
 }
 
 export function listarCapacitacionesObra(proyectoId: number): Promise<SomaCapacitacion[]> {

@@ -39,15 +39,19 @@ import {
 import {
   anularPolizaSctr,
   cambiarEstadoItemEpp,
+  actualizarIpercObra,
   crearCapacitacionObra,
   crearEntregaEpp,
+  crearIpercObra,
   crearPolizaSctr,
+  desactivarIpercObra,
   descargarKardexEpp,
   guardarNominaSctr,
   listarCapacitacionesObra,
   listarEmosObra,
   listarEntregasEpp,
   listarHabilitacionObra,
+  listarIpercObra,
   listarMaterialesEpp,
   listarPolizasSctr,
   obtenerResumenSoma,
@@ -61,20 +65,24 @@ import type {
   EstadoItemEpp,
   EstadoHabilitacionSoma,
   MotivoEntregaEpp,
+  NivelRiesgoIperc,
   SomaCapacitacion,
   SomaEmo,
   SomaEntregaEpp,
   SomaEppMaterial,
   SomaHabilitacion,
+  SomaIpercFila,
   SomaResumenObra,
   SomaSctrNominaFila,
   SomaSctrPoliza,
   TipoCapacitacionSoma,
   TipoEmo,
+  TipoPeligroIperc,
 } from '@/types/soma'
+import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc'
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
 type EppItemDraft = { materialId: string; cantidad: string; talla: string }
 type CapAsistenteDraft = { personaId: number; nota: string; aprobado: boolean }
@@ -140,6 +148,19 @@ const TIPOS_CAP: { valor: TipoCapacitacionSoma; label: string }[] = [
   { valor: 'SIMULACRO_EMERGENCIA', label: 'Simulacro de emergencia' },
 ]
 
+const TIPOS_PELIGRO_IPERC: { valor: TipoPeligroIperc; label: string }[] = [
+  { valor: 'LOCATIVO', label: 'Locativo' },
+  { valor: 'MECANICO', label: 'Mecánico' },
+  { valor: 'ELECTRICO', label: 'Eléctrico' },
+  { valor: 'FISICO', label: 'Físico' },
+  { valor: 'QUIMICO', label: 'Químico' },
+  { valor: 'ERGONOMICO', label: 'Ergonómico' },
+  { valor: 'PSICOSOCIAL', label: 'Psicosocial' },
+  { valor: 'BIOLOGICO', label: 'Biológico' },
+]
+
+const ESCALA_IPERC = [1, 2, 3, 4, 5]
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('habilitacion')
@@ -172,6 +193,11 @@ const capCuadrillaId = ref('')
 const capFileInput = ref<HTMLInputElement | null>(null)
 const capAsistentes = ref<CapAsistenteDraft[]>([])
 const capAgregarPersonaId = ref<number | null>(null)
+const filasIperc = ref<SomaIpercFila[]>([])
+const filtroPartidaIperc = ref('')
+const incluirInactivosIperc = ref(false)
+const ipercSaving = ref(false)
+const ipercEditandoId = ref<number | null>(null)
 
 const capForm = reactive({
   tipo: 'INDUCCION_HOMBRE_NUEVO' as TipoCapacitacionSoma,
@@ -182,6 +208,27 @@ const capForm = reactive({
   expositorEntidad: '',
   puntajeSimulacro: '',
   observaciones: '',
+})
+
+const ipercForm = reactive({
+  partidaId: '',
+  actividadTarea: '',
+  puestoTrabajo: '',
+  rutinario: true,
+  tipoPeligro: 'MECANICO' as TipoPeligroIperc,
+  peligro: '',
+  riesgo: '',
+  consecuencia: '',
+  requisitoLegal: '',
+  probabilidadInicial: '3',
+  severidadInicial: '3',
+  controlEliminacion: '',
+  controlSustitucion: '',
+  controlIngenieria: '',
+  controlAdministrativo: '',
+  controlEpp: '',
+  probabilidadResidual: '2',
+  severidadResidual: '2',
 })
 
 const eppForm = reactive({
@@ -278,6 +325,9 @@ const opcionesCapPersona = computed(() => {
 const partidasVigentes = computed(() =>
   partidas.value.filter((item): item is PartidaPresupuesto & { id: number } => item.id != null),
 )
+
+const nivelInicialIpercVivo = computed(() => nivelVivo(ipercForm.probabilidadInicial, ipercForm.severidadInicial))
+const nivelResidualIpercVivo = computed(() => nivelVivo(ipercForm.probabilidadResidual, ipercForm.severidadResidual))
 
 const filasHabilitacion = computed(() => {
   const filas = habilitacion.value?.filas ?? []
@@ -382,6 +432,182 @@ function estadoHabilitacionLabel(estado: EstadoHabilitacionSoma): string {
 
 function motivosLabel(motivos: string[]): string {
   return motivos.length ? motivos.join(' · ') : '—'
+}
+
+function nivelVivo(probabilidad: string, severidad: string): NivelRiesgoIperc | null {
+  const p = Number(probabilidad)
+  const s = Number(severidad)
+  if (!Number.isInteger(p) || !Number.isInteger(s) || p < 1 || s < 1) {
+    return null
+  }
+  return nivelRiesgoIpercDesdePuntaje(p * s)
+}
+
+function nivelIpercBadge(nivel: NivelRiesgoIperc): 'success' | 'default' | 'secondary' {
+  if (nivel === 'TRIVIAL' || nivel === 'TOLERABLE') {
+    return 'success'
+  }
+  if (nivel === 'MODERADO') {
+    return 'default'
+  }
+  return 'secondary'
+}
+
+function nivelIpercLabel(nivel: NivelRiesgoIperc): string {
+  if (nivel === 'TRIVIAL') {
+    return 'Trivial'
+  }
+  if (nivel === 'TOLERABLE') {
+    return 'Tolerable'
+  }
+  if (nivel === 'MODERADO') {
+    return 'Moderado'
+  }
+  if (nivel === 'IMPORTANTE') {
+    return 'Importante'
+  }
+  return 'Intolerable'
+}
+
+function tipoPeligroLabel(tipo: TipoPeligroIperc): string {
+  return TIPOS_PELIGRO_IPERC.find((item) => item.valor === tipo)?.label ?? tipo
+}
+
+function resetIpercForm() {
+  ipercEditandoId.value = null
+  ipercForm.partidaId = ''
+  ipercForm.actividadTarea = ''
+  ipercForm.puestoTrabajo = ''
+  ipercForm.rutinario = true
+  ipercForm.tipoPeligro = 'MECANICO'
+  ipercForm.peligro = ''
+  ipercForm.riesgo = ''
+  ipercForm.consecuencia = ''
+  ipercForm.requisitoLegal = ''
+  ipercForm.probabilidadInicial = '3'
+  ipercForm.severidadInicial = '3'
+  ipercForm.controlEliminacion = ''
+  ipercForm.controlSustitucion = ''
+  ipercForm.controlIngenieria = ''
+  ipercForm.controlAdministrativo = ''
+  ipercForm.controlEpp = ''
+  ipercForm.probabilidadResidual = '2'
+  ipercForm.severidadResidual = '2'
+}
+
+function armaIpercRequest() {
+  const pIni = Number(ipercForm.probabilidadInicial)
+  const sIni = Number(ipercForm.severidadInicial)
+  const pRes = Number(ipercForm.probabilidadResidual)
+  const sRes = Number(ipercForm.severidadResidual)
+  return {
+    partidaId: ipercForm.partidaId ? Number(ipercForm.partidaId) : null,
+    actividadTarea: ipercForm.actividadTarea.trim(),
+    puestoTrabajo: ipercForm.puestoTrabajo.trim(),
+    rutinario: ipercForm.rutinario,
+    tipoPeligro: ipercForm.tipoPeligro,
+    peligro: ipercForm.peligro.trim(),
+    riesgo: ipercForm.riesgo.trim(),
+    consecuencia: ipercForm.consecuencia.trim(),
+    requisitoLegal: ipercForm.requisitoLegal.trim() || null,
+    probabilidadInicial: pIni,
+    severidadInicial: sIni,
+    controlEliminacion: ipercForm.controlEliminacion.trim() || null,
+    controlSustitucion: ipercForm.controlSustitucion.trim() || null,
+    controlIngenieria: ipercForm.controlIngenieria.trim() || null,
+    controlAdministrativo: ipercForm.controlAdministrativo.trim() || null,
+    controlEpp: ipercForm.controlEpp.trim() || null,
+    probabilidadResidual: pRes,
+    severidadResidual: sRes,
+  }
+}
+
+async function recargarIperc() {
+  if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
+    return
+  }
+  try {
+    filasIperc.value = await listarIpercObra(
+      proyectoId.value,
+      filtroPartidaIperc.value ? Number(filtroPartidaIperc.value) : undefined,
+      incluirInactivosIperc.value,
+    )
+  } catch (err) {
+    filasIperc.value = []
+    toast.error(err instanceof Error ? err.message : 'No se pudo cargar el IPERC.')
+  }
+}
+
+function editarIperc(fila: SomaIpercFila) {
+  ipercEditandoId.value = fila.id
+  ipercForm.partidaId = fila.partidaId ? String(fila.partidaId) : ''
+  ipercForm.actividadTarea = fila.actividadTarea
+  ipercForm.puestoTrabajo = fila.puestoTrabajo
+  ipercForm.rutinario = fila.rutinario
+  ipercForm.tipoPeligro = fila.tipoPeligro
+  ipercForm.peligro = fila.peligro
+  ipercForm.riesgo = fila.riesgo
+  ipercForm.consecuencia = fila.consecuencia
+  ipercForm.requisitoLegal = fila.requisitoLegal ?? ''
+  ipercForm.probabilidadInicial = String(fila.probabilidadInicial)
+  ipercForm.severidadInicial = String(fila.severidadInicial)
+  ipercForm.controlEliminacion = fila.controlEliminacion ?? ''
+  ipercForm.controlSustitucion = fila.controlSustitucion ?? ''
+  ipercForm.controlIngenieria = fila.controlIngenieria ?? ''
+  ipercForm.controlAdministrativo = fila.controlAdministrativo ?? ''
+  ipercForm.controlEpp = fila.controlEpp ?? ''
+  ipercForm.probabilidadResidual = String(fila.probabilidadResidual)
+  ipercForm.severidadResidual = String(fila.severidadResidual)
+}
+
+async function onGuardarIperc() {
+  const request = armaIpercRequest()
+  if (!request.actividadTarea || !request.puestoTrabajo || !request.peligro || !request.riesgo || !request.consecuencia) {
+    toast.error('Complete actividad, puesto, peligro, riesgo y consecuencia.')
+    return
+  }
+  if (
+    !request.controlEliminacion
+    && !request.controlSustitucion
+    && !request.controlIngenieria
+    && !request.controlAdministrativo
+    && !request.controlEpp
+  ) {
+    toast.error('Indique al menos un control.')
+    return
+  }
+  ipercSaving.value = true
+  try {
+    if (ipercEditandoId.value) {
+      await actualizarIpercObra(proyectoId.value, ipercEditandoId.value, request)
+      toast.success('Fila IPERC actualizada.')
+    } else {
+      await crearIpercObra(proyectoId.value, request)
+      toast.success('Fila IPERC registrada.')
+    }
+    resetIpercForm()
+    await recargarIperc()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo guardar el IPERC.')
+  } finally {
+    ipercSaving.value = false
+  }
+}
+
+async function onDesactivarIperc(fila: SomaIpercFila) {
+  ipercSaving.value = true
+  try {
+    await desactivarIpercObra(proyectoId.value, fila.id)
+    if (ipercEditandoId.value === fila.id) {
+      resetIpercForm()
+    }
+    toast.success('Fila IPERC desactivada.')
+    await recargarIperc()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo desactivar la fila.')
+  } finally {
+    ipercSaving.value = false
+  }
 }
 
 async function recargarHabilitacion() {
@@ -503,6 +729,7 @@ async function load() {
       presupuesto,
       listaCaps,
       listaCuadrillas,
+      listaIperc,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -510,10 +737,15 @@ async function load() {
       listarPersonalObra(proyectoId.value),
       listarPolizasSctr(proyectoId.value),
       listarEntregasEpp(proyectoId.value),
-      listarMaterialesEpp(proyectoId.value),
+      listarMaterialesEpp(proyectoId.value).catch(() => []),
       obtenerPresupuesto(proyectoId.value).catch(() => null),
       listarCapacitacionesObra(proyectoId.value),
       listarCuadrillasObra(proyectoId.value).catch(() => []),
+      listarIpercObra(
+        proyectoId.value,
+        filtroPartidaIperc.value ? Number(filtroPartidaIperc.value) : undefined,
+        incluirInactivosIperc.value,
+      ),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -525,6 +757,7 @@ async function load() {
     partidas.value = presupuesto?.version?.estado === 'VIGENTE' ? presupuesto.version.partidas : []
     capacitaciones.value = listaCaps
     cuadrillas.value = listaCuadrillas
+    filasIperc.value = listaIperc
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -540,6 +773,7 @@ async function load() {
     partidas.value = []
     capacitaciones.value = []
     cuadrillas.value = []
+    filasIperc.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -967,6 +1201,13 @@ watch(fechaHabilitacion, () => {
   void recargarHabilitacion()
 })
 
+watch([filtroPartidaIperc, incluirInactivosIperc], () => {
+  if (loading.value) {
+    return
+  }
+  void recargarIperc()
+})
+
 onMounted(() => {
   void load()
 })
@@ -982,6 +1223,7 @@ onMounted(() => {
         <TabsTrigger value="sctr" :class="tabTriggerClass">SCTR</TabsTrigger>
         <TabsTrigger value="epp" :class="tabTriggerClass">EPP</TabsTrigger>
         <TabsTrigger value="capacitaciones" :class="tabTriggerClass">Capacitaciones</TabsTrigger>
+        <TabsTrigger value="iperc" :class="tabTriggerClass">IPERC</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -1849,6 +2091,250 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!capacitaciones.length" :colspan="6">Aún no hay capacitaciones en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="iperc" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">
+              {{ ipercEditandoId ? 'Editar fila IPERC' : 'Registrar fila IPERC' }}
+            </h3>
+            <p class="mt-1 text-sm text-slate-500">
+              El nivel se calcula con probabilidad × severidad. Debe haber al menos un control y el residual no puede
+              superar el inicial.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onGuardarIperc">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-partida">Partida</label>
+                  <select id="soma-iperc-partida" v-model="ipercForm.partidaId" :class="selectClass" class="mt-1.5">
+                    <option value="">Sin partida</option>
+                    <option v-for="partida in partidasVigentes" :key="partida.id" :value="String(partida.id)">
+                      {{ partida.codigo }} — {{ partida.descripcion }}
+                    </option>
+                  </select>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-actividad">Actividad / tarea</label>
+                  <Input
+                    id="soma-iperc-actividad"
+                    v-model="ipercForm.actividadTarea"
+                    :class="inputClass"
+                    class="mt-1.5"
+                    maxlength="240"
+                    required
+                  />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-puesto">Puesto</label>
+                  <Input
+                    id="soma-iperc-puesto"
+                    v-model="ipercForm.puestoTrabajo"
+                    :class="inputClass"
+                    class="mt-1.5"
+                    maxlength="120"
+                    required
+                  />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-tipo">Tipo de peligro</label>
+                  <select id="soma-iperc-tipo" v-model="ipercForm.tipoPeligro" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in TIPOS_PELIGRO_IPERC" :key="item.valor" :value="item.valor">
+                      {{ item.label }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="flex items-center gap-2 pt-7 text-sm text-slate-600">
+                    <input v-model="ipercForm.rutinario" type="checkbox" />
+                    Rutinario
+                  </label>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-peligro">Peligro</label>
+                  <Input id="soma-iperc-peligro" v-model="ipercForm.peligro" :class="inputClass" class="mt-1.5" maxlength="400" required />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-riesgo">Riesgo</label>
+                  <Input id="soma-iperc-riesgo" v-model="ipercForm.riesgo" :class="inputClass" class="mt-1.5" maxlength="400" required />
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-consecuencia">Consecuencia</label>
+                  <Input
+                    id="soma-iperc-consecuencia"
+                    v-model="ipercForm.consecuencia"
+                    :class="inputClass"
+                    class="mt-1.5"
+                    maxlength="400"
+                    required
+                  />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-legal">Requisito legal</label>
+                  <Input
+                    id="soma-iperc-legal"
+                    v-model="ipercForm.requisitoLegal"
+                    :class="inputClass"
+                    class="mt-1.5"
+                    maxlength="200"
+                  />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-p-ini">Probabilidad inicial</label>
+                  <select id="soma-iperc-p-ini" v-model="ipercForm.probabilidadInicial" :class="selectClass" class="mt-1.5">
+                    <option v-for="n in ESCALA_IPERC" :key="'pi-' + n" :value="String(n)">{{ n }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-s-ini">Severidad inicial</label>
+                  <select id="soma-iperc-s-ini" v-model="ipercForm.severidadInicial" :class="selectClass" class="mt-1.5">
+                    <option v-for="n in ESCALA_IPERC" :key="'si-' + n" :value="String(n)">{{ n }}</option>
+                  </select>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-slate-500">Nivel inicial</p>
+                  <div class="mt-2">
+                    <Badge v-if="nivelInicialIpercVivo" :variant="nivelIpercBadge(nivelInicialIpercVivo)">
+                      {{ nivelIpercLabel(nivelInicialIpercVivo) }}
+                    </Badge>
+                    <span v-else class="text-sm text-slate-500">—</span>
+                  </div>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-elim">Control eliminación</label>
+                  <Textarea id="soma-iperc-elim" v-model="ipercForm.controlEliminacion" class="mt-1.5 min-h-16" maxlength="500" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-sust">Control sustitución</label>
+                  <Textarea id="soma-iperc-sust" v-model="ipercForm.controlSustitucion" class="mt-1.5 min-h-16" maxlength="500" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-ing">Control ingeniería</label>
+                  <Textarea id="soma-iperc-ing" v-model="ipercForm.controlIngenieria" class="mt-1.5 min-h-16" maxlength="500" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-adm">Control administrativo</label>
+                  <Textarea id="soma-iperc-adm" v-model="ipercForm.controlAdministrativo" class="mt-1.5 min-h-16" maxlength="500" />
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-epp">Control EPP</label>
+                  <Textarea id="soma-iperc-epp" v-model="ipercForm.controlEpp" class="mt-1.5 min-h-16" maxlength="500" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-p-res">Probabilidad residual</label>
+                  <select id="soma-iperc-p-res" v-model="ipercForm.probabilidadResidual" :class="selectClass" class="mt-1.5">
+                    <option v-for="n in ESCALA_IPERC" :key="'pr-' + n" :value="String(n)">{{ n }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-s-res">Severidad residual</label>
+                  <select id="soma-iperc-s-res" v-model="ipercForm.severidadResidual" :class="selectClass" class="mt-1.5">
+                    <option v-for="n in ESCALA_IPERC" :key="'sr-' + n" :value="String(n)">{{ n }}</option>
+                  </select>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-slate-500">Nivel residual</p>
+                  <div class="mt-2">
+                    <Badge v-if="nivelResidualIpercVivo" :variant="nivelIpercBadge(nivelResidualIpercVivo)">
+                      {{ nivelIpercLabel(nivelResidualIpercVivo) }}
+                    </Badge>
+                    <span v-else class="text-sm text-slate-500">—</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-wrap justify-end gap-2">
+                <Button v-if="ipercEditandoId" type="button" variant="outline" :disabled="ipercSaving" @click="resetIpercForm">
+                  Cancelar
+                </Button>
+                <Button class="bg-palette-navy text-white hover:bg-palette-royal" type="submit" :disabled="ipercSaving">
+                  {{ ipercEditandoId ? 'Guardar cambios' : 'Registrar' }}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <h3 class="text-base font-semibold text-palette-navy">Matriz IPERC</h3>
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-iperc-filtro-partida">Partida</label>
+                  <select
+                    id="soma-iperc-filtro-partida"
+                    v-model="filtroPartidaIperc"
+                    :class="selectClass"
+                    class="mt-1.5"
+                  >
+                    <option value="">Todas</option>
+                    <option v-for="partida in partidasVigentes" :key="partida.id" :value="String(partida.id)">
+                      {{ partida.codigo }} — {{ partida.descripcion }}
+                    </option>
+                  </select>
+                </div>
+                <label class="flex items-center gap-2 pt-7 text-sm text-slate-600">
+                  <input v-model="incluirInactivosIperc" type="checkbox" />
+                  Incluir inactivos
+                </label>
+              </div>
+            </div>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Partida</TableHead>
+                  <TableHead>Actividad</TableHead>
+                  <TableHead>Peligro</TableHead>
+                  <TableHead>Inicial</TableHead>
+                  <TableHead>Residual</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in filasIperc" :key="fila.id" :class="fila.activo ? '' : 'opacity-60'">
+                  <TableCell>{{ fila.partidaCodigo ? `${fila.partidaCodigo} · ${fila.partidaDescripcion}` : 'Sin partida' }}</TableCell>
+                  <TableCell>
+                    <p>{{ fila.actividadTarea }}</p>
+                    <p class="text-xs text-slate-500">{{ tipoPeligroLabel(fila.tipoPeligro) }} · {{ fila.puestoTrabajo }}</p>
+                  </TableCell>
+                  <TableCell>{{ fila.peligro }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="nivelIpercBadge(fila.nivelRiesgoInicial)">
+                      {{ nivelIpercLabel(fila.nivelRiesgoInicial) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge :variant="nivelIpercBadge(fila.nivelRiesgoResidual)">
+                      {{ nivelIpercLabel(fila.nivelRiesgoResidual) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div class="flex flex-wrap justify-end gap-2">
+                      <Button type="button" variant="outline" size="sm" :disabled="ipercSaving" @click="editarIperc(fila)">
+                        Editar
+                      </Button>
+                      <Button
+                        v-if="fila.activo"
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        :disabled="ipercSaving"
+                        @click="onDesactivarIperc(fila)"
+                      >
+                        Desactivar
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!filasIperc.length" :colspan="6">Sin filas IPERC en esta obra.</TableEmpty>
               </TableBody>
             </Table>
           </div>

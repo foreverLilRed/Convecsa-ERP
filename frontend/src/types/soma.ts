@@ -216,6 +216,84 @@ export type SomaCapacitacion = {
   asistentes: SomaCapacitacionAsistente[]
 }
 
+export type TipoPeligroIperc =
+  | 'LOCATIVO'
+  | 'MECANICO'
+  | 'ELECTRICO'
+  | 'FISICO'
+  | 'QUIMICO'
+  | 'ERGONOMICO'
+  | 'PSICOSOCIAL'
+  | 'BIOLOGICO'
+
+export type NivelRiesgoIperc = 'TRIVIAL' | 'TOLERABLE' | 'MODERADO' | 'IMPORTANTE' | 'INTOLERABLE'
+
+export function nivelRiesgoIpercDesdePuntaje(puntaje: number): NivelRiesgoIperc {
+  if (puntaje <= 4) {
+    return 'TRIVIAL'
+  }
+  if (puntaje <= 8) {
+    return 'TOLERABLE'
+  }
+  if (puntaje <= 12) {
+    return 'MODERADO'
+  }
+  if (puntaje <= 19) {
+    return 'IMPORTANTE'
+  }
+  return 'INTOLERABLE'
+}
+
+export type SomaIpercFila = {
+  id: number
+  proyectoId: number
+  partidaId: number | null
+  partidaCodigo: string | null
+  partidaDescripcion: string | null
+  actividadTarea: string
+  puestoTrabajo: string
+  rutinario: boolean
+  tipoPeligro: TipoPeligroIperc
+  peligro: string
+  riesgo: string
+  consecuencia: string
+  requisitoLegal: string | null
+  probabilidadInicial: number
+  severidadInicial: number
+  nivelRiesgoInicial: NivelRiesgoIperc
+  controlEliminacion: string | null
+  controlSustitucion: string | null
+  controlIngenieria: string | null
+  controlAdministrativo: string | null
+  controlEpp: string | null
+  probabilidadResidual: number
+  severidadResidual: number
+  nivelRiesgoResidual: NivelRiesgoIperc
+  activo: boolean
+  createdAt: string
+}
+
+export type SomaIpercFilaRequest = {
+  partidaId?: number | null
+  actividadTarea: string
+  puestoTrabajo: string
+  rutinario?: boolean
+  tipoPeligro: TipoPeligroIperc
+  peligro: string
+  riesgo: string
+  consecuencia: string
+  requisitoLegal?: string | null
+  probabilidadInicial: number
+  severidadInicial: number
+  controlEliminacion?: string | null
+  controlSustitucion?: string | null
+  controlIngenieria?: string | null
+  controlAdministrativo?: string | null
+  controlEpp?: string | null
+  probabilidadResidual: number
+  severidadResidual: number
+}
+
 export type SomaCapacitacionRequest = {
   tipo: TipoCapacitacionSoma
   tema: string

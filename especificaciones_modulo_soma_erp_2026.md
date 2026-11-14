@@ -16,7 +16,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S3 | Entrega de EPP integrada con almacén | V60 | Hecho |
 | S4 | Capacitaciones e inducción de hombre nuevo | V61 | Hecho |
 | S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Hecho |
-| S6 | Matriz IPERC por partida | V62 | Pendiente |
+| S6 | Matriz IPERC por partida | V62 | Hecho |
 | S7 | Charla diaria y ATS | V63 | Pendiente |
 | S8 | PETAR y cruce con tareo | V64 | Pendiente |
 | S9 | Inspecciones y hallazgos | V65 | Pendiente |
@@ -577,6 +577,11 @@ CREATE INDEX idx_soma_iperc_proyecto ON soma_iperc_fila (proyecto_id, partida_id
 - Los bordes de cada rango (4/5, 8/9, 12/13, 19/20).
 - Rechaza un residual mayor que el inicial.
 - Rechaza una fila sin controles.
+
+**Notas de implementación (S6)**
+- Los niveles los calcula solo el backend con `NivelRiesgoIperc.desdePuntaje(P×S)`; el request no lleva nivel. El residual se compara por ordinal del enum (`TRIVIAL` < … < `INTOLERABLE`).
+- La partida es opcional; si viene, debe ser de la misma obra (`partida.version.proyecto.id`). No se exige presupuesto vigente.
+- En local, `0000` puede no tener `partida_presupuesto`; el POST sin partida y el GET/`desactivar` se verificaron por API. El tab filtra por partida y puede incluir inactivos.
 
 ---
 
