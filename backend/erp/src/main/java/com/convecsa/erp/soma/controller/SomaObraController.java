@@ -23,6 +23,10 @@ import com.convecsa.erp.soma.dto.SomaPetarRequest;
 import com.convecsa.erp.soma.dto.SomaPreUsoBloqueoDTO;
 import com.convecsa.erp.soma.dto.SomaPreUsoDTO;
 import com.convecsa.erp.soma.dto.SomaPreUsoRequest;
+import com.convecsa.erp.soma.dto.SomaMonitoreoDTO;
+import com.convecsa.erp.soma.dto.SomaMonitoreoRequest;
+import com.convecsa.erp.soma.dto.SomaResiduoDTO;
+import com.convecsa.erp.soma.dto.SomaResiduoRequest;
 import com.convecsa.erp.soma.dto.SomaComiteActaDTO;
 import com.convecsa.erp.soma.dto.SomaComiteActaRequest;
 import com.convecsa.erp.soma.dto.SomaComiteMiembroDTO;
@@ -53,6 +57,7 @@ import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaPetarService;
 import com.convecsa.erp.soma.service.InterfazSomaPreUsoService;
+import com.convecsa.erp.soma.service.InterfazSomaAmbientalService;
 import com.convecsa.erp.soma.service.InterfazSomaComiteService;
 import com.convecsa.erp.soma.service.InterfazSomaEventoService;
 import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
@@ -95,6 +100,7 @@ public class SomaObraController {
     private final InterfazSomaEventoService somaEventoService;
     private final InterfazSomaEstadisticaService somaEstadisticaService;
     private final InterfazSomaComiteService somaComiteService;
+    private final InterfazSomaAmbientalService somaAmbientalService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -436,5 +442,28 @@ public class SomaObraController {
     public SomaComiteActaDTO crearActaComite(
             @PathVariable Long proyectoId, @RequestBody SomaComiteActaRequest request) {
         return somaComiteService.crearActa(proyectoId, request);
+    }
+
+    @GetMapping("/residuos")
+    public List<SomaResiduoDTO> listarResiduos(@PathVariable Long proyectoId) {
+        return somaAmbientalService.listarResiduos(proyectoId);
+    }
+
+    @PostMapping("/residuos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaResiduoDTO crearResiduo(@PathVariable Long proyectoId, @RequestBody SomaResiduoRequest request) {
+        return somaAmbientalService.crearResiduo(proyectoId, request);
+    }
+
+    @GetMapping("/monitoreos")
+    public List<SomaMonitoreoDTO> listarMonitoreos(@PathVariable Long proyectoId) {
+        return somaAmbientalService.listarMonitoreos(proyectoId);
+    }
+
+    @PostMapping("/monitoreos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaMonitoreoDTO crearMonitoreo(
+            @PathVariable Long proyectoId, @RequestBody SomaMonitoreoRequest request) {
+        return somaAmbientalService.crearMonitoreo(proyectoId, request);
     }
 }

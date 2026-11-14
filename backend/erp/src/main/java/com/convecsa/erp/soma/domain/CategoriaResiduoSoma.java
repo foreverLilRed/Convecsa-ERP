@@ -1,0 +1,10 @@
+package com.convecsa.erp.soma.domain;
+
+public enum CategoriaResiduoSoma {
+    PELIGROSO_ROJO,
+    NO_APROVECHABLE_NEGRO,
+    ORGANICO_MARRON,
+    APROVECHABLE_VERDE_AZUL_BLANCO,
+    METALICO_AMARILLO,
+    ESCOMBROS_DESMONTE_CONSTRUCCION
+}

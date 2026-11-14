@@ -24,7 +24,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Hecho |
 | S12 | Estadísticas HHT, IF, IS, IA | — | Hecho |
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Hecho |
-| S14 | Gestión ambiental (residuos y monitoreos) | V69 | Pendiente |
+| S14 | Gestión ambiental (residuos y monitoreos) | V69 | Hecho |
 | S15 | Alertas SOMA en la ficha de obra | — | Pendiente |
 | S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | Pendiente |
 | S17 | Vistas corporativas `/soma/*` y menú | — | Pendiente |
@@ -1067,6 +1067,12 @@ CREATE TABLE soma_monitoreo (
 **Frontend.** Sub-pestaña "Ambiental" con dos tablas y sus formularios.
 
 **Tests (`SomaAmbientalServiceImplTest`):** la validación de residuo peligroso y el cálculo de `cumple_lmp` para iluminación y ruido.
+
+**Notas S14**
+- Migración **V69** (`soma_residuo_registro` + `soma_monitoreo`).
+- EO-RS (RUC 11 dígitos, razón social) y número de manifiesto solo son obligatorios en `PELIGROSO_ROJO`.
+- `cumple_lmp` lo calcula el backend: techo `<=` salvo `FISICO_ILUMINACION` (mínimo `>=`). El cliente no envía ese campo.
+- S16 formato 3 leerá `soma_monitoreo`. No se toca S15 ni SUNAFIL.
 
 ---
 

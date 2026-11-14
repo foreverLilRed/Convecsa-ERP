@@ -742,3 +742,79 @@ export type SomaComiteActaRequest = {
   acuerdos: string
   actaDocId: number | null
 }
+
+export type CategoriaResiduoSoma =
+  | 'PELIGROSO_ROJO'
+  | 'NO_APROVECHABLE_NEGRO'
+  | 'ORGANICO_MARRON'
+  | 'APROVECHABLE_VERDE_AZUL_BLANCO'
+  | 'METALICO_AMARILLO'
+  | 'ESCOMBROS_DESMONTE_CONSTRUCCION'
+
+export type TipoAgenteMonitoreoSoma =
+  | 'FISICO_RUIDO'
+  | 'FISICO_ILUMINACION'
+  | 'FISICO_VIBRACION'
+  | 'FISICO_ESTRES_TERMICO'
+  | 'QUIMICO_POLVO_GASES'
+  | 'BIOLOGICO'
+  | 'ERGONOMICO'
+  | 'PSICOSOCIAL'
+  | 'AMBIENTAL_AGUA_AIRE'
+
+export type SomaResiduo = {
+  id: number
+  proyectoId: number
+  fecha: string
+  categoriaResiduo: CategoriaResiduoSoma
+  descripcion: string
+  cantidadKg: number | null
+  volumenM3: number | null
+  eorsRazonSocial: string | null
+  eorsRuc: string | null
+  numeroManifiesto: string | null
+  destinoFinal: string | null
+  manifiestoDocId: number | null
+  createdAt: string
+}
+
+export type SomaResiduoRequest = {
+  fecha: string
+  categoriaResiduo: CategoriaResiduoSoma
+  descripcion: string
+  cantidadKg: number | null
+  volumenM3: number | null
+  eorsRazonSocial: string | null
+  eorsRuc: string | null
+  numeroManifiesto: string | null
+  destinoFinal: string | null
+  manifiestoDocId: number | null
+}
+
+export type SomaMonitoreo = {
+  id: number
+  proyectoId: number
+  fecha: string
+  tipoAgente: TipoAgenteMonitoreoSoma
+  parametroMedido: string
+  puntoMedicion: string
+  valorMedido: number
+  limitePermisible: number
+  unidad: string
+  cumpleLmp: boolean
+  laboratorioNombre: string | null
+  informeDocId: number | null
+  createdAt: string
+}
+
+export type SomaMonitoreoRequest = {
+  fecha: string
+  tipoAgente: TipoAgenteMonitoreoSoma
+  parametroMedido: string
+  puntoMedicion: string
+  valorMedido: number
+  limitePermisible: number
+  unidad: string
+  laboratorioNombre: string | null
+  informeDocId: number | null
+}

@@ -86,6 +86,10 @@ import {
   darBajaMiembroComite,
   listarActasComite,
   crearActaComite,
+  listarResiduosObra,
+  crearResiduoObra,
+  listarMonitoreosObra,
+  crearMonitoreoObra,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
   levantarHallazgoObra,
@@ -124,7 +128,11 @@ import type {
   SomaComiteActa,
   SomaComiteMiembro,
   SomaComiteRequerimiento,
+  CategoriaResiduoSoma,
+  SomaMonitoreo,
+  SomaResiduo,
   SomaEstadisticaAnio,
+  TipoAgenteMonitoreoSoma,
   SomaEvento,
   TipoEventoSst,
   TipoSesionComiteSoma,
@@ -145,7 +153,7 @@ import type {
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso' | 'eventos' | 'comite'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso' | 'eventos' | 'comite' | 'ambiental'
 type PetarChecklistDraft = { clave: string; etiqueta: string; valor: boolean }
 type PetarTrabajadorDraft = { personaId: number; rolEnTarea: string }
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
@@ -324,6 +332,27 @@ const TIPOS_SESION_COMITE: { valor: TipoSesionComiteSoma; label: string }[] = [
   { valor: 'EXTRAORDINARIA', label: 'Extraordinaria' },
 ]
 
+const CATEGORIAS_RESIDUO: { valor: CategoriaResiduoSoma; label: string }[] = [
+  { valor: 'PELIGROSO_ROJO', label: 'Peligroso (rojo)' },
+  { valor: 'NO_APROVECHABLE_NEGRO', label: 'No aprovechable (negro)' },
+  { valor: 'ORGANICO_MARRON', label: 'Orgánico (marrón)' },
+  { valor: 'APROVECHABLE_VERDE_AZUL_BLANCO', label: 'Aprovechable (verde/azul/blanco)' },
+  { valor: 'METALICO_AMARILLO', label: 'Metálico (amarillo)' },
+  { valor: 'ESCOMBROS_DESMONTE_CONSTRUCCION', label: 'Escombros / desmonte' },
+]
+
+const TIPOS_AGENTE_MONITOREO: { valor: TipoAgenteMonitoreoSoma; label: string }[] = [
+  { valor: 'FISICO_RUIDO', label: 'Físico: ruido' },
+  { valor: 'FISICO_ILUMINACION', label: 'Físico: iluminación' },
+  { valor: 'FISICO_VIBRACION', label: 'Físico: vibración' },
+  { valor: 'FISICO_ESTRES_TERMICO', label: 'Físico: estrés térmico' },
+  { valor: 'QUIMICO_POLVO_GASES', label: 'Químico: polvo / gases' },
+  { valor: 'BIOLOGICO', label: 'Biológico' },
+  { valor: 'ERGONOMICO', label: 'Ergonómico' },
+  { valor: 'PSICOSOCIAL', label: 'Psicosocial' },
+  { valor: 'AMBIENTAL_AGUA_AIRE', label: 'Ambiental: agua / aire' },
+]
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('habilitacion')
@@ -421,6 +450,35 @@ const comiteActaForm = reactive({
   fecha: hoyIso(),
   agenda: '',
   acuerdos: '',
+})
+const residuos = ref<SomaResiduo[]>([])
+const monitoreos = ref<SomaMonitoreo[]>([])
+const residuoSaving = ref(false)
+const monitoreoSaving = ref(false)
+const residuoFileInput = ref<HTMLInputElement | null>(null)
+const monitoreoFileInput = ref<HTMLInputElement | null>(null)
+
+const residuoForm = reactive({
+  fecha: hoyIso(),
+  categoriaResiduo: 'NO_APROVECHABLE_NEGRO' as CategoriaResiduoSoma,
+  descripcion: '',
+  cantidadKg: '',
+  volumenM3: '',
+  eorsRazonSocial: '',
+  eorsRuc: '',
+  numeroManifiesto: '',
+  destinoFinal: '',
+})
+
+const monitoreoForm = reactive({
+  fecha: hoyIso(),
+  tipoAgente: 'FISICO_RUIDO' as TipoAgenteMonitoreoSoma,
+  parametroMedido: '',
+  puntoMedicion: '',
+  valorMedido: '',
+  limitePermisible: '',
+  unidad: '',
+  laboratorioNombre: '',
 })
 const anioEstadistica = ref(anioActual)
 const eventoSaving = ref(false)
@@ -1098,6 +1156,162 @@ async function onRegistrarActaComite() {
     toast.error(err instanceof Error ? err.message : 'No se pudo registrar el acta.')
   } finally {
     comiteActaSaving.value = false
+  }
+}
+
+function categoriaResiduoLabel(valor: CategoriaResiduoSoma): string {
+  return CATEGORIAS_RESIDUO.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function tipoAgenteMonitoreoLabel(valor: TipoAgenteMonitoreoSoma): string {
+  return TIPOS_AGENTE_MONITOREO.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function nOpcional(valor: string): number | null {
+  const trimmed = valor.trim()
+  if (!trimmed) {
+    return null
+  }
+  const parsed = Number(trimmed.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+async function recargarAmbiental() {
+  const [listaResiduos, listaMonitoreos] = await Promise.all([
+    listarResiduosObra(proyectoId.value),
+    listarMonitoreosObra(proyectoId.value),
+  ])
+  residuos.value = listaResiduos
+  monitoreos.value = listaMonitoreos
+}
+
+async function onRegistrarResiduo() {
+  if (!residuoForm.fecha) {
+    toast.error('Indique la fecha.')
+    return
+  }
+  if (!residuoForm.descripcion.trim()) {
+    toast.error('Indique la descripción.')
+    return
+  }
+  const cantidadKg = nOpcional(residuoForm.cantidadKg)
+  const volumenM3 = nOpcional(residuoForm.volumenM3)
+  if ((cantidadKg == null || cantidadKg <= 0) && (volumenM3 == null || volumenM3 <= 0)) {
+    toast.error('Indique una cantidad en kg o un volumen en m³ mayor que cero.')
+    return
+  }
+  if (residuoForm.categoriaResiduo === 'PELIGROSO_ROJO') {
+    if (!residuoForm.eorsRazonSocial.trim() || !residuoForm.eorsRuc.trim() || !residuoForm.numeroManifiesto.trim()) {
+      toast.error('El residuo peligroso exige EO-RS (RUC, razón social) y número de manifiesto.')
+      return
+    }
+    if (!/^\d{11}$/.test(residuoForm.eorsRuc.trim())) {
+      toast.error('El RUC del EO-RS debe tener 11 dígitos.')
+      return
+    }
+  }
+  residuoSaving.value = true
+  try {
+    const archivo = residuoFileInput.value?.files?.[0]
+    let manifiestoDocId: number | null = null
+    if (archivo) {
+      const documento = await subirDocumentoObra(proyectoId.value, 'MANIFIESTO_AMBIENTAL', archivo)
+      manifiestoDocId = documento.id
+    }
+    await crearResiduoObra(proyectoId.value, {
+      fecha: residuoForm.fecha,
+      categoriaResiduo: residuoForm.categoriaResiduo,
+      descripcion: residuoForm.descripcion.trim(),
+      cantidadKg: cantidadKg != null && cantidadKg > 0 ? cantidadKg : null,
+      volumenM3: volumenM3 != null && volumenM3 > 0 ? volumenM3 : null,
+      eorsRazonSocial: residuoForm.eorsRazonSocial.trim() || null,
+      eorsRuc: residuoForm.eorsRuc.trim() || null,
+      numeroManifiesto: residuoForm.numeroManifiesto.trim() || null,
+      destinoFinal: residuoForm.destinoFinal.trim() || null,
+      manifiestoDocId,
+    })
+    toast.success('Residuo registrado.')
+    residuoForm.fecha = hoyIso()
+    residuoForm.descripcion = ''
+    residuoForm.cantidadKg = ''
+    residuoForm.volumenM3 = ''
+    residuoForm.eorsRazonSocial = ''
+    residuoForm.eorsRuc = ''
+    residuoForm.numeroManifiesto = ''
+    residuoForm.destinoFinal = ''
+    if (residuoFileInput.value) {
+      residuoFileInput.value.value = ''
+    }
+    await recargarAmbiental()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el residuo.')
+  } finally {
+    residuoSaving.value = false
+  }
+}
+
+async function onRegistrarMonitoreo() {
+  if (!monitoreoForm.fecha) {
+    toast.error('Indique la fecha.')
+    return
+  }
+  if (!monitoreoForm.parametroMedido.trim()) {
+    toast.error('Indique el parámetro medido.')
+    return
+  }
+  if (!monitoreoForm.puntoMedicion.trim()) {
+    toast.error('Indique el punto de medición.')
+    return
+  }
+  if (!monitoreoForm.unidad.trim()) {
+    toast.error('Indique la unidad.')
+    return
+  }
+  const valorMedido = nOpcional(monitoreoForm.valorMedido)
+  const limitePermisible = nOpcional(monitoreoForm.limitePermisible)
+  if (valorMedido == null) {
+    toast.error('Indique el valor medido.')
+    return
+  }
+  if (limitePermisible == null) {
+    toast.error('Indique el límite permisible.')
+    return
+  }
+  monitoreoSaving.value = true
+  try {
+    const archivo = monitoreoFileInput.value?.files?.[0]
+    let informeDocId: number | null = null
+    if (archivo) {
+      const documento = await subirDocumentoObra(proyectoId.value, 'EVIDENCIA_SOMA', archivo)
+      informeDocId = documento.id
+    }
+    await crearMonitoreoObra(proyectoId.value, {
+      fecha: monitoreoForm.fecha,
+      tipoAgente: monitoreoForm.tipoAgente,
+      parametroMedido: monitoreoForm.parametroMedido.trim(),
+      puntoMedicion: monitoreoForm.puntoMedicion.trim(),
+      valorMedido,
+      limitePermisible,
+      unidad: monitoreoForm.unidad.trim(),
+      laboratorioNombre: monitoreoForm.laboratorioNombre.trim() || null,
+      informeDocId,
+    })
+    toast.success('Monitoreo registrado.')
+    monitoreoForm.fecha = hoyIso()
+    monitoreoForm.parametroMedido = ''
+    monitoreoForm.puntoMedicion = ''
+    monitoreoForm.valorMedido = ''
+    monitoreoForm.limitePermisible = ''
+    monitoreoForm.unidad = ''
+    monitoreoForm.laboratorioNombre = ''
+    if (monitoreoFileInput.value) {
+      monitoreoFileInput.value.value = ''
+    }
+    await recargarAmbiental()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el monitoreo.')
+  } finally {
+    monitoreoSaving.value = false
   }
 }
 
@@ -2433,6 +2647,8 @@ async function load() {
       listaComiteMiembros,
       listaComiteActas,
       listaComitePersonas,
+      listaResiduos,
+      listaMonitoreos,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -2464,6 +2680,8 @@ async function load() {
       listarMiembrosComite(proyectoId.value),
       listarActasComite(proyectoId.value),
       listarPersonas({ page: 0, size: 15, q: '' }),
+      listarResiduosObra(proyectoId.value),
+      listarMonitoreosObra(proyectoId.value),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -2492,6 +2710,8 @@ async function load() {
     comiteActas.value = listaComiteActas
     comitePersonas.value = listaComitePersonas.content
     avisarComite(listaComiteReq)
+    residuos.value = listaResiduos
+    monitoreos.value = listaMonitoreos
     if (eventoEditandoId.value) {
       const actual = listaEventos.find((item) => item.id === eventoEditandoId.value)
       if (actual) {
@@ -2535,6 +2755,8 @@ async function load() {
     comiteMiembros.value = []
     comiteActas.value = []
     comitePersonas.value = []
+    residuos.value = []
+    monitoreos.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -2998,6 +3220,7 @@ onMounted(() => {
         <TabsTrigger value="preUso" :class="tabTriggerClass">Pre-uso</TabsTrigger>
         <TabsTrigger value="eventos" :class="tabTriggerClass">Eventos</TabsTrigger>
         <TabsTrigger value="comite" :class="tabTriggerClass">Comité</TabsTrigger>
+        <TabsTrigger value="ambiental" :class="tabTriggerClass">Ambiental</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -5959,6 +6182,215 @@ onMounted(() => {
                   <TableCell class="max-w-xs truncate">{{ fila.agenda }}</TableCell>
                 </TableRow>
                 <TableEmpty v-if="!comiteActas.length" :colspan="4">Sin actas en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="ambiental" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar residuo</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              El peligroso (rojo) exige EO-RS y número de manifiesto. Indique kg o m³.
+            </p>
+            <form class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2" @submit.prevent="onRegistrarResiduo">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-fecha">Fecha</label>
+                <Input id="soma-res-fecha" v-model="residuoForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-cat">Categoría</label>
+                <select id="soma-res-cat" v-model="residuoForm.categoriaResiduo" :class="selectClass" class="mt-1.5">
+                  <option v-for="item in CATEGORIAS_RESIDUO" :key="item.valor" :value="item.valor">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-res-desc">Descripción</label>
+                <Input id="soma-res-desc" v-model="residuoForm.descripcion" :class="inputClass" class="mt-1.5" maxlength="240" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-kg">Cantidad (kg)</label>
+                <Input id="soma-res-kg" v-model="residuoForm.cantidadKg" :class="inputClass" class="mt-1.5" />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-m3">Volumen (m³)</label>
+                <Input id="soma-res-m3" v-model="residuoForm.volumenM3" :class="inputClass" class="mt-1.5" />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-eors">EO-RS razón social</label>
+                <Input id="soma-res-eors" v-model="residuoForm.eorsRazonSocial" :class="inputClass" class="mt-1.5" maxlength="160" />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-ruc">EO-RS RUC</label>
+                <Input id="soma-res-ruc" v-model="residuoForm.eorsRuc" :class="inputClass" class="mt-1.5" maxlength="11" />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-man">N° manifiesto</label>
+                <Input id="soma-res-man" v-model="residuoForm.numeroManifiesto" :class="inputClass" class="mt-1.5" maxlength="60" />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-res-dest">Destino final</label>
+                <Input id="soma-res-dest" v-model="residuoForm.destinoFinal" :class="inputClass" class="mt-1.5" maxlength="160" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-res-file">Manifiesto (opcional)</label>
+                <input
+                  id="soma-res-file"
+                  ref="residuoFileInput"
+                  class="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm file:mr-2 file:h-full file:rounded file:border-0 file:bg-slate-100 file:px-3 file:text-sm"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                >
+              </div>
+              <div>
+                <Button
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="submit"
+                  :disabled="residuoSaving"
+                >
+                  {{ residuoSaving ? 'Guardando…' : 'Registrar residuo' }}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Residuos</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Categoría</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Cantidad</TableHead>
+                  <TableHead>EO-RS</TableHead>
+                  <TableHead>Manifiesto</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in residuos" :key="fila.id">
+                  <TableCell>{{ fechaLabel(fila.fecha) }}</TableCell>
+                  <TableCell>{{ categoriaResiduoLabel(fila.categoriaResiduo) }}</TableCell>
+                  <TableCell>{{ fila.descripcion }}</TableCell>
+                  <TableCell>
+                    <span v-if="fila.cantidadKg != null">{{ fila.cantidadKg }} kg</span>
+                    <span v-if="fila.cantidadKg != null && fila.volumenM3 != null"> · </span>
+                    <span v-if="fila.volumenM3 != null">{{ fila.volumenM3 }} m³</span>
+                    <span v-if="fila.cantidadKg == null && fila.volumenM3 == null">—</span>
+                  </TableCell>
+                  <TableCell>
+                    <p v-if="fila.eorsRazonSocial">{{ fila.eorsRazonSocial }}</p>
+                    <p v-if="fila.eorsRuc" class="text-xs text-slate-500">{{ fila.eorsRuc }}</p>
+                    <span v-if="!fila.eorsRazonSocial && !fila.eorsRuc">—</span>
+                  </TableCell>
+                  <TableCell>{{ fila.numeroManifiesto || '—' }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!residuos.length" :colspan="6">Sin residuos registrados en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar monitoreo</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              El cumplimiento del LMP lo calcula el sistema. En iluminación el límite es un mínimo.
+            </p>
+            <form class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2" @submit.prevent="onRegistrarMonitoreo">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-fecha">Fecha</label>
+                <Input id="soma-mon-fecha" v-model="monitoreoForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-tipo">Tipo de agente</label>
+                <select id="soma-mon-tipo" v-model="monitoreoForm.tipoAgente" :class="selectClass" class="mt-1.5">
+                  <option v-for="item in TIPOS_AGENTE_MONITOREO" :key="item.valor" :value="item.valor">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-param">Parámetro</label>
+                <Input id="soma-mon-param" v-model="monitoreoForm.parametroMedido" :class="inputClass" class="mt-1.5" maxlength="120" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-punto">Punto de medición</label>
+                <Input id="soma-mon-punto" v-model="monitoreoForm.puntoMedicion" :class="inputClass" class="mt-1.5" maxlength="160" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-valor">Valor medido</label>
+                <Input id="soma-mon-valor" v-model="monitoreoForm.valorMedido" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-lmp">Límite permisible</label>
+                <Input id="soma-mon-lmp" v-model="monitoreoForm.limitePermisible" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-unidad">Unidad</label>
+                <Input id="soma-mon-unidad" v-model="monitoreoForm.unidad" :class="inputClass" class="mt-1.5" maxlength="30" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-lab">Laboratorio</label>
+                <Input id="soma-mon-lab" v-model="monitoreoForm.laboratorioNombre" :class="inputClass" class="mt-1.5" maxlength="160" />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-mon-file">Informe (opcional)</label>
+                <input
+                  id="soma-mon-file"
+                  ref="monitoreoFileInput"
+                  class="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm file:mr-2 file:h-full file:rounded file:border-0 file:bg-slate-100 file:px-3 file:text-sm"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                >
+              </div>
+              <div>
+                <Button
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="submit"
+                  :disabled="monitoreoSaving"
+                >
+                  {{ monitoreoSaving ? 'Guardando…' : 'Registrar monitoreo' }}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Monitoreos</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Agente</TableHead>
+                  <TableHead>Parámetro</TableHead>
+                  <TableHead>Punto</TableHead>
+                  <TableHead>Medido / LMP</TableHead>
+                  <TableHead>Cumple</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in monitoreos" :key="fila.id">
+                  <TableCell>{{ fechaLabel(fila.fecha) }}</TableCell>
+                  <TableCell>{{ tipoAgenteMonitoreoLabel(fila.tipoAgente) }}</TableCell>
+                  <TableCell>{{ fila.parametroMedido }}</TableCell>
+                  <TableCell>{{ fila.puntoMedicion }}</TableCell>
+                  <TableCell>{{ fila.valorMedido }} / {{ fila.limitePermisible }} {{ fila.unidad }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="fila.cumpleLmp ? 'success' : 'secondary'">
+                      {{ fila.cumpleLmp ? 'Cumple' : 'No cumple' }}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!monitoreos.length" :colspan="6">Sin monitoreos en esta obra.</TableEmpty>
               </TableBody>
             </Table>
           </div>

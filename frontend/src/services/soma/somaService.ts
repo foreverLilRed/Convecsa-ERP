@@ -29,6 +29,10 @@ import type {
   SomaComiteMiembro,
   SomaComiteMiembroRequest,
   SomaComiteRequerimiento,
+  SomaMonitoreo,
+  SomaMonitoreoRequest,
+  SomaResiduo,
+  SomaResiduoRequest,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEmoRequest,
@@ -442,6 +446,28 @@ export function listarActasComite(proyectoId: number): Promise<SomaComiteActa[]>
 
 export function crearActaComite(proyectoId: number, request: SomaComiteActaRequest): Promise<SomaComiteActa> {
   return apiRequest<SomaComiteActa>(`/api/proyectos/${proyectoId}/soma/comite/actas`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarResiduosObra(proyectoId: number): Promise<SomaResiduo[]> {
+  return apiRequest<SomaResiduo[]>(`/api/proyectos/${proyectoId}/soma/residuos`)
+}
+
+export function crearResiduoObra(proyectoId: number, request: SomaResiduoRequest): Promise<SomaResiduo> {
+  return apiRequest<SomaResiduo>(`/api/proyectos/${proyectoId}/soma/residuos`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarMonitoreosObra(proyectoId: number): Promise<SomaMonitoreo[]> {
+  return apiRequest<SomaMonitoreo[]>(`/api/proyectos/${proyectoId}/soma/monitoreos`)
+}
+
+export function crearMonitoreoObra(proyectoId: number, request: SomaMonitoreoRequest): Promise<SomaMonitoreo> {
+  return apiRequest<SomaMonitoreo>(`/api/proyectos/${proyectoId}/soma/monitoreos`, {
     method: 'POST',
     body: JSON.stringify(request),
   })
