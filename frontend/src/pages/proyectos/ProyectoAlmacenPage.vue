@@ -109,6 +109,15 @@ const devolucionCantidades = ref<Record<number, string>>({})
 
 const valePartidaId = ref('')
 const valeItems = ref<ItemDraft[]>([{ materialId: '', partidaId: '', cantidad: '', precioUnitario: '' }])
+const valeItem = computed(() => {
+  const actual = valeItems.value[0]
+  if (actual) {
+    return actual
+  }
+  const creado: ItemDraft = { materialId: '', partidaId: '', cantidad: '', precioUnitario: '' }
+  valeItems.value = [creado]
+  return creado
+})
 const ajuste = reactive({ materialId: '', cantidad: '', observaciones: '' })
 const cierreAnio = ref(String(new Date().getFullYear()))
 const cierreMes = ref(String(new Date().getMonth() + 1))
@@ -591,7 +600,7 @@ function onSelectOc(event: Event) {
               <TableCell>
                 <select v-model="item.partidaId" :class="selectClass" :disabled="!esReqBorrador">
                   <option value="">Sin partida</option>
-                  <option v-for="partida in partidas" :key="partida.id" :value="String(partida.id)">
+                  <option v-for="partida in partidas" :key="partida.id ?? partida.codigo" :value="String(partida.id)">
                     {{ partida.codigo }} — {{ partida.descripcion }}
                   </option>
                 </select>
@@ -727,15 +736,15 @@ function onSelectOc(event: Event) {
         <div class="mt-3 grid gap-3 grid-cols-1 md:grid-cols-2">
           <select v-model="valePartidaId" :class="selectClass" class="md:col-span-2">
             <option value="">Partida vigente</option>
-            <option v-for="partida in partidas" :key="partida.id" :value="String(partida.id)">
+            <option v-for="partida in partidas" :key="partida.id ?? partida.codigo" :value="String(partida.id)">
               {{ partida.codigo }} — {{ partida.descripcion }}
             </option>
           </select>
-          <select v-model="valeItems[0].materialId" :class="selectClass">
+          <select v-model="valeItem.materialId" :class="selectClass">
             <option value="">Material</option>
             <option v-for="mat in materiales" :key="mat.id" :value="String(mat.id)">{{ mat.codigo }} — {{ mat.descripcion }}</option>
           </select>
-          <Input v-model="valeItems[0].cantidad" :class="inputClass" placeholder="Cantidad" />
+          <Input v-model="valeItem.cantidad" :class="inputClass" placeholder="Cantidad" />
         </div>
         <Button class="mt-3 bg-palette-navy text-white hover:bg-palette-royal" type="button" :disabled="saving" @click="onCrearVale">
           Registrar vale

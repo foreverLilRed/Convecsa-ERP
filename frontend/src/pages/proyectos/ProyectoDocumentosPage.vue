@@ -173,7 +173,7 @@ onMounted(() => {
         <TableBody>
           <TableRow v-for="item in documentos" :key="item.id">
             <TableCell>
-              <Badge variant="outline">{{ tipoLabel(item.tipo) }}</Badge>
+              <Badge variant="secondary">{{ tipoLabel(item.tipo) }}</Badge>
             </TableCell>
             <TableCell>
               <p>{{ item.nombreOriginal }}</p>
