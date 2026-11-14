@@ -24,6 +24,11 @@ import type {
   SomaEventoRequest,
   SomaEventoSyncDm,
   SomaEstadisticaAnio,
+  SomaComiteActa,
+  SomaComiteActaRequest,
+  SomaComiteMiembro,
+  SomaComiteMiembroRequest,
+  SomaComiteRequerimiento,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEmoRequest,
@@ -405,4 +410,39 @@ export function sincronizarDmEventoObra(proyectoId: number, eventoId: number): P
 export function obtenerEstadisticasObra(proyectoId: number, anio: number): Promise<SomaEstadisticaAnio> {
   const params = new URLSearchParams({ anio: String(anio) })
   return apiRequest<SomaEstadisticaAnio>(`/api/proyectos/${proyectoId}/soma/estadisticas?${params}`)
+}
+
+export function obtenerRequerimientoComite(proyectoId: number): Promise<SomaComiteRequerimiento> {
+  return apiRequest<SomaComiteRequerimiento>(`/api/proyectos/${proyectoId}/soma/comite/requerimiento`)
+}
+
+export function listarMiembrosComite(proyectoId: number): Promise<SomaComiteMiembro[]> {
+  return apiRequest<SomaComiteMiembro[]>(`/api/proyectos/${proyectoId}/soma/comite/miembros`)
+}
+
+export function crearMiembroComite(
+  proyectoId: number,
+  request: SomaComiteMiembroRequest,
+): Promise<SomaComiteMiembro> {
+  return apiRequest<SomaComiteMiembro>(`/api/proyectos/${proyectoId}/soma/comite/miembros`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function darBajaMiembroComite(proyectoId: number, miembroId: number): Promise<SomaComiteMiembro> {
+  return apiRequest<SomaComiteMiembro>(`/api/proyectos/${proyectoId}/soma/comite/miembros/${miembroId}/baja`, {
+    method: 'POST',
+  })
+}
+
+export function listarActasComite(proyectoId: number): Promise<SomaComiteActa[]> {
+  return apiRequest<SomaComiteActa[]>(`/api/proyectos/${proyectoId}/soma/comite/actas`)
+}
+
+export function crearActaComite(proyectoId: number, request: SomaComiteActaRequest): Promise<SomaComiteActa> {
+  return apiRequest<SomaComiteActa>(`/api/proyectos/${proyectoId}/soma/comite/actas`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
 }

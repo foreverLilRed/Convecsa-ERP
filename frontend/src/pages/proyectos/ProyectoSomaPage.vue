@@ -39,6 +39,7 @@ import {
   obtenerPresupuesto,
   subirDocumentoObra,
 } from '@/services/construccion/construccionService'
+import { listarPersonas } from '@/services/persona/personaService'
 import {
   anularPolizaSctr,
   cambiarEstadoItemEpp,
@@ -79,6 +80,12 @@ import {
   listarPreUsoObra,
   listarEventosObra,
   obtenerEstadisticasObra,
+  obtenerRequerimientoComite,
+  listarMiembrosComite,
+  crearMiembroComite,
+  darBajaMiembroComite,
+  listarActasComite,
+  crearActaComite,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
   levantarHallazgoObra,
@@ -90,6 +97,7 @@ import {
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
 import type { AsignacionEquipo, CuadrillaObra, PartidaPresupuesto, PersonalObra, ResponsableObra, SubcontratoObra } from '@/types/construccion'
+import type { PersonaResumenDTO } from '@/types/persona'
 import type {
   AptitudEmo,
   EstadoItemEpp,
@@ -111,9 +119,15 @@ import type {
   SomaPreUso,
   EstadoInvestigacionSst,
   GravedadIncapacidadSst,
+  CargoComiteSoma,
+  RepresentacionComiteSoma,
+  SomaComiteActa,
+  SomaComiteMiembro,
+  SomaComiteRequerimiento,
   SomaEstadisticaAnio,
   SomaEvento,
   TipoEventoSst,
+  TipoSesionComiteSoma,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEntregaEpp,
@@ -131,7 +145,7 @@ import type {
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso' | 'eventos'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso' | 'eventos' | 'comite'
 type PetarChecklistDraft = { clave: string; etiqueta: string; valor: boolean }
 type PetarTrabajadorDraft = { personaId: number; rolEnTarea: string }
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
@@ -291,6 +305,25 @@ const GRAVEDADES_INCAPACIDAD: { valor: GravedadIncapacidadSst; label: string }[]
   { valor: 'TOTAL_PERMANENTE', label: 'Total permanente' },
 ]
 
+const REPRESENTACIONES_COMITE: { valor: RepresentacionComiteSoma; label: string }[] = [
+  { valor: 'EMPLEADOR', label: 'Empleador' },
+  { valor: 'TRABAJADORES', label: 'Trabajadores' },
+]
+
+const CARGOS_COMITE: { valor: CargoComiteSoma; label: string }[] = [
+  { valor: 'PRESIDENTE', label: 'Presidente' },
+  { valor: 'SECRETARIO', label: 'Secretario' },
+  { valor: 'MIEMBRO', label: 'Miembro' },
+  { valor: 'SUPERVISOR_SST', label: 'Supervisor SST' },
+  { valor: 'OBSERVADOR_SINDICAL', label: 'Observador sindical' },
+]
+
+const TIPOS_SESION_COMITE: { valor: TipoSesionComiteSoma; label: string }[] = [
+  { valor: 'INSTALACION', label: 'Instalación' },
+  { valor: 'ORDINARIA', label: 'Ordinaria' },
+  { valor: 'EXTRAORDINARIA', label: 'Extraordinaria' },
+]
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('habilitacion')
@@ -362,6 +395,33 @@ const preUsoOperadorSearch = ref('')
 const preUsoChecklist = ref(CHECKLIST_PREUSO.map((item) => ({ ...item, valor: false })))
 const eventos = ref<SomaEvento[]>([])
 const estadisticas = ref<SomaEstadisticaAnio | null>(null)
+const comiteRequerimiento = ref<SomaComiteRequerimiento | null>(null)
+const comiteMiembros = ref<SomaComiteMiembro[]>([])
+const comiteActas = ref<SomaComiteActa[]>([])
+const comitePersonas = ref<PersonaResumenDTO[]>([])
+const comitePersonaSearch = ref('')
+const comitePersonaSeleccionada = ref<PersonaResumenDTO | null>(null)
+const comiteMiembroSaving = ref(false)
+const comiteActaSaving = ref(false)
+const comiteFileInput = ref<HTMLInputElement | null>(null)
+let comitePersonaTimer: ReturnType<typeof setTimeout> | null = null
+
+const comiteMiembroForm = reactive({
+  personaId: null as number | null,
+  representacion: 'EMPLEADOR' as RepresentacionComiteSoma,
+  cargoComite: 'SUPERVISOR_SST' as CargoComiteSoma,
+  titular: true,
+  fechaInicio: hoyIso(),
+  fechaFin: '',
+})
+
+const comiteActaForm = reactive({
+  numeroActa: '',
+  tipoSesion: 'ORDINARIA' as TipoSesionComiteSoma,
+  fecha: hoyIso(),
+  agenda: '',
+  acuerdos: '',
+})
 const anioEstadistica = ref(anioActual)
 const eventoSaving = ref(false)
 const eventoMedidaSaving = ref(false)
@@ -859,6 +919,186 @@ function personaLabel(persona: PersonalObra | null): string {
     return ''
   }
   return `${persona.apellidos}, ${persona.nombres} · ${persona.numeroDocumento}`
+}
+
+function comitePersonaLabel(persona: PersonaResumenDTO | null): string {
+  if (!persona) {
+    return ''
+  }
+  return `${persona.apellidos}, ${persona.nombres} · ${persona.numeroDocumento}`
+}
+
+function representacionComiteLabel(valor: RepresentacionComiteSoma): string {
+  return REPRESENTACIONES_COMITE.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function cargoComiteLabel(valor: CargoComiteSoma): string {
+  return CARGOS_COMITE.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function tipoSesionComiteLabel(valor: TipoSesionComiteSoma): string {
+  return TIPOS_SESION_COMITE.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function requerimientoComiteLabel(req: SomaComiteRequerimiento | null): string {
+  if (!req) {
+    return ''
+  }
+  if (req.tipoRequerido === 'SUBCOMITE') {
+    return `Subcomité SST (≥ 20 trabajadores activos). Hay ${req.trabajadoresActivos}.`
+  }
+  return `Supervisor SST (< 20 trabajadores activos). Hay ${req.trabajadoresActivos}.`
+}
+
+function avisarComite(req: SomaComiteRequerimiento | null) {
+  if (!req?.avisos.length) {
+    return
+  }
+  toast.warning(req.avisos.join(' · '))
+}
+
+async function buscarPersonasComite(q: string) {
+  const data = await listarPersonas({ page: 0, size: 15, q })
+  comitePersonas.value = data.content
+  if (
+    comitePersonaSeleccionada.value &&
+    !comitePersonas.value.some((item) => item.id === comitePersonaSeleccionada.value?.id)
+  ) {
+    comitePersonas.value = [comitePersonaSeleccionada.value, ...comitePersonas.value]
+  }
+}
+
+function scheduleSearchComite(q: string) {
+  if (comitePersonaTimer) {
+    clearTimeout(comitePersonaTimer)
+  }
+  comitePersonaTimer = setTimeout(() => {
+    void buscarPersonasComite(q)
+  }, 300)
+}
+
+function onComitePersonaChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(id)) {
+    comiteMiembroForm.personaId = null
+    comitePersonaSeleccionada.value = null
+    return
+  }
+  comiteMiembroForm.personaId = id
+  comitePersonaSeleccionada.value =
+    comitePersonas.value.find((item) => item.id === id) ?? comitePersonaSeleccionada.value
+}
+
+async function recargarComite() {
+  const [req, miembros, actas] = await Promise.all([
+    obtenerRequerimientoComite(proyectoId.value),
+    listarMiembrosComite(proyectoId.value),
+    listarActasComite(proyectoId.value),
+  ])
+  comiteRequerimiento.value = req
+  comiteMiembros.value = miembros
+  comiteActas.value = actas
+  avisarComite(req)
+}
+
+async function onRegistrarMiembroComite() {
+  if (!comiteMiembroForm.personaId) {
+    toast.error('Seleccione una persona.')
+    return
+  }
+  if (!comiteMiembroForm.fechaInicio) {
+    toast.error('Indique la fecha de inicio.')
+    return
+  }
+  if (comiteMiembroForm.fechaFin && comiteMiembroForm.fechaFin < comiteMiembroForm.fechaInicio) {
+    toast.error('La fecha de fin no puede ser menor que la de inicio.')
+    return
+  }
+  comiteMiembroSaving.value = true
+  try {
+    await crearMiembroComite(proyectoId.value, {
+      personaId: comiteMiembroForm.personaId,
+      representacion: comiteMiembroForm.representacion,
+      cargoComite: comiteMiembroForm.cargoComite,
+      titular: comiteMiembroForm.titular,
+      fechaInicio: comiteMiembroForm.fechaInicio,
+      fechaFin: comiteMiembroForm.fechaFin || null,
+    })
+    toast.success('Miembro registrado.')
+    comiteMiembroForm.personaId = null
+    comitePersonaSeleccionada.value = null
+    comiteMiembroForm.fechaInicio = hoyIso()
+    comiteMiembroForm.fechaFin = ''
+    comiteMiembroForm.titular = true
+    await recargarComite()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el miembro.')
+  } finally {
+    comiteMiembroSaving.value = false
+  }
+}
+
+async function onDarBajaMiembroComite(miembro: SomaComiteMiembro) {
+  comiteMiembroSaving.value = true
+  try {
+    await darBajaMiembroComite(proyectoId.value, miembro.id)
+    toast.success('Miembro dado de baja.')
+    await recargarComite()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo dar de baja.')
+  } finally {
+    comiteMiembroSaving.value = false
+  }
+}
+
+async function onRegistrarActaComite() {
+  if (!comiteActaForm.numeroActa.trim()) {
+    toast.error('Indique el número de acta.')
+    return
+  }
+  if (!comiteActaForm.fecha) {
+    toast.error('Indique la fecha del acta.')
+    return
+  }
+  if (!comiteActaForm.agenda.trim()) {
+    toast.error('Indique la agenda.')
+    return
+  }
+  if (!comiteActaForm.acuerdos.trim()) {
+    toast.error('Indique los acuerdos.')
+    return
+  }
+  comiteActaSaving.value = true
+  try {
+    const archivo = comiteFileInput.value?.files?.[0]
+    let actaDocId: number | null = null
+    if (archivo) {
+      const documento = await subirDocumentoObra(proyectoId.value, 'EVIDENCIA_SOMA', archivo)
+      actaDocId = documento.id
+    }
+    await crearActaComite(proyectoId.value, {
+      numeroActa: comiteActaForm.numeroActa.trim(),
+      tipoSesion: comiteActaForm.tipoSesion,
+      fecha: comiteActaForm.fecha,
+      agenda: comiteActaForm.agenda.trim(),
+      acuerdos: comiteActaForm.acuerdos.trim(),
+      actaDocId,
+    })
+    toast.success('Acta registrada.')
+    comiteActaForm.numeroActa = ''
+    comiteActaForm.tipoSesion = 'ORDINARIA'
+    comiteActaForm.fecha = hoyIso()
+    comiteActaForm.agenda = ''
+    comiteActaForm.acuerdos = ''
+    if (comiteFileInput.value) {
+      comiteFileInput.value.value = ''
+    }
+    await recargarComite()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el acta.')
+  } finally {
+    comiteActaSaving.value = false
+  }
 }
 
 function tipoLabel(tipo: TipoEmo): string {
@@ -2189,6 +2429,10 @@ async function load() {
       listaPreUsos,
       listaEventos,
       listaEstadisticas,
+      listaComiteReq,
+      listaComiteMiembros,
+      listaComiteActas,
+      listaComitePersonas,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -2216,6 +2460,10 @@ async function load() {
       listarPreUsoObra(proyectoId.value),
       listarEventosObra(proyectoId.value),
       obtenerEstadisticasObra(proyectoId.value, anioEstadistica.value),
+      obtenerRequerimientoComite(proyectoId.value),
+      listarMiembrosComite(proyectoId.value),
+      listarActasComite(proyectoId.value),
+      listarPersonas({ page: 0, size: 15, q: '' }),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -2239,6 +2487,11 @@ async function load() {
     preUsos.value = listaPreUsos
     eventos.value = listaEventos
     estadisticas.value = listaEstadisticas
+    comiteRequerimiento.value = listaComiteReq
+    comiteMiembros.value = listaComiteMiembros
+    comiteActas.value = listaComiteActas
+    comitePersonas.value = listaComitePersonas.content
+    avisarComite(listaComiteReq)
     if (eventoEditandoId.value) {
       const actual = listaEventos.find((item) => item.id === eventoEditandoId.value)
       if (actual) {
@@ -2278,6 +2531,10 @@ async function load() {
     preUsos.value = []
     eventos.value = []
     estadisticas.value = null
+    comiteRequerimiento.value = null
+    comiteMiembros.value = []
+    comiteActas.value = []
+    comitePersonas.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -2712,6 +2969,10 @@ watch([filtroPartidaIperc, incluirInactivosIperc], () => {
   void recargarIperc()
 })
 
+watch(comitePersonaSearch, (q) => {
+  scheduleSearchComite(q)
+})
+
 onMounted(() => {
   if (!eventoForm.fechaHora) {
     eventoForm.fechaHora = ahoraLocalDatetime()
@@ -2736,6 +2997,7 @@ onMounted(() => {
         <TabsTrigger value="inspecciones" :class="tabTriggerClass">Inspecciones</TabsTrigger>
         <TabsTrigger value="preUso" :class="tabTriggerClass">Pre-uso</TabsTrigger>
         <TabsTrigger value="eventos" :class="tabTriggerClass">Eventos</TabsTrigger>
+        <TabsTrigger value="comite" :class="tabTriggerClass">Comité</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -5444,6 +5706,259 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!eventos.length" :colspan="5">Sin eventos SST en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="comite" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Requerimiento</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              {{ requerimientoComiteLabel(comiteRequerimiento) }}
+            </p>
+            <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt class="text-sm font-medium text-slate-500">Tipo requerido</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">
+                  {{ comiteRequerimiento?.tipoRequerido === 'SUBCOMITE' ? 'Subcomité' : 'Supervisor SST' }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">Trabajadores activos</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">
+                  {{ comiteRequerimiento?.trabajadoresActivos ?? 0 }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">Titulares empleador / trabajadores</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">
+                  {{ comiteRequerimiento?.titularesEmpleador ?? 0 }} /
+                  {{ comiteRequerimiento?.titularesTrabajadores ?? 0 }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">Supervisores activos</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">
+                  {{ comiteRequerimiento?.supervisoresActivos ?? 0 }}
+                </dd>
+              </div>
+            </dl>
+            <ul v-if="comiteRequerimiento?.avisos.length" class="mt-4 space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              <li v-for="aviso in comiteRequerimiento.avisos" :key="aviso">{{ aviso }}</li>
+            </ul>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar miembro</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              El representante del empleador puede ser externo. Los avisos de paridad no bloquean el alta.
+            </p>
+            <form class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2" @submit.prevent="onRegistrarMiembroComite">
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-comite-persona">Persona</label>
+                <Combobox
+                  :model-value="comiteMiembroForm.personaId ?? undefined"
+                  ignore-filter
+                  class="min-w-0 w-full"
+                  @update:model-value="onComitePersonaChange"
+                >
+                  <ComboboxAnchor class="min-w-0 w-full">
+                    <ComboboxTrigger as-child>
+                      <Button
+                        id="soma-comite-persona"
+                        variant="outline"
+                        class="mt-1.5 h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                        type="button"
+                      >
+                        <span
+                          class="min-w-0 flex-1 truncate text-left"
+                          :class="comitePersonaLabel(comitePersonaSeleccionada) ? 'text-slate-900' : 'text-slate-400'"
+                        >
+                          {{ comitePersonaLabel(comitePersonaSeleccionada) || 'Buscar persona' }}
+                        </span>
+                        <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                      </Button>
+                    </ComboboxTrigger>
+                  </ComboboxAnchor>
+                  <ComboboxList
+                    class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)"
+                    align="start"
+                  >
+                    <ComboboxInput v-model="comitePersonaSearch" placeholder="Buscar persona..." autocomplete="off" />
+                    <ComboboxEmpty>Sin personas.</ComboboxEmpty>
+                    <ComboboxGroup>
+                      <ComboboxItem
+                        v-for="persona in comitePersonas"
+                        :key="persona.id"
+                        :value="persona.id"
+                      >
+                        {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                        <ComboboxItemIndicator>
+                          <CheckIcon />
+                        </ComboboxItemIndicator>
+                      </ComboboxItem>
+                    </ComboboxGroup>
+                  </ComboboxList>
+                </Combobox>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-comite-rep">Representación</label>
+                <select id="soma-comite-rep" v-model="comiteMiembroForm.representacion" :class="selectClass" class="mt-1.5">
+                  <option v-for="item in REPRESENTACIONES_COMITE" :key="item.valor" :value="item.valor">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-comite-cargo">Cargo</label>
+                <select id="soma-comite-cargo" v-model="comiteMiembroForm.cargoComite" :class="selectClass" class="mt-1.5">
+                  <option v-for="item in CARGOS_COMITE" :key="item.valor" :value="item.valor">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-comite-inicio">Fecha inicio</label>
+                <Input id="soma-comite-inicio" v-model="comiteMiembroForm.fechaInicio" type="date" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-comite-fin">Fecha fin (opcional)</label>
+                <Input id="soma-comite-fin" v-model="comiteMiembroForm.fechaFin" type="date" :class="inputClass" class="mt-1.5" />
+              </div>
+              <label class="flex items-center gap-2 text-sm text-slate-600 sm:col-span-2">
+                <input v-model="comiteMiembroForm.titular" type="checkbox" />
+                Titular
+              </label>
+              <div>
+                <Button
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="submit"
+                  :disabled="comiteMiembroSaving"
+                >
+                  {{ comiteMiembroSaving ? 'Guardando…' : 'Registrar miembro' }}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Miembros</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Persona</TableHead>
+                  <TableHead>Representación</TableHead>
+                  <TableHead>Cargo</TableHead>
+                  <TableHead>Titular</TableHead>
+                  <TableHead>Inicio</TableHead>
+                  <TableHead>Fin</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in comiteMiembros" :key="fila.id">
+                  <TableCell>{{ fila.personaNombre || '—' }}</TableCell>
+                  <TableCell>{{ representacionComiteLabel(fila.representacion) }}</TableCell>
+                  <TableCell>{{ cargoComiteLabel(fila.cargoComite) }}</TableCell>
+                  <TableCell>{{ fila.titular ? 'Sí' : 'Suplente' }}</TableCell>
+                  <TableCell>{{ fechaLabel(fila.fechaInicio) }}</TableCell>
+                  <TableCell>{{ fechaLabel(fila.fechaFin) }}</TableCell>
+                  <TableCell>
+                    <Button
+                      v-if="fila.activo"
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      :disabled="comiteMiembroSaving"
+                      @click="onDarBajaMiembroComite(fila)"
+                    >
+                      Baja
+                    </Button>
+                    <Badge v-else variant="secondary">Inactivo</Badge>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!comiteMiembros.length" :colspan="7">Sin miembros del comité en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar acta</h3>
+            <form class="mt-4 grid gap-3 grid-cols-1 sm:grid-cols-2" @submit.prevent="onRegistrarActaComite">
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-acta-numero">Número</label>
+                <Input id="soma-acta-numero" v-model="comiteActaForm.numeroActa" :class="inputClass" class="mt-1.5" maxlength="40" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-acta-tipo">Tipo de sesión</label>
+                <select id="soma-acta-tipo" v-model="comiteActaForm.tipoSesion" :class="selectClass" class="mt-1.5">
+                  <option v-for="item in TIPOS_SESION_COMITE" :key="item.valor" :value="item.valor">
+                    {{ item.label }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-acta-fecha">Fecha</label>
+                <Input id="soma-acta-fecha" v-model="comiteActaForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-acta-file">Adjunto (opcional)</label>
+                <input
+                  id="soma-acta-file"
+                  ref="comiteFileInput"
+                  class="mt-1.5 h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm file:mr-2 file:h-full file:rounded file:border-0 file:bg-slate-100 file:px-3 file:text-sm"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                >
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-acta-agenda">Agenda</label>
+                <Textarea id="soma-acta-agenda" v-model="comiteActaForm.agenda" class="mt-1.5" maxlength="1000" required />
+              </div>
+              <div class="sm:col-span-2">
+                <label class="text-sm font-medium text-slate-700" for="soma-acta-acuerdos">Acuerdos</label>
+                <Textarea id="soma-acta-acuerdos" v-model="comiteActaForm.acuerdos" class="mt-1.5" maxlength="3000" required />
+              </div>
+              <div>
+                <Button
+                  class="bg-palette-navy text-white hover:bg-palette-royal"
+                  type="submit"
+                  :disabled="comiteActaSaving"
+                >
+                  {{ comiteActaSaving ? 'Guardando…' : 'Registrar acta' }}
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Actas</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>N°</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Agenda</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in comiteActas" :key="fila.id">
+                  <TableCell>{{ fila.numeroActa }}</TableCell>
+                  <TableCell>{{ tipoSesionComiteLabel(fila.tipoSesion) }}</TableCell>
+                  <TableCell>{{ fechaLabel(fila.fecha) }}</TableCell>
+                  <TableCell class="max-w-xs truncate">{{ fila.agenda }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!comiteActas.length" :colspan="4">Sin actas en esta obra.</TableEmpty>
               </TableBody>
             </Table>
           </div>

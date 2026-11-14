@@ -23,6 +23,11 @@ import com.convecsa.erp.soma.dto.SomaPetarRequest;
 import com.convecsa.erp.soma.dto.SomaPreUsoBloqueoDTO;
 import com.convecsa.erp.soma.dto.SomaPreUsoDTO;
 import com.convecsa.erp.soma.dto.SomaPreUsoRequest;
+import com.convecsa.erp.soma.dto.SomaComiteActaDTO;
+import com.convecsa.erp.soma.dto.SomaComiteActaRequest;
+import com.convecsa.erp.soma.dto.SomaComiteMiembroDTO;
+import com.convecsa.erp.soma.dto.SomaComiteMiembroRequest;
+import com.convecsa.erp.soma.dto.SomaComiteRequerimientoDTO;
 import com.convecsa.erp.soma.dto.SomaEventoDTO;
 import com.convecsa.erp.soma.dto.SomaEventoRequest;
 import com.convecsa.erp.soma.dto.SomaEventoSyncDmDTO;
@@ -48,6 +53,7 @@ import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaPetarService;
 import com.convecsa.erp.soma.service.InterfazSomaPreUsoService;
+import com.convecsa.erp.soma.service.InterfazSomaComiteService;
 import com.convecsa.erp.soma.service.InterfazSomaEventoService;
 import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
@@ -88,6 +94,7 @@ public class SomaObraController {
     private final InterfazSomaPreUsoService somaPreUsoService;
     private final InterfazSomaEventoService somaEventoService;
     private final InterfazSomaEstadisticaService somaEstadisticaService;
+    private final InterfazSomaComiteService somaComiteService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -394,5 +401,40 @@ public class SomaObraController {
     @PostMapping("/eventos/{eventoId}/sincronizar-dm")
     public SomaEventoSyncDmDTO sincronizarDmEvento(@PathVariable Long proyectoId, @PathVariable Long eventoId) {
         return somaEventoService.sincronizarDm(proyectoId, eventoId);
+    }
+
+    @GetMapping("/comite/requerimiento")
+    public SomaComiteRequerimientoDTO requerimientoComite(@PathVariable Long proyectoId) {
+        return somaComiteService.requerimiento(proyectoId);
+    }
+
+    @GetMapping("/comite/miembros")
+    public List<SomaComiteMiembroDTO> listarMiembrosComite(@PathVariable Long proyectoId) {
+        return somaComiteService.listarMiembros(proyectoId);
+    }
+
+    @PostMapping("/comite/miembros")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaComiteMiembroDTO crearMiembroComite(
+            @PathVariable Long proyectoId, @RequestBody SomaComiteMiembroRequest request) {
+        return somaComiteService.crearMiembro(proyectoId, request);
+    }
+
+    @PostMapping("/comite/miembros/{miembroId}/baja")
+    public SomaComiteMiembroDTO darBajaMiembroComite(
+            @PathVariable Long proyectoId, @PathVariable Long miembroId) {
+        return somaComiteService.darBaja(proyectoId, miembroId);
+    }
+
+    @GetMapping("/comite/actas")
+    public List<SomaComiteActaDTO> listarActasComite(@PathVariable Long proyectoId) {
+        return somaComiteService.listarActas(proyectoId);
+    }
+
+    @PostMapping("/comite/actas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaComiteActaDTO crearActaComite(
+            @PathVariable Long proyectoId, @RequestBody SomaComiteActaRequest request) {
+        return somaComiteService.crearActa(proyectoId, request);
     }
 }

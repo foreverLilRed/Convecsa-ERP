@@ -677,3 +677,68 @@ export type SomaEstadisticaAnio = {
   acumulado: SomaEstadisticaMes
   diasSinAccidente: number | null
 }
+
+export type RepresentacionComiteSoma = 'EMPLEADOR' | 'TRABAJADORES'
+
+export type CargoComiteSoma =
+  | 'PRESIDENTE'
+  | 'SECRETARIO'
+  | 'MIEMBRO'
+  | 'SUPERVISOR_SST'
+  | 'OBSERVADOR_SINDICAL'
+
+export type TipoSesionComiteSoma = 'INSTALACION' | 'ORDINARIA' | 'EXTRAORDINARIA'
+
+export type TipoRequerimientoComiteSoma = 'SUBCOMITE' | 'SUPERVISOR_SST'
+
+export type SomaComiteRequerimiento = {
+  tipoRequerido: TipoRequerimientoComiteSoma
+  trabajadoresActivos: number
+  titularesEmpleador: number
+  titularesTrabajadores: number
+  supervisoresActivos: number
+  avisos: string[]
+}
+
+export type SomaComiteMiembro = {
+  id: number
+  proyectoId: number
+  personaId: number
+  personaNombre: string | null
+  representacion: RepresentacionComiteSoma
+  cargoComite: CargoComiteSoma
+  titular: boolean
+  fechaInicio: string
+  fechaFin: string | null
+  activo: boolean
+}
+
+export type SomaComiteMiembroRequest = {
+  personaId: number
+  representacion: RepresentacionComiteSoma
+  cargoComite: CargoComiteSoma
+  titular: boolean
+  fechaInicio: string
+  fechaFin: string | null
+}
+
+export type SomaComiteActa = {
+  id: number
+  proyectoId: number
+  numeroActa: string
+  tipoSesion: TipoSesionComiteSoma
+  fecha: string
+  agenda: string
+  acuerdos: string
+  actaDocId: number | null
+  createdAt: string
+}
+
+export type SomaComiteActaRequest = {
+  numeroActa: string
+  tipoSesion: TipoSesionComiteSoma
+  fecha: string
+  agenda: string
+  acuerdos: string
+  actaDocId: number | null
+}
