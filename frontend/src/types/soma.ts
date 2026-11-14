@@ -310,3 +310,62 @@ export type SomaCapacitacionRequest = {
     aprobado?: boolean
   }>
 }
+
+export type PasoAts = {
+  paso: string
+  peligros: string | null
+  controles: string | null
+}
+
+export type SomaCharlaAsistente = {
+  id: number | null
+  personaId: number
+  personaNombre: string | null
+  numeroDocumento: string | null
+  habilitadoSoma: boolean
+  observacion: string | null
+}
+
+export type SomaCharlaAts = {
+  id: number
+  proyectoId: number
+  cuadrillaId: number | null
+  cuadrillaNombre: string | null
+  partidaId: number | null
+  partidaCodigo: string | null
+  partidaDescripcion: string | null
+  fecha: string
+  horaInicio: string
+  duracionMinutos: number
+  temaCharla: string
+  expositorPersonaId: number | null
+  expositorNombre: string | null
+  supervisorSsomaId: number | null
+  supervisorSsomaNombre: string | null
+  pasos: PasoAts[]
+  eppVerificado: boolean
+  herramientasVerif: boolean
+  observaciones: string | null
+  createdAt: string
+  asistentes: SomaCharlaAsistente[]
+  advertencia: string | null
+}
+
+export type SomaCharlaAtsRequest = {
+  cuadrillaId?: number | null
+  partidaId?: number | null
+  fecha: string
+  horaInicio: string
+  duracionMinutos?: number | null
+  temaCharla: string
+  expositorPersonaId?: number | null
+  supervisorSsomaId?: number | null
+  pasos: PasoAts[]
+  eppVerificado?: boolean
+  herramientasVerif?: boolean
+  observaciones?: string | null
+  asistentes: Array<{
+    personaId: number
+    observacion?: string | null
+  }>
+}

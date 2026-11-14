@@ -41,6 +41,7 @@ import {
   cambiarEstadoItemEpp,
   actualizarIpercObra,
   crearCapacitacionObra,
+  crearCharlaAtsObra,
   crearEntregaEpp,
   crearIpercObra,
   crearPolizaSctr,
@@ -48,6 +49,7 @@ import {
   descargarKardexEpp,
   guardarNominaSctr,
   listarCapacitacionesObra,
+  listarCharlasAtsObra,
   listarEmosObra,
   listarEntregasEpp,
   listarHabilitacionObra,
@@ -56,6 +58,7 @@ import {
   listarPolizasSctr,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
+  precargarCuadrillaCharlaAts,
   registrarEmoObra,
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
@@ -67,6 +70,7 @@ import type {
   MotivoEntregaEpp,
   NivelRiesgoIperc,
   SomaCapacitacion,
+  SomaCharlaAts,
   SomaEmo,
   SomaEntregaEpp,
   SomaEppMaterial,
@@ -82,10 +86,12 @@ import type {
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts'
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
 type EppItemDraft = { materialId: string; cantidad: string; talla: string }
 type CapAsistenteDraft = { personaId: number; nota: string; aprobado: boolean }
+type PasoAtsDraft = { paso: string; peligros: string; controles: string }
+type CharlaAsistenteDraft = { personaId: number; observacion: string; habilitadoSoma: boolean | null }
 
 const inputClass = fieldInputClass
 const selectClass = fieldSelectClass
@@ -198,6 +204,13 @@ const filtroPartidaIperc = ref('')
 const incluirInactivosIperc = ref(false)
 const ipercSaving = ref(false)
 const ipercEditandoId = ref<number | null>(null)
+const charlasAts = ref<SomaCharlaAts[]>([])
+const charlaSaving = ref(false)
+const charlaPersonaSearch = ref('')
+const charlaAgregarPersonaId = ref<number | null>(null)
+const charlaExpositorSearch = ref('')
+const charlaPasos = ref<PasoAtsDraft[]>([{ paso: '', peligros: '', controles: '' }])
+const charlaAsistentes = ref<CharlaAsistenteDraft[]>([])
 
 const capForm = reactive({
   tipo: 'INDUCCION_HOMBRE_NUEVO' as TipoCapacitacionSoma,
@@ -229,6 +242,19 @@ const ipercForm = reactive({
   controlEpp: '',
   probabilidadResidual: '2',
   severidadResidual: '2',
+})
+
+const charlaForm = reactive({
+  fecha: hoyIso(),
+  horaInicio: '07:00',
+  duracionMinutos: '10',
+  temaCharla: '',
+  cuadrillaId: '',
+  partidaId: '',
+  expositorPersonaId: null as number | null,
+  eppVerificado: false,
+  herramientasVerif: false,
+  observaciones: '',
 })
 
 const eppForm = reactive({
@@ -328,6 +354,42 @@ const partidasVigentes = computed(() =>
 
 const nivelInicialIpercVivo = computed(() => nivelVivo(ipercForm.probabilidadInicial, ipercForm.severidadInicial))
 const nivelResidualIpercVivo = computed(() => nivelVivo(ipercForm.probabilidadResidual, ipercForm.severidadResidual))
+
+const charlaExpositorSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === charlaForm.expositorPersonaId) ?? null,
+)
+
+const opcionesCharlaExpositor = computed(() => {
+  const q = charlaExpositorSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const charlaPersonaSeleccionada = computed(
+  () => personal.value.find((item) => item.personaId === charlaAgregarPersonaId.value) ?? null,
+)
+
+const opcionesCharlaPersona = computed(() => {
+  const ids = new Set(charlaAsistentes.value.map((item) => item.personaId))
+  const q = charlaPersonaSearch.value.trim().toLowerCase()
+  return personal.value.filter((item) => {
+    if (ids.has(item.personaId)) {
+      return false
+    }
+    if (!q) {
+      return true
+    }
+    return `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q)
+  })
+})
+
+const charlasAtsDelDia = computed(() =>
+  charlasAts.value.filter((item) => item.fecha === charlaForm.fecha),
+)
 
 const filasHabilitacion = computed(() => {
   const filas = habilitacion.value?.filas ?? []
@@ -610,6 +672,160 @@ async function onDesactivarIperc(fila: SomaIpercFila) {
   }
 }
 
+function resetCharlaForm() {
+  charlaForm.fecha = hoyIso()
+  charlaForm.horaInicio = '07:00'
+  charlaForm.duracionMinutos = '10'
+  charlaForm.temaCharla = ''
+  charlaForm.cuadrillaId = ''
+  charlaForm.partidaId = ''
+  charlaForm.expositorPersonaId = null
+  charlaForm.eppVerificado = false
+  charlaForm.herramientasVerif = false
+  charlaForm.observaciones = ''
+  charlaPasos.value = [{ paso: '', peligros: '', controles: '' }]
+  charlaAsistentes.value = []
+  charlaAgregarPersonaId.value = null
+  charlaPersonaSearch.value = ''
+  charlaExpositorSearch.value = ''
+}
+
+function onCharlaExpositorChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  charlaForm.expositorPersonaId = Number.isFinite(id) ? id : null
+}
+
+function onCharlaPersonaChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  charlaAgregarPersonaId.value = Number.isFinite(id) ? id : null
+}
+
+function agregarPasoAts() {
+  charlaPasos.value.push({ paso: '', peligros: '', controles: '' })
+}
+
+function quitarPasoAts(index: number) {
+  if (charlaPasos.value.length === 1) {
+    charlaPasos.value = [{ paso: '', peligros: '', controles: '' }]
+    return
+  }
+  charlaPasos.value.splice(index, 1)
+}
+
+function agregarAsistenteCharla() {
+  if (!charlaAgregarPersonaId.value) {
+    toast.error('Seleccione una persona para agregar.')
+    return
+  }
+  if (charlaAsistentes.value.some((item) => item.personaId === charlaAgregarPersonaId.value)) {
+    toast.error('La persona ya está en la lista de asistentes.')
+    return
+  }
+  charlaAsistentes.value.push({
+    personaId: charlaAgregarPersonaId.value,
+    observacion: '',
+    habilitadoSoma: null,
+  })
+  charlaAgregarPersonaId.value = null
+  charlaPersonaSearch.value = ''
+}
+
+function quitarAsistenteCharla(personaId: number) {
+  charlaAsistentes.value = charlaAsistentes.value.filter((item) => item.personaId !== personaId)
+}
+
+async function onPrecargarCuadrillaCharla() {
+  if (!charlaForm.cuadrillaId) {
+    toast.error('Seleccione una cuadrilla.')
+    return
+  }
+  try {
+    const filas = await precargarCuadrillaCharlaAts(
+      proyectoId.value,
+      Number(charlaForm.cuadrillaId),
+      charlaForm.fecha || undefined,
+    )
+    const vistos = new Set(charlaAsistentes.value.map((item) => item.personaId))
+    for (const fila of filas) {
+      if (vistos.has(fila.personaId)) {
+        continue
+      }
+      vistos.add(fila.personaId)
+      charlaAsistentes.value.push({
+        personaId: fila.personaId,
+        observacion: fila.observacion ?? '',
+        habilitadoSoma: fila.habilitadoSoma,
+      })
+    }
+    if (!filas.length) {
+      toast.error('La cuadrilla no tiene miembros.')
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo precargar la cuadrilla.')
+  }
+}
+
+async function onRegistrarCharlaAts() {
+  if (!charlaForm.fecha) {
+    toast.error('Indique la fecha.')
+    return
+  }
+  if (!charlaForm.horaInicio) {
+    toast.error('Indique la hora de inicio.')
+    return
+  }
+  if (!charlaForm.temaCharla.trim()) {
+    toast.error('Indique el tema de la charla.')
+    return
+  }
+  const duracion = n(charlaForm.duracionMinutos)
+  if (!Number.isFinite(duracion) || duracion <= 0) {
+    toast.error('La duración debe ser mayor que 0.')
+    return
+  }
+  const pasos = charlaPasos.value
+    .map((fila) => ({
+      paso: fila.paso.trim(),
+      peligros: fila.peligros.trim() || null,
+      controles: fila.controles.trim() || null,
+    }))
+    .filter((fila) => fila.paso)
+  if (!pasos.length) {
+    toast.error('El ATS debe tener al menos un paso.')
+    return
+  }
+  charlaSaving.value = true
+  try {
+    const creada = await crearCharlaAtsObra(proyectoId.value, {
+      cuadrillaId: charlaForm.cuadrillaId ? Number(charlaForm.cuadrillaId) : null,
+      partidaId: charlaForm.partidaId ? Number(charlaForm.partidaId) : null,
+      fecha: charlaForm.fecha,
+      horaInicio: charlaForm.horaInicio,
+      duracionMinutos: duracion,
+      temaCharla: charlaForm.temaCharla.trim(),
+      expositorPersonaId: charlaForm.expositorPersonaId,
+      pasos,
+      eppVerificado: charlaForm.eppVerificado,
+      herramientasVerif: charlaForm.herramientasVerif,
+      observaciones: charlaForm.observaciones.trim() || null,
+      asistentes: charlaAsistentes.value.map((item) => ({
+        personaId: item.personaId,
+        observacion: item.observacion.trim() || null,
+      })),
+    })
+    toast.success('Charla y ATS registrados.')
+    if (creada.advertencia) {
+      toast.warning(creada.advertencia)
+    }
+    resetCharlaForm()
+    charlasAts.value = await listarCharlasAtsObra(proyectoId.value)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar la charla.')
+  } finally {
+    charlaSaving.value = false
+  }
+}
+
 async function recargarHabilitacion() {
   if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
     return
@@ -730,6 +946,7 @@ async function load() {
       listaCaps,
       listaCuadrillas,
       listaIperc,
+      listaCharlas,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -746,6 +963,7 @@ async function load() {
         filtroPartidaIperc.value ? Number(filtroPartidaIperc.value) : undefined,
         incluirInactivosIperc.value,
       ),
+      listarCharlasAtsObra(proyectoId.value),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -758,6 +976,7 @@ async function load() {
     capacitaciones.value = listaCaps
     cuadrillas.value = listaCuadrillas
     filasIperc.value = listaIperc
+    charlasAts.value = listaCharlas
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -774,6 +993,7 @@ async function load() {
     capacitaciones.value = []
     cuadrillas.value = []
     filasIperc.value = []
+    charlasAts.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -1224,6 +1444,7 @@ onMounted(() => {
         <TabsTrigger value="epp" :class="tabTriggerClass">EPP</TabsTrigger>
         <TabsTrigger value="capacitaciones" :class="tabTriggerClass">Capacitaciones</TabsTrigger>
         <TabsTrigger value="iperc" :class="tabTriggerClass">IPERC</TabsTrigger>
+        <TabsTrigger value="charlaAts" :class="tabTriggerClass">Charla y ATS</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -2335,6 +2556,278 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!filasIperc.length" :colspan="6">Sin filas IPERC en esta obra.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="charlaAts" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Registrar charla diaria y ATS</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              La habilitación SOMA se toma como foto del día. Si hay asistentes bloqueados, la charla se guarda igual.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onRegistrarCharlaAts">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-fecha">Fecha</label>
+                  <Input id="soma-charla-fecha" v-model="charlaForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-hora">Hora</label>
+                  <Input id="soma-charla-hora" v-model="charlaForm.horaInicio" type="time" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-duracion">Duración (min)</label>
+                  <Input id="soma-charla-duracion" v-model="charlaForm.duracionMinutos" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div class="sm:col-span-2 lg:col-span-1">
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-tema">Tema</label>
+                  <Input id="soma-charla-tema" v-model="charlaForm.temaCharla" :class="inputClass" class="mt-1.5" maxlength="240" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-cuadrilla">Cuadrilla</label>
+                  <select id="soma-charla-cuadrilla" v-model="charlaForm.cuadrillaId" :class="selectClass" class="mt-1.5">
+                    <option value="">Sin cuadrilla</option>
+                    <option v-for="cuadrilla in cuadrillas" :key="cuadrilla.id" :value="String(cuadrilla.id)">
+                      {{ cuadrilla.codigo }} — {{ cuadrilla.nombre }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-partida">Partida</label>
+                  <select id="soma-charla-partida" v-model="charlaForm.partidaId" :class="selectClass" class="mt-1.5">
+                    <option value="">Sin partida</option>
+                    <option v-for="partida in partidasVigentes" :key="partida.id" :value="String(partida.id)">
+                      {{ partida.codigo }} — {{ partida.descripcion }}
+                    </option>
+                  </select>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-expositor">Expositor</label>
+                  <Combobox
+                    :model-value="charlaForm.expositorPersonaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onCharlaExpositorChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-charla-expositor"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(charlaExpositorSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(charlaExpositorSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="charlaExpositorSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesCharlaExpositor"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <label class="flex items-center gap-2 pt-7 text-sm text-slate-600">
+                  <input v-model="charlaForm.eppVerificado" type="checkbox" />
+                  EPP verificado
+                </label>
+                <label class="flex items-center gap-2 pt-7 text-sm text-slate-600">
+                  <input v-model="charlaForm.herramientasVerif" type="checkbox" />
+                  Herramientas verificadas
+                </label>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-charla-obs">Observaciones</label>
+                  <Textarea id="soma-charla-obs" v-model="charlaForm.observaciones" class="mt-1.5" maxlength="1000" />
+                </div>
+              </div>
+
+              <div>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <p class="text-sm font-medium text-slate-700">Pasos del ATS</p>
+                  <Button variant="outline" size="sm" type="button" @click="agregarPasoAts">Agregar paso</Button>
+                </div>
+                <Table class="mt-3">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Paso</TableHead>
+                      <TableHead>Peligros</TableHead>
+                      <TableHead>Controles</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="(paso, index) in charlaPasos" :key="index">
+                      <TableCell>
+                        <Input v-model="paso.paso" :class="inputClass" maxlength="240" />
+                      </TableCell>
+                      <TableCell>
+                        <Input v-model="paso.peligros" :class="inputClass" maxlength="1000" />
+                      </TableCell>
+                      <TableCell>
+                        <Input v-model="paso.controles" :class="inputClass" maxlength="1000" />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" type="button" @click="quitarPasoAts(index)">Quitar</Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div>
+                <p class="text-sm font-medium text-slate-700">Asistentes</p>
+                <div class="mt-2 grid gap-2 grid-cols-1 sm:grid-cols-[1fr_auto]">
+                  <Combobox
+                    :model-value="charlaAgregarPersonaId ?? undefined"
+                    ignore-filter
+                    class="min-w-0 w-full"
+                    @update:model-value="onCharlaPersonaChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(charlaPersonaSeleccionada) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(charlaPersonaSeleccionada) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="charlaPersonaSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesCharlaPersona"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                  <Button variant="outline" type="button" @click="agregarAsistenteCharla">Agregar</Button>
+                </div>
+                <div class="mt-3">
+                  <Button variant="outline" type="button" @click="onPrecargarCuadrillaCharla">
+                    Precargar cuadrilla
+                  </Button>
+                </div>
+                <Table class="mt-3">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Persona</TableHead>
+                      <TableHead>Observación</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="asistente in charlaAsistentes" :key="asistente.personaId">
+                      <TableCell>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span>{{ asistenteCapLabel(asistente.personaId, null) }}</span>
+                          <Badge v-if="asistente.habilitadoSoma === false" variant="secondary">No habilitado</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Input v-model="asistente.observacion" :class="inputClass" maxlength="240" />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" type="button" @click="quitarAsistenteCharla(asistente.personaId)">
+                          Quitar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableEmpty v-if="!charlaAsistentes.length" :colspan="3">Sin asistentes.</TableEmpty>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <Button type="submit" :disabled="charlaSaving">
+                {{ charlaSaving ? 'Guardando…' : 'Registrar charla' }}
+              </Button>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Charlas del día</h3>
+            <p class="mt-1 text-sm text-slate-500">Se listan las charlas de la fecha del formulario. El resto de la obra queda en historial al cambiar la fecha.</p>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Hora</TableHead>
+                  <TableHead>Tema</TableHead>
+                  <TableHead>Cuadrilla / partida</TableHead>
+                  <TableHead>Asistentes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="charla in charlasAtsDelDia" :key="charla.id">
+                  <TableCell>{{ charla.horaInicio }} · {{ charla.duracionMinutos }} min</TableCell>
+                  <TableCell>
+                    <p>{{ charla.temaCharla }}</p>
+                    <p class="text-xs text-slate-500">{{ charla.pasos.length }} paso(s) ATS</p>
+                  </TableCell>
+                  <TableCell>
+                    {{ charla.cuadrillaNombre || 'Sin cuadrilla' }}
+                    <p class="text-xs text-slate-500">
+                      {{ charla.partidaCodigo ? `${charla.partidaCodigo} · ${charla.partidaDescripcion}` : 'Sin partida' }}
+                    </p>
+                  </TableCell>
+                  <TableCell>
+                    <div class="flex flex-wrap gap-1">
+                      <Badge
+                        v-for="asistente in charla.asistentes"
+                        :key="asistente.personaId"
+                        :variant="asistente.habilitadoSoma ? 'default' : 'secondary'"
+                      >
+                        {{ asistente.personaNombre || `Persona ${asistente.personaId}` }}
+                      </Badge>
+                      <span v-if="!charla.asistentes.length" class="text-sm text-slate-500">Sin asistentes</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!charlasAtsDelDia.length" :colspan="4">Sin charlas en esta fecha.</TableEmpty>
               </TableBody>
             </Table>
           </div>

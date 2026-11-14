@@ -3,6 +3,9 @@ package com.convecsa.erp.soma.controller;
 import com.convecsa.erp.soma.dto.SomaCapacitacionAsistenteDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionRequest;
+import com.convecsa.erp.soma.dto.SomaCharlaAsistenteDTO;
+import com.convecsa.erp.soma.dto.SomaCharlaAtsDTO;
+import com.convecsa.erp.soma.dto.SomaCharlaAtsRequest;
 import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
 import com.convecsa.erp.soma.dto.SomaIpercFilaDTO;
 import com.convecsa.erp.soma.dto.SomaIpercFilaRequest;
@@ -18,6 +21,7 @@ import com.convecsa.erp.soma.dto.SomaSctrPolizaDTO;
 import com.convecsa.erp.soma.dto.SomaSctrPolizaRequest;
 import com.convecsa.erp.soma.dto.SomaTrabajadorObraDTO;
 import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
+import com.convecsa.erp.soma.service.InterfazSomaCharlaAtsService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEppService;
 import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
@@ -55,6 +59,7 @@ public class SomaObraController {
     private final InterfazSomaCapacitacionService somaCapacitacionService;
     private final InterfazSomaHabilitacionService somaHabilitacionService;
     private final InterfazSomaIpercService somaIpercService;
+    private final InterfazSomaCharlaAtsService somaCharlaAtsService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -187,5 +192,26 @@ public class SomaObraController {
     public List<SomaCapacitacionAsistenteDTO> precargarCuadrilla(
             @PathVariable Long proyectoId, @RequestParam Long cuadrillaId) {
         return somaCapacitacionService.precargarCuadrilla(proyectoId, cuadrillaId);
+    }
+
+    @GetMapping("/charlas-ats")
+    public List<SomaCharlaAtsDTO> listarCharlasAts(
+            @PathVariable Long proyectoId, @RequestParam(required = false) LocalDate fecha) {
+        return somaCharlaAtsService.listar(proyectoId, fecha);
+    }
+
+    @PostMapping("/charlas-ats")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaCharlaAtsDTO crearCharlaAts(
+            @PathVariable Long proyectoId, @RequestBody SomaCharlaAtsRequest request) {
+        return somaCharlaAtsService.crear(proyectoId, request);
+    }
+
+    @GetMapping("/charlas-ats/precargar-cuadrilla")
+    public List<SomaCharlaAsistenteDTO> precargarCuadrillaCharlaAts(
+            @PathVariable Long proyectoId,
+            @RequestParam Long cuadrillaId,
+            @RequestParam(required = false) LocalDate fecha) {
+        return somaCharlaAtsService.precargarCuadrilla(proyectoId, cuadrillaId, fecha);
     }
 }

@@ -4,6 +4,9 @@ import type {
   SomaCapacitacion,
   SomaCapacitacionAsistente,
   SomaCapacitacionRequest,
+  SomaCharlaAsistente,
+  SomaCharlaAts,
+  SomaCharlaAtsRequest,
   SomaEmo,
   SomaEmoRequest,
   SomaEntregaEpp,
@@ -173,4 +176,34 @@ export function precargarCuadrillaCapacitacion(
 export function listarCapacitacionesCorporativo(anio: number): Promise<SomaCapacitacion[]> {
   const params = new URLSearchParams({ anio: String(anio) })
   return apiRequest<SomaCapacitacion[]>(`/api/soma/capacitaciones?${params}`)
+}
+
+export function listarCharlasAtsObra(proyectoId: number, fecha?: string | null): Promise<SomaCharlaAts[]> {
+  const params = new URLSearchParams()
+  if (fecha) {
+    params.set('fecha', fecha)
+  }
+  const qs = params.toString()
+  return apiRequest<SomaCharlaAts[]>(`/api/proyectos/${proyectoId}/soma/charlas-ats${qs ? `?${qs}` : ''}`)
+}
+
+export function crearCharlaAtsObra(proyectoId: number, request: SomaCharlaAtsRequest): Promise<SomaCharlaAts> {
+  return apiRequest<SomaCharlaAts>(`/api/proyectos/${proyectoId}/soma/charlas-ats`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function precargarCuadrillaCharlaAts(
+  proyectoId: number,
+  cuadrillaId: number,
+  fecha?: string | null,
+): Promise<SomaCharlaAsistente[]> {
+  const params = new URLSearchParams({ cuadrillaId: String(cuadrillaId) })
+  if (fecha) {
+    params.set('fecha', fecha)
+  }
+  return apiRequest<SomaCharlaAsistente[]>(
+    `/api/proyectos/${proyectoId}/soma/charlas-ats/precargar-cuadrilla?${params}`,
+  )
 }

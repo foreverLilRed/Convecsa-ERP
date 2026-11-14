@@ -17,7 +17,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S4 | Capacitaciones e inducción de hombre nuevo | V61 | Hecho |
 | S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Hecho |
 | S6 | Matriz IPERC por partida | V62 | Hecho |
-| S7 | Charla diaria y ATS | V63 | Pendiente |
+| S7 | Charla diaria y ATS | V63 | Hecho |
 | S8 | PETAR y cruce con tareo | V64 | Pendiente |
 | S9 | Inspecciones y hallazgos | V65 | Pendiente |
 | S10 | Check-list pre-uso de equipos | V66 | Pendiente |
@@ -634,6 +634,11 @@ CREATE TABLE soma_charla_asistente (
 **Tests (`SomaCharlaAtsServiceImplTest`):**
 - Rechaza un ATS sin pasos.
 - Marca `habilitado_soma = false` cuando corresponde y devuelve la advertencia.
+
+**Notas de implementación (S7)**
+- `habilitado_soma` es una foto de S5 (`evaluarObra`) en la fecha de la charla: `true` solo si la fila está `HABILITADO`. Si la persona no está en el semáforo o está `BLOQUEADO`, se guarda igual con `false` y `advertencia` para sonner.
+- El supervisor SSOMA se rellena desde `proyecto_responsable` (`SUPERVISOR_SSOMA`) si el request no lo manda.
+- En local, la obra `0000` suele no tener `contrato_cc` ni cuadrilla: S5 sale vacío, el asistente queda `habilitadoSoma = false` y hay advertencia. El POST se verificó con `personaId=1` y un paso ATS; el GET `?fecha=` lista la charla.
 
 ---
 
