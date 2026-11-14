@@ -21,7 +21,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S8 | PETAR y cruce con tareo | V65 | Hecho |
 | S9 | Inspecciones y hallazgos | V64 | Hecho |
 | S10 | Check-list pre-uso de equipos | V66 | Hecho |
-| S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Pendiente |
+| S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Hecho |
 | S12 | Estadísticas HHT, IF, IS, IA | — | Pendiente |
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Pendiente |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Pendiente |
@@ -912,6 +912,12 @@ CREATE TABLE soma_evento_hallazgo (
 - El cálculo de días.
 - Cerrar falla con hallazgos abiertos.
 - La sincronización solo escribe en periodos `BORRADOR`.
+
+**Notas S11**
+- Flyway: `V67__soma_evento_sst.sql`.
+- Causas TASC en JSON: inmediatas `actos` / `condiciones`; básicas `factoresPersonales` / `factoresTrabajo`.
+- `sincronizar-dm` solo upserta `tareo_cc_dia` con `codigo=DM` y horas 0 en periodos `BORRADOR`; omite `sin periodo` y `periodo cerrado`. No se toca planilla (`CalculoNominaService` / `CalculoNominaCcService`) ni `guardarTareo`.
+- Aviso MTPE 24 h en UI para `INCIDENTE_PELIGROSO` y `ACCIDENTE_MORTAL` (casilla `notificadoMtpe`, sin integración).
 
 ---
 
