@@ -43,8 +43,10 @@ import SomaCapacitacionesPage from '@/pages/soma/SomaCapacitacionesPage.vue'
 import SomaDashboardPage from '@/pages/soma/SomaDashboardPage.vue'
 import SomaFormatosPage from '@/pages/soma/SomaFormatosPage.vue'
 import SomaHabilitacionPage from '@/pages/soma/SomaHabilitacionPage.vue'
+import DocumentacionPage from '@/pages/documentacion/DocumentacionPage.vue'
 
 const ROLES_SOMA_CORPORATIVO: RolUsuario[] = ['SUPERADMIN', 'ADMIN', 'INGENIERO_SOMA']
+const ROLES_MANUAL: RolUsuario[] = ['SUPERADMIN', 'ADMIN']
 
 const RUTAS_FICHA_NO_ALMACEN = new Set([
   'proyecto-ficha',
@@ -281,6 +283,12 @@ const router = createRouter({
           name: 'soma-formatos',
           component: SomaFormatosPage,
           meta: { roles: ROLES_SOMA_CORPORATIVO },
+        },
+        {
+          path: 'documentacion',
+          name: 'documentacion',
+          component: DocumentacionPage,
+          meta: { roles: ROLES_MANUAL },
         },
       ],
     },

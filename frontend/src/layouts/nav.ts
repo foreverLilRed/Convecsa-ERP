@@ -2,6 +2,7 @@ import type { Component } from 'vue'
 import {
   BadgeCheckIcon,
   BookOpenIcon,
+  BookOpenTextIcon,
   BoxesIcon,
   Building2Icon,
   CalendarCheckIcon,
@@ -15,6 +16,7 @@ import {
   GraduationCapIcon,
   HeartPulseIcon,
   LayoutDashboardIcon,
+  LifeBuoyIcon,
   PalmtreeIcon,
   PenLineIcon,
   ShieldIcon,
@@ -85,6 +87,16 @@ export const navItems: NavItem[] = [
       { name: 'soma-habilitacion', label: 'Vigilancia médica y SCTR', path: '/soma/habilitacion', icon: HeartPulseIcon },
       { name: 'soma-capacitaciones', label: 'Capacitaciones', path: '/soma/capacitaciones', icon: GraduationCapIcon },
       { name: 'soma-formatos', label: 'Formatos SUNAFIL', path: '/soma/formatos', icon: FileSpreadsheetIcon },
+    ],
+  },
+  {
+    kind: 'group',
+    id: 'documentacion',
+    label: 'Documentación',
+    icon: LifeBuoyIcon,
+    roles: ['SUPERADMIN', 'ADMIN'],
+    children: [
+      { name: 'documentacion', label: 'Manual de uso', path: '/documentacion', icon: BookOpenTextIcon },
     ],
   },
 ]
