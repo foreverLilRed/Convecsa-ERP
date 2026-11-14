@@ -23,7 +23,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S10 | Check-list pre-uso de equipos | V66 | Hecho |
 | S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Hecho |
 | S12 | Estadísticas HHT, IF, IS, IA | — | Hecho |
-| S13 | Comité / Subcomité / Supervisor SST | V68 | Pendiente |
+| S13 | Comité / Subcomité / Supervisor SST | V68 | Hecho |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Pendiente |
 | S15 | Alertas SOMA en la ficha de obra | — | Pendiente |
 | S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | Pendiente |
@@ -1000,6 +1000,12 @@ CREATE TABLE soma_comite_acta (
 **Frontend.** Sub-pestaña "Comité" con el requerimiento calculado, los miembros, las actas y los avisos.
 
 **Tests (`SomaComiteServiceImplTest`):** el umbral 19/20 y el aviso de paridad.
+
+**Notas S13**
+- Migración **V68** (`soma_comite_miembro` + `soma_comite_acta`).
+- Umbral 20 trabajadores activos (dedup por `personaId`, misma regla que S5). ≥ 20 → `SUBCOMITE`; < 20 (incluye 0) → `SUPERVISOR_SST`.
+- Avisos de paridad / presidente / secretario / supervisor único **no bloquean** altas. Van en `GET .../comite/requerimiento` (`avisos[]`). S15 consumirá el requerimiento (`SOMA_COMITE_REQUERIDO`).
+- No se toca S14, planilla ni `guardarTareo`.
 
 ---
 
