@@ -26,4 +26,7 @@ public interface ContratoCcRepository extends JpaRepository<ContratoCc, Long> {
             where c.id = :contratoId
             """)
     Optional<ContratoCc> findByContratoId(@Param("contratoId") Long contratoId);
+
+    @Query("select cc.contratoId from ContratoCc cc")
+    List<Long> findAllContratoIds();
 }

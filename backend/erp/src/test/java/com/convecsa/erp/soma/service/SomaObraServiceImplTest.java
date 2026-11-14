@@ -15,10 +15,14 @@ import com.convecsa.erp.construccion.entity.ProyectoResponsable;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.persona.entity.Persona;
+import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
+import com.convecsa.erp.soma.dto.SomaEstadisticaMesDTO;
 import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
 import com.convecsa.erp.soma.dto.SomaResumenObraDTO;
 import com.convecsa.erp.soma.service.impl.SomaObraServiceImpl;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +44,9 @@ class SomaObraServiceImplTest {
     @Mock
     private InterfazSomaHabilitacionService somaHabilitacionService;
 
+    @Mock
+    private InterfazSomaEstadisticaService somaEstadisticaService;
+
     @InjectMocks
     private SomaObraServiceImpl servicio;
 
@@ -54,6 +61,9 @@ class SomaObraServiceImplTest {
                         .emosPorVencer30Dias(1)
                         .filas(List.of())
                         .build());
+        lenient()
+                .when(somaEstadisticaService.porObra(eq(10L), org.mockito.ArgumentMatchers.anyInt()))
+                .thenReturn(estadisticaAnio());
     }
 
     @Test
@@ -73,6 +83,9 @@ class SomaObraServiceImplTest {
         assertEquals(2, resumen.getHabilitados());
         assertEquals(1, resumen.getBloqueados());
         assertEquals(1, resumen.getEmosPorVencer30Dias());
+        assertEquals(new BigDecimal("8.00"), resumen.getHhtMes());
+        assertEquals(new BigDecimal("5.00"), resumen.getIndiceFrecuencia());
+        assertEquals(12, resumen.getDiasSinAccidente());
     }
 
     @Test
@@ -99,6 +112,27 @@ class SomaObraServiceImplTest {
         proyecto.setCodigo("OB" + id);
         proyecto.setNombre("Obra " + id);
         return proyecto;
+    }
+
+    private static SomaEstadisticaAnioDTO estadisticaAnio() {
+        List<SomaEstadisticaMesDTO> meses = new ArrayList<>();
+        for (int mes = 1; mes <= 12; mes++) {
+            meses.add(SomaEstadisticaMesDTO.builder()
+                    .mes(mes)
+                    .hht(new BigDecimal("8.00"))
+                    .accidentes(1)
+                    .diasPerdidos(2)
+                    .indiceFrecuencia(new BigDecimal("5.00"))
+                    .indiceSeveridad(new BigDecimal("10.00"))
+                    .indiceAccidentabilidad(new BigDecimal("0.05"))
+                    .build());
+        }
+        return SomaEstadisticaAnioDTO.builder()
+                .anio(2026)
+                .meses(meses)
+                .acumulado(meses.get(0))
+                .diasSinAccidente(12)
+                .build();
     }
 
     private static ProyectoResponsable responsable(RolResponsableObra rol, String nombres, String apellidos) {

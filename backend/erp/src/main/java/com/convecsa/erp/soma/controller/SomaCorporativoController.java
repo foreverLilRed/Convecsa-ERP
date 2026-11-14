@@ -3,8 +3,10 @@ package com.convecsa.erp.soma.controller;
 import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
+import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
 import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
+import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class SomaCorporativoController {
 
     private final InterfazSomaEmoService somaEmoService;
     private final InterfazSomaCapacitacionService somaCapacitacionService;
+    private final InterfazSomaEstadisticaService somaEstadisticaService;
 
     @GetMapping("/emos")
     public List<SomaEmoDTO> listarEmos(
@@ -42,5 +45,10 @@ public class SomaCorporativoController {
     @GetMapping("/capacitaciones")
     public List<SomaCapacitacionDTO> listarCapacitaciones(@RequestParam Integer anio) {
         return somaCapacitacionService.listarCorporativo(anio);
+    }
+
+    @GetMapping("/estadisticas")
+    public SomaEstadisticaAnioDTO estadisticas(@RequestParam(required = false) Integer anio) {
+        return somaEstadisticaService.corporativo(anio);
     }
 }

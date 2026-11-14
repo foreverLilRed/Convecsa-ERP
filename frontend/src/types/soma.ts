@@ -6,6 +6,13 @@ export type SomaResumenObra = {
   habilitados: number
   bloqueados: number
   emosPorVencer30Dias: number
+  hhtMes: number
+  accidentesMes: number
+  diasPerdidosMes: number
+  indiceFrecuencia: number
+  indiceSeveridad: number
+  indiceAccidentabilidad: number
+  diasSinAccidente: number | null
 }
 
 export type EstadoHabilitacionSoma = 'HABILITADO' | 'BLOQUEADO'
@@ -652,4 +659,21 @@ export type SomaEventoDmOmitido = {
 export type SomaEventoSyncDm = {
   aplicados: string[]
   omitidos: SomaEventoDmOmitido[]
+}
+
+export type SomaEstadisticaMes = {
+  mes: number | null
+  hht: number
+  accidentes: number
+  diasPerdidos: number
+  indiceFrecuencia: number
+  indiceSeveridad: number
+  indiceAccidentabilidad: number
+}
+
+export type SomaEstadisticaAnio = {
+  anio: number
+  meses: SomaEstadisticaMes[]
+  acumulado: SomaEstadisticaMes
+  diasSinAccidente: number | null
 }

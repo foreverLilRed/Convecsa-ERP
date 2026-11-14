@@ -22,7 +22,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S9 | Inspecciones y hallazgos | V64 | Hecho |
 | S10 | Check-list pre-uso de equipos | V66 | Hecho |
 | S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Hecho |
-| S12 | Estadísticas HHT, IF, IS, IA | — | Pendiente |
+| S12 | Estadísticas HHT, IF, IS, IA | — | Hecho |
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Pendiente |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Pendiente |
 | S15 | Alertas SOMA en la ficha de obra | — | Pendiente |
@@ -945,6 +945,12 @@ CREATE TABLE soma_evento_hallazgo (
 - Un caso numérico conocido. Por ejemplo, HHT = 200 000, 1 accidente y 15 días dan IF = 5.00, IS = 75.00 e IA = 0.38.
 - HHT = 0.
 - El acumulado no es la suma de los índices mensuales.
+
+**Notas S12**
+- Sin migración (Flyway sigue en V67).
+- Zona `America/Lima` para mes del evento. HHT de obra = solo `tareo_cc_dia`; HHT corporativa = tareo de todas las obras + `asistencia_registro` excluyendo `contrato_cc` (sin doble conteo).
+- Accidentes computables: `ACCIDENTE_INCAPACITANTE` y `ACCIDENTE_MORTAL`. El acumulado anual usa totales ene–dic, no la suma de IF/IS/IA mensuales.
+- No se toca planilla (`CalculoNominaService` / `CalculoNominaCcService`) ni `guardarTareo`.
 
 ---
 

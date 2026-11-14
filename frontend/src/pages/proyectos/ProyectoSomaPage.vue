@@ -78,6 +78,7 @@ import {
   listarPolizasSctr,
   listarPreUsoObra,
   listarEventosObra,
+  obtenerEstadisticasObra,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
   levantarHallazgoObra,
@@ -110,6 +111,7 @@ import type {
   SomaPreUso,
   EstadoInvestigacionSst,
   GravedadIncapacidadSst,
+  SomaEstadisticaAnio,
   SomaEvento,
   TipoEventoSst,
   TipoTrabajoPetar,
@@ -359,6 +361,8 @@ const preUsoSaving = ref(false)
 const preUsoOperadorSearch = ref('')
 const preUsoChecklist = ref(CHECKLIST_PREUSO.map((item) => ({ ...item, valor: false })))
 const eventos = ref<SomaEvento[]>([])
+const estadisticas = ref<SomaEstadisticaAnio | null>(null)
+const anioEstadistica = ref(anioActual)
 const eventoSaving = ref(false)
 const eventoMedidaSaving = ref(false)
 const eventoEditandoId = ref<number | null>(null)
@@ -781,6 +785,11 @@ const avisoMtpeEvento = computed(
 const eventoEnInvestigacion = computed(
   () => !eventoEditandoId.value || eventoSeleccionado.value?.estadoInvestigacion === 'EN_INVESTIGACION',
 )
+
+const estadisticaMesActual = computed(() => {
+  const mes = new Date().getMonth() + 1
+  return estadisticas.value?.meses.find((item) => item.mes === mes) ?? null
+})
 
 const filasHabilitacion = computed(() => {
   const filas = habilitacion.value?.filas ?? []
@@ -1721,6 +1730,22 @@ function tipoEventoLabel(valor: TipoEventoSst): string {
   return TIPOS_EVENTO_SST.find((item) => item.valor === valor)?.label ?? valor
 }
 
+function fmtIndice(valor: number | string | null | undefined): string {
+  const nro = Number(valor)
+  return Number.isFinite(nro) ? nro.toFixed(2) : '0.00'
+}
+
+async function cargarEstadisticas() {
+  if (!Number.isFinite(proyectoId.value) || proyectoId.value <= 0) {
+    return
+  }
+  try {
+    estadisticas.value = await obtenerEstadisticasObra(proyectoId.value, anioEstadistica.value)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudieron cargar las estadísticas.')
+  }
+}
+
 function estadoInvestigacionLabel(valor: EstadoInvestigacionSst): string {
   return valor === 'CERRADO' ? 'Cerrado' : 'En investigación'
 }
@@ -2163,6 +2188,7 @@ async function load() {
       listaEquipos,
       listaPreUsos,
       listaEventos,
+      listaEstadisticas,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -2189,6 +2215,7 @@ async function load() {
       listarEquiposObra(proyectoId.value).catch(() => []),
       listarPreUsoObra(proyectoId.value),
       listarEventosObra(proyectoId.value),
+      obtenerEstadisticasObra(proyectoId.value, anioEstadistica.value),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -2211,6 +2238,7 @@ async function load() {
     equiposObra.value = listaEquipos
     preUsos.value = listaPreUsos
     eventos.value = listaEventos
+    estadisticas.value = listaEstadisticas
     if (eventoEditandoId.value) {
       const actual = listaEventos.find((item) => item.id === eventoEditandoId.value)
       if (actual) {
@@ -2249,6 +2277,7 @@ async function load() {
     equiposObra.value = []
     preUsos.value = []
     eventos.value = []
+    estadisticas.value = null
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -2813,6 +2842,32 @@ onMounted(() => {
             <div>
               <dt class="text-sm font-medium text-slate-500">EMO por vencer (30 días)</dt>
               <dd class="mt-1 text-sm text-slate-900">{{ resumen?.emosPorVencer30Dias ?? 0 }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">HHT del mes</dt>
+              <dd class="mt-1 text-sm text-slate-900">{{ fmtIndice(resumen?.hhtMes) }}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">IF / IS / IA</dt>
+              <dd class="mt-1 text-sm text-slate-900">
+                {{ fmtIndice(resumen?.indiceFrecuencia) }}
+                /
+                {{ fmtIndice(resumen?.indiceSeveridad) }}
+                /
+                {{ fmtIndice(resumen?.indiceAccidentabilidad) }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">Accidentes / días perdidos</dt>
+              <dd class="mt-1 text-sm text-slate-900">
+                {{ resumen?.accidentesMes ?? 0 }} / {{ resumen?.diasPerdidosMes ?? 0 }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-500">Días sin accidente incapacitante</dt>
+              <dd class="mt-1 text-sm text-slate-900">
+                {{ resumen?.diasSinAccidente == null ? 'Sin accidentes registrados' : resumen.diasSinAccidente }}
+              </dd>
             </div>
           </dl>
         </div>
@@ -4923,6 +4978,87 @@ onMounted(() => {
           </div>
         </div>
         <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-base font-semibold text-palette-navy">Estadísticas SST</h3>
+                <p class="mt-1 text-sm text-slate-500">
+                  HHT del tareo de la obra. IF, IS e IA con accidentes incapacitantes y mortales. El acumulado no suma índices mensuales.
+                </p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-slate-700" for="soma-est-anio">Año</label>
+                <select
+                  id="soma-est-anio"
+                  v-model.number="anioEstadistica"
+                  :class="selectClass"
+                  class="mt-1.5"
+                  @change="cargarEstadisticas"
+                >
+                  <option v-for="anio in ANIOS" :key="anio" :value="anio">{{ anio }}</option>
+                </select>
+              </div>
+            </div>
+            <dl class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div>
+                <dt class="text-sm font-medium text-slate-500">HHT del mes</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">{{ fmtIndice(estadisticaMesActual?.hht) }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">IF</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">{{ fmtIndice(estadisticaMesActual?.indiceFrecuencia) }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">IS</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">{{ fmtIndice(estadisticaMesActual?.indiceSeveridad) }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">IA</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">{{ fmtIndice(estadisticaMesActual?.indiceAccidentabilidad) }}</dd>
+              </div>
+              <div>
+                <dt class="text-sm font-medium text-slate-500">Días sin accidente</dt>
+                <dd class="mt-1 text-lg font-semibold text-palette-navy">
+                  {{ estadisticas?.diasSinAccidente == null ? '—' : estadisticas.diasSinAccidente }}
+                </dd>
+              </div>
+            </dl>
+            <Table class="mt-4">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mes</TableHead>
+                  <TableHead>HHT</TableHead>
+                  <TableHead>Accidentes</TableHead>
+                  <TableHead>Días perdidos</TableHead>
+                  <TableHead>IF</TableHead>
+                  <TableHead>IS</TableHead>
+                  <TableHead>IA</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in estadisticas?.meses ?? []" :key="fila.mes ?? 0">
+                  <TableCell>{{ fila.mes ? mesLabel(fila.mes) : '—' }}</TableCell>
+                  <TableCell>{{ fmtIndice(fila.hht) }}</TableCell>
+                  <TableCell>{{ fila.accidentes }}</TableCell>
+                  <TableCell>{{ fila.diasPerdidos }}</TableCell>
+                  <TableCell>{{ fmtIndice(fila.indiceFrecuencia) }}</TableCell>
+                  <TableCell>{{ fmtIndice(fila.indiceSeveridad) }}</TableCell>
+                  <TableCell>{{ fmtIndice(fila.indiceAccidentabilidad) }}</TableCell>
+                </TableRow>
+                <TableRow v-if="estadisticas?.acumulado">
+                  <TableCell class="font-semibold">Acumulado</TableCell>
+                  <TableCell class="font-semibold">{{ fmtIndice(estadisticas.acumulado.hht) }}</TableCell>
+                  <TableCell class="font-semibold">{{ estadisticas.acumulado.accidentes }}</TableCell>
+                  <TableCell class="font-semibold">{{ estadisticas.acumulado.diasPerdidos }}</TableCell>
+                  <TableCell class="font-semibold">{{ fmtIndice(estadisticas.acumulado.indiceFrecuencia) }}</TableCell>
+                  <TableCell class="font-semibold">{{ fmtIndice(estadisticas.acumulado.indiceSeveridad) }}</TableCell>
+                  <TableCell class="font-semibold">{{ fmtIndice(estadisticas.acumulado.indiceAccidentabilidad) }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!estadisticas" :colspan="7">Sin estadísticas.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
           <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>

@@ -11,4 +11,8 @@ public enum TipoEventoSst {
     public boolean esAccidenteOEnfermedad() {
         return name().startsWith("ACCIDENTE_") || this == ENFERMEDAD_OCUPACIONAL;
     }
+
+    public boolean esComputableEstadistica() {
+        return this == ACCIDENTE_INCAPACITANTE || this == ACCIDENTE_MORTAL;
+    }
 }

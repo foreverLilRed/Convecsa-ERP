@@ -23,6 +23,7 @@ import type {
   SomaEvento,
   SomaEventoRequest,
   SomaEventoSyncDm,
+  SomaEstadisticaAnio,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEmoRequest,
@@ -399,4 +400,9 @@ export function sincronizarDmEventoObra(proyectoId: number, eventoId: number): P
   return apiRequest<SomaEventoSyncDm>(`/api/proyectos/${proyectoId}/soma/eventos/${eventoId}/sincronizar-dm`, {
     method: 'POST',
   })
+}
+
+export function obtenerEstadisticasObra(proyectoId: number, anio: number): Promise<SomaEstadisticaAnio> {
+  const params = new URLSearchParams({ anio: String(anio) })
+  return apiRequest<SomaEstadisticaAnio>(`/api/proyectos/${proyectoId}/soma/estadisticas?${params}`)
 }

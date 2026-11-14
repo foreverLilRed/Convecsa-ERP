@@ -6,11 +6,15 @@ import com.convecsa.erp.construccion.entity.Proyecto;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.repository.ProyectoResponsableRepository;
 import com.convecsa.erp.persona.entity.Persona;
+import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
+import com.convecsa.erp.soma.dto.SomaEstadisticaMesDTO;
 import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
 import com.convecsa.erp.soma.dto.SomaResumenObraDTO;
+import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
 import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SomaObraServiceImpl implements InterfazSomaObraService {
 
+    private static final ZoneId ZONA_LIMA = ZoneId.of("America/Lima");
+
     private final ProyectoRepository proyectoRepository;
     private final ProyectoResponsableRepository proyectoResponsableRepository;
     private final InterfazSomaHabilitacionService somaHabilitacionService;
+    private final InterfazSomaEstadisticaService somaEstadisticaService;
 
     @Override
     @Transactional(readOnly = true)
@@ -33,7 +40,10 @@ public class SomaObraServiceImpl implements InterfazSomaObraService {
                 .map(fila -> nombreCompleto(fila.getPersona()))
                 .findFirst()
                 .orElse(null);
-        SomaHabilitacionDTO semaforo = somaHabilitacionService.evaluarObra(proyectoId, LocalDate.now());
+        LocalDate hoy = LocalDate.now(ZONA_LIMA);
+        SomaHabilitacionDTO semaforo = somaHabilitacionService.evaluarObra(proyectoId, hoy);
+        SomaEstadisticaAnioDTO stats = somaEstadisticaService.porObra(proyectoId, hoy.getYear());
+        SomaEstadisticaMesDTO mes = stats.getMeses().get(hoy.getMonthValue() - 1);
         return SomaResumenObraDTO.builder()
                 .proyectoId(proyecto.getId())
                 .codigoObra(proyecto.getCodigo())
@@ -42,6 +52,13 @@ public class SomaObraServiceImpl implements InterfazSomaObraService {
                 .habilitados(semaforo.getHabilitados())
                 .bloqueados(semaforo.getBloqueados())
                 .emosPorVencer30Dias(semaforo.getEmosPorVencer30Dias())
+                .hhtMes(mes.getHht())
+                .accidentesMes(mes.getAccidentes())
+                .diasPerdidosMes(mes.getDiasPerdidos())
+                .indiceFrecuencia(mes.getIndiceFrecuencia())
+                .indiceSeveridad(mes.getIndiceSeveridad())
+                .indiceAccidentabilidad(mes.getIndiceAccidentabilidad())
+                .diasSinAccidente(stats.getDiasSinAccidente())
                 .build();
     }
 

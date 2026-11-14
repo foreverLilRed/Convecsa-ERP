@@ -32,6 +32,7 @@ import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
 import com.convecsa.erp.soma.dto.SomaEntregaEppRequest;
 import com.convecsa.erp.soma.dto.SomaEppItemEstadoRequest;
 import com.convecsa.erp.soma.dto.SomaEppMaterialDTO;
+import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
 import com.convecsa.erp.soma.dto.SomaResumenObraDTO;
 import com.convecsa.erp.soma.dto.SomaSctrNominaGuardarRequest;
 import com.convecsa.erp.soma.dto.SomaSctrPolizaDTO;
@@ -48,6 +49,7 @@ import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaPetarService;
 import com.convecsa.erp.soma.service.InterfazSomaPreUsoService;
 import com.convecsa.erp.soma.service.InterfazSomaEventoService;
+import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
@@ -85,10 +87,17 @@ public class SomaObraController {
     private final InterfazSomaInspeccionService somaInspeccionService;
     private final InterfazSomaPreUsoService somaPreUsoService;
     private final InterfazSomaEventoService somaEventoService;
+    private final InterfazSomaEstadisticaService somaEstadisticaService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
         return somaObraService.obtenerResumen(proyectoId);
+    }
+
+    @GetMapping("/estadisticas")
+    public SomaEstadisticaAnioDTO estadisticas(
+            @PathVariable Long proyectoId, @RequestParam(required = false) Integer anio) {
+        return somaEstadisticaService.porObra(proyectoId, anio);
     }
 
     @GetMapping("/habilitacion")
