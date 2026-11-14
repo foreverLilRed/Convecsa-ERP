@@ -52,6 +52,11 @@ import {
   crearHallazgoObra,
   crearPetarObra,
   crearPreUsoObra,
+  crearEventoObra,
+  actualizarEventoObra,
+  agregarHallazgoEventoObra,
+  cerrarEventoObra,
+  sincronizarDmEventoObra,
   crearInspeccionObra,
   crearEntregaEpp,
   crearIpercObra,
@@ -72,6 +77,7 @@ import {
   listarPetarObra,
   listarPolizasSctr,
   listarPreUsoObra,
+  listarEventosObra,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
   levantarHallazgoObra,
@@ -102,6 +108,10 @@ import type {
   SomaPetarRequest,
   ResultadoPreUsoEquipo,
   SomaPreUso,
+  EstadoInvestigacionSst,
+  GravedadIncapacidadSst,
+  SomaEvento,
+  TipoEventoSst,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEntregaEpp,
@@ -119,7 +129,7 @@ import type {
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso' | 'eventos'
 type PetarChecklistDraft = { clave: string; etiqueta: string; valor: boolean }
 type PetarTrabajadorDraft = { personaId: number; rolEnTarea: string }
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
@@ -264,6 +274,21 @@ const ESTADOS_HALLAZGO: { valor: EstadoHallazgoSoma | ''; label: string }[] = [
   { valor: 'LEVANTADO', label: 'Levantado' },
 ]
 
+const TIPOS_EVENTO_SST: { valor: TipoEventoSst; label: string }[] = [
+  { valor: 'INCIDENTE', label: 'Incidente' },
+  { valor: 'INCIDENTE_PELIGROSO', label: 'Incidente peligroso' },
+  { valor: 'ACCIDENTE_LEVE', label: 'Accidente leve' },
+  { valor: 'ACCIDENTE_INCAPACITANTE', label: 'Accidente incapacitante' },
+  { valor: 'ACCIDENTE_MORTAL', label: 'Accidente mortal' },
+  { valor: 'ENFERMEDAD_OCUPACIONAL', label: 'Enfermedad ocupacional' },
+]
+
+const GRAVEDADES_INCAPACIDAD: { valor: GravedadIncapacidadSst; label: string }[] = [
+  { valor: 'TOTAL_TEMPORAL', label: 'Total temporal' },
+  { valor: 'PARCIAL_PERMANENTE', label: 'Parcial permanente' },
+  { valor: 'TOTAL_PERMANENTE', label: 'Total permanente' },
+]
+
 const route = useRoute()
 const proyectoId = computed(() => Number(route.params.id))
 const tab = ref<TabSoma>('habilitacion')
@@ -333,6 +358,18 @@ const preUsos = ref<SomaPreUso[]>([])
 const preUsoSaving = ref(false)
 const preUsoOperadorSearch = ref('')
 const preUsoChecklist = ref(CHECKLIST_PREUSO.map((item) => ({ ...item, valor: false })))
+const eventos = ref<SomaEvento[]>([])
+const eventoSaving = ref(false)
+const eventoMedidaSaving = ref(false)
+const eventoEditandoId = ref<number | null>(null)
+const eventoPersonaSearch = ref('')
+const eventoMedidaResponsableSearch = ref('')
+const causaDraft = reactive({
+  actos: '',
+  condiciones: '',
+  factoresPersonales: '',
+  factoresTrabajo: '',
+})
 
 const capForm = reactive({
   tipo: 'INDUCCION_HOMBRE_NUEVO' as TipoCapacitacionSoma,
@@ -407,6 +444,41 @@ const petarForm = reactive({
 
 const hallazgoForm = reactive({
   inspeccionId: '',
+  clasificacion: 'CONDICION_SUBESTANDAR' as ClasificacionHallazgoSoma,
+  potencialPerdida: 'MEDIO_MODERADO' as PotencialPerdidaSoma,
+  descripcion: '',
+  ubicacion: '',
+  accionCorrectiva: '',
+  responsablePersonaId: null as number | null,
+  fechaDeteccion: hoyIso(),
+  fechaLimite: hoyIso(),
+  paralizacionFrente: false,
+})
+
+const eventoForm = reactive({
+  tipoEvento: 'INCIDENTE' as TipoEventoSst,
+  gravedadIncapacidad: '' as GravedadIncapacidadSst | '',
+  fechaHora: '',
+  lugarExacto: '',
+  partidaId: '',
+  personaAfectadaId: null as number | null,
+  subcontratoId: '',
+  descripcionEvento: '',
+  parteCuerpoLesionada: '',
+  naturalezaLesion: '',
+  agenteCausante: '',
+  numeroCertificadoDm: '',
+  diasCargoEstadistico: '0',
+  fechaInicioDm: '',
+  fechaFinDm: '',
+  notificadoMtpe: false,
+  causasActos: [] as string[],
+  causasCondiciones: [] as string[],
+  causasFactoresPersonales: [] as string[],
+  causasFactoresTrabajo: [] as string[],
+})
+
+const eventoMedidaForm = reactive({
   clasificacion: 'CONDICION_SUBESTANDAR' as ClasificacionHallazgoSoma,
   potencialPerdida: 'MEDIO_MODERADO' as PotencialPerdidaSoma,
   descripcion: '',
@@ -669,6 +741,46 @@ const opcionesPreUsoOperador = computed(() => {
     `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
   )
 })
+
+const eventoPersonaSeleccionada = computed(
+  () => personal.value.find((item) => item.personaId === eventoForm.personaAfectadaId) ?? null,
+)
+
+const opcionesEventoPersona = computed(() => {
+  const q = eventoPersonaSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const eventoMedidaResponsableSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === eventoMedidaForm.responsablePersonaId) ?? null,
+)
+
+const opcionesEventoMedidaResponsable = computed(() => {
+  const q = eventoMedidaResponsableSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const eventoSeleccionado = computed(
+  () => eventos.value.find((item) => item.id === eventoEditandoId.value) ?? null,
+)
+
+const avisoMtpeEvento = computed(
+  () => eventoForm.tipoEvento === 'INCIDENTE_PELIGROSO' || eventoForm.tipoEvento === 'ACCIDENTE_MORTAL',
+)
+
+const eventoEnInvestigacion = computed(
+  () => !eventoEditandoId.value || eventoSeleccionado.value?.estadoInvestigacion === 'EN_INVESTIGACION',
+)
 
 const filasHabilitacion = computed(() => {
   const filas = habilitacion.value?.filas ?? []
@@ -1584,11 +1696,339 @@ async function onRegistrarPreUso() {
   }
 }
 
+function ahoraLocalDatetime(): string {
+  const fecha = new Date()
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  const hora = String(fecha.getHours()).padStart(2, '0')
+  const minuto = String(fecha.getMinutes()).padStart(2, '0')
+  return `${fecha.getFullYear()}-${mes}-${dia}T${hora}:${minuto}`
+}
+
+function isoADatetimeLocal(iso: string): string {
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) {
+    return ahoraLocalDatetime()
+  }
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  const hora = String(fecha.getHours()).padStart(2, '0')
+  const minuto = String(fecha.getMinutes()).padStart(2, '0')
+  return `${fecha.getFullYear()}-${mes}-${dia}T${hora}:${minuto}`
+}
+
+function tipoEventoLabel(valor: TipoEventoSst): string {
+  return TIPOS_EVENTO_SST.find((item) => item.valor === valor)?.label ?? valor
+}
+
+function estadoInvestigacionLabel(valor: EstadoInvestigacionSst): string {
+  return valor === 'CERRADO' ? 'Cerrado' : 'En investigación'
+}
+
+function onEventoPersonaChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  eventoForm.personaAfectadaId = Number.isFinite(id) ? id : null
+}
+
+function onEventoMedidaResponsableChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  eventoMedidaForm.responsablePersonaId = Number.isFinite(id) ? id : null
+}
+
+function agregarCausa(lista: string[], clave: keyof typeof causaDraft) {
+  const valor = causaDraft[clave].trim()
+  if (!valor) {
+    return
+  }
+  lista.push(valor)
+  causaDraft[clave] = ''
+}
+
+function quitarCausa(lista: string[], indice: number) {
+  lista.splice(indice, 1)
+}
+
+function resetEventoMedidaForm() {
+  eventoMedidaForm.clasificacion = 'CONDICION_SUBESTANDAR'
+  eventoMedidaForm.potencialPerdida = 'MEDIO_MODERADO'
+  eventoMedidaForm.descripcion = ''
+  eventoMedidaForm.ubicacion = ''
+  eventoMedidaForm.accionCorrectiva = ''
+  eventoMedidaForm.responsablePersonaId = null
+  eventoMedidaForm.fechaDeteccion = hoyIso()
+  eventoMedidaForm.fechaLimite = hoyIso()
+  eventoMedidaForm.paralizacionFrente = false
+  eventoMedidaResponsableSearch.value = ''
+}
+
+function resetEventoForm() {
+  eventoEditandoId.value = null
+  eventoForm.tipoEvento = 'INCIDENTE'
+  eventoForm.gravedadIncapacidad = ''
+  eventoForm.fechaHora = ahoraLocalDatetime()
+  eventoForm.lugarExacto = ''
+  eventoForm.partidaId = ''
+  eventoForm.personaAfectadaId = null
+  eventoForm.subcontratoId = ''
+  eventoForm.descripcionEvento = ''
+  eventoForm.parteCuerpoLesionada = ''
+  eventoForm.naturalezaLesion = ''
+  eventoForm.agenteCausante = ''
+  eventoForm.numeroCertificadoDm = ''
+  eventoForm.diasCargoEstadistico = '0'
+  eventoForm.fechaInicioDm = ''
+  eventoForm.fechaFinDm = ''
+  eventoForm.notificadoMtpe = false
+  eventoForm.causasActos = []
+  eventoForm.causasCondiciones = []
+  eventoForm.causasFactoresPersonales = []
+  eventoForm.causasFactoresTrabajo = []
+  causaDraft.actos = ''
+  causaDraft.condiciones = ''
+  causaDraft.factoresPersonales = ''
+  causaDraft.factoresTrabajo = ''
+  eventoPersonaSearch.value = ''
+  resetEventoMedidaForm()
+}
+
+function cargarEventoEnForm(fila: SomaEvento) {
+  eventoEditandoId.value = fila.id
+  eventoForm.tipoEvento = fila.tipoEvento
+  eventoForm.gravedadIncapacidad = fila.gravedadIncapacidad ?? ''
+  eventoForm.fechaHora = isoADatetimeLocal(fila.fechaHora)
+  eventoForm.lugarExacto = fila.lugarExacto
+  eventoForm.partidaId = fila.partidaId ? String(fila.partidaId) : ''
+  eventoForm.personaAfectadaId = fila.personaAfectadaId
+  eventoForm.subcontratoId = fila.subcontratoId ? String(fila.subcontratoId) : ''
+  eventoForm.descripcionEvento = fila.descripcionEvento
+  eventoForm.parteCuerpoLesionada = fila.parteCuerpoLesionada ?? ''
+  eventoForm.naturalezaLesion = fila.naturalezaLesion ?? ''
+  eventoForm.agenteCausante = fila.agenteCausante ?? ''
+  eventoForm.numeroCertificadoDm = fila.numeroCertificadoDm ?? ''
+  eventoForm.diasCargoEstadistico = String(fila.diasCargoEstadistico ?? 0)
+  eventoForm.fechaInicioDm = fila.fechaInicioDm ?? ''
+  eventoForm.fechaFinDm = fila.fechaFinDm ?? ''
+  eventoForm.notificadoMtpe = fila.notificadoMtpe
+  eventoForm.causasActos = [...(fila.causasInmediatas?.actos ?? [])]
+  eventoForm.causasCondiciones = [...(fila.causasInmediatas?.condiciones ?? [])]
+  eventoForm.causasFactoresPersonales = [...(fila.causasBasicas?.factoresPersonales ?? [])]
+  eventoForm.causasFactoresTrabajo = [...(fila.causasBasicas?.factoresTrabajo ?? [])]
+  eventoPersonaSearch.value = ''
+  resetEventoMedidaForm()
+}
+
+function payloadEvento() {
+  const cargo = Math.trunc(n(eventoForm.diasCargoEstadistico))
+  return {
+    tipoEvento: eventoForm.tipoEvento,
+    gravedadIncapacidad:
+      eventoForm.tipoEvento === 'ACCIDENTE_INCAPACITANTE' && eventoForm.gravedadIncapacidad
+        ? eventoForm.gravedadIncapacidad
+        : null,
+    fechaHora: new Date(eventoForm.fechaHora).toISOString(),
+    lugarExacto: eventoForm.lugarExacto.trim(),
+    partidaId: eventoForm.partidaId ? Number(eventoForm.partidaId) : null,
+    personaAfectadaId: eventoForm.personaAfectadaId,
+    subcontratoId: eventoForm.subcontratoId ? Number(eventoForm.subcontratoId) : null,
+    descripcionEvento: eventoForm.descripcionEvento.trim(),
+    parteCuerpoLesionada: eventoForm.parteCuerpoLesionada.trim() || null,
+    naturalezaLesion: eventoForm.naturalezaLesion.trim() || null,
+    agenteCausante: eventoForm.agenteCausante.trim() || null,
+    numeroCertificadoDm: eventoForm.numeroCertificadoDm.trim() || null,
+    diasCargoEstadistico: Number.isFinite(cargo) ? cargo : 0,
+    fechaInicioDm: eventoForm.fechaInicioDm || null,
+    fechaFinDm: eventoForm.fechaFinDm || null,
+    notificadoMtpe: eventoForm.notificadoMtpe,
+    causasInmediatas: {
+      actos: [...eventoForm.causasActos],
+      condiciones: [...eventoForm.causasCondiciones],
+    },
+    causasBasicas: {
+      factoresPersonales: [...eventoForm.causasFactoresPersonales],
+      factoresTrabajo: [...eventoForm.causasFactoresTrabajo],
+    },
+  }
+}
+
+async function onGuardarEvento() {
+  if (!eventoForm.fechaHora) {
+    toast.error('Indique la fecha y hora.')
+    return
+  }
+  if (Number.isNaN(new Date(eventoForm.fechaHora).getTime())) {
+    toast.error('La fecha y hora no son válidas.')
+    return
+  }
+  if (!eventoForm.lugarExacto.trim()) {
+    toast.error('Indique el lugar exacto.')
+    return
+  }
+  if (!eventoForm.descripcionEvento.trim()) {
+    toast.error('Indique la descripción del evento.')
+    return
+  }
+  if (
+    eventoForm.tipoEvento === 'ACCIDENTE_INCAPACITANTE' &&
+    !eventoForm.gravedadIncapacidad
+  ) {
+    toast.error('Indique la gravedad de la incapacidad.')
+    return
+  }
+  if (
+    eventoForm.tipoEvento !== 'INCIDENTE' &&
+    !eventoForm.personaAfectadaId &&
+    !eventoForm.subcontratoId
+  ) {
+    toast.error('Indique la persona afectada o el subcontrato.')
+    return
+  }
+  if (eventoForm.fechaInicioDm && eventoForm.fechaFinDm && eventoForm.fechaFinDm < eventoForm.fechaInicioDm) {
+    toast.error('La fecha fin de DM no puede ser anterior a la de inicio.')
+    return
+  }
+  eventoSaving.value = true
+  try {
+    const request = payloadEvento()
+    const guardado = eventoEditandoId.value
+      ? await actualizarEventoObra(proyectoId.value, eventoEditandoId.value, request)
+      : await crearEventoObra(proyectoId.value, request)
+    toast.success(eventoEditandoId.value ? 'Evento actualizado.' : 'Evento registrado.')
+    eventos.value = await listarEventosObra(proyectoId.value)
+    const actual = eventos.value.find((item) => item.id === guardado.id)
+    if (actual) {
+      cargarEventoEnForm(actual)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo guardar el evento.')
+  } finally {
+    eventoSaving.value = false
+  }
+}
+
+async function onAgregarMedidaEvento() {
+  if (!eventoEditandoId.value) {
+    toast.error('Guarde el evento antes de agregar medidas.')
+    return
+  }
+  if (!eventoMedidaForm.descripcion.trim()) {
+    toast.error('Indique la descripción de la medida.')
+    return
+  }
+  if (!eventoMedidaForm.accionCorrectiva.trim()) {
+    toast.error('Indique la acción correctiva.')
+    return
+  }
+  if (!eventoMedidaForm.fechaDeteccion || !eventoMedidaForm.fechaLimite) {
+    toast.error('Indique las fechas de detección y límite.')
+    return
+  }
+  if (eventoMedidaForm.fechaLimite < eventoMedidaForm.fechaDeteccion) {
+    toast.error('La fecha límite no puede ser anterior a la detección.')
+    return
+  }
+  if (eventoMedidaForm.paralizacionFrente && eventoMedidaForm.potencialPerdida !== 'ALTO_GRAVE') {
+    toast.error('La paralización de frente exige potencial alto / grave.')
+    return
+  }
+  eventoMedidaSaving.value = true
+  try {
+    await agregarHallazgoEventoObra(proyectoId.value, eventoEditandoId.value, {
+      inspeccionId: null,
+      clasificacion: eventoMedidaForm.clasificacion,
+      potencialPerdida: eventoMedidaForm.potencialPerdida,
+      descripcion: eventoMedidaForm.descripcion.trim(),
+      ubicacion: eventoMedidaForm.ubicacion.trim() || null,
+      accionCorrectiva: eventoMedidaForm.accionCorrectiva.trim(),
+      responsablePersonaId: eventoMedidaForm.responsablePersonaId,
+      fechaDeteccion: eventoMedidaForm.fechaDeteccion,
+      fechaLimite: eventoMedidaForm.fechaLimite,
+      paralizacionFrente: eventoMedidaForm.paralizacionFrente,
+    })
+    toast.success('Medida registrada.')
+    resetEventoMedidaForm()
+    eventos.value = await listarEventosObra(proyectoId.value)
+    const actual = eventos.value.find((item) => item.id === eventoEditandoId.value)
+    if (actual) {
+      cargarEventoEnForm(actual)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar la medida.')
+  } finally {
+    eventoMedidaSaving.value = false
+  }
+}
+
+async function onCerrarEvento() {
+  if (!eventoEditandoId.value) {
+    toast.error('Seleccione un evento.')
+    return
+  }
+  eventoSaving.value = true
+  try {
+    const cerrado = await cerrarEventoObra(proyectoId.value, eventoEditandoId.value)
+    toast.success('Investigación cerrada.')
+    eventos.value = await listarEventosObra(proyectoId.value)
+    const actual = eventos.value.find((item) => item.id === cerrado.id)
+    if (actual) {
+      cargarEventoEnForm(actual)
+    }
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo cerrar la investigación.')
+  } finally {
+    eventoSaving.value = false
+  }
+}
+
+async function onSincronizarDmEvento() {
+  if (!eventoEditandoId.value) {
+    toast.error('Seleccione un evento.')
+    return
+  }
+  eventoSaving.value = true
+  try {
+    const resultado = await sincronizarDmEventoObra(proyectoId.value, eventoEditandoId.value)
+    const aplicados = resultado.aplicados.length
+    const omitidos = resultado.omitidos
+      .map((item) => `${item.fecha} (${item.motivo})`)
+      .join(', ')
+    toast.success(
+      omitidos
+        ? `Descanso médico: ${aplicados} aplicados. Omitidos: ${omitidos}.`
+        : `Descanso médico: ${aplicados} aplicados.`,
+    )
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo sincronizar el descanso médico.')
+  } finally {
+    eventoSaving.value = false
+  }
+}
+
 watch(
   () => hallazgoForm.potencialPerdida,
   (valor) => {
     if (valor !== 'ALTO_GRAVE') {
       hallazgoForm.paralizacionFrente = false
+    }
+  },
+)
+
+watch(
+  () => eventoMedidaForm.potencialPerdida,
+  (valor) => {
+    if (valor !== 'ALTO_GRAVE') {
+      eventoMedidaForm.paralizacionFrente = false
+    }
+  },
+)
+
+watch(
+  () => eventoForm.tipoEvento,
+  (valor) => {
+    if (valor !== 'ACCIDENTE_INCAPACITANTE') {
+      eventoForm.gravedadIncapacidad = ''
+    }
+    if (valor !== 'INCIDENTE_PELIGROSO' && valor !== 'ACCIDENTE_MORTAL') {
+      eventoForm.notificadoMtpe = false
     }
   },
 )
@@ -1722,6 +2162,7 @@ async function load() {
       listaSubcontratos,
       listaEquipos,
       listaPreUsos,
+      listaEventos,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -1747,6 +2188,7 @@ async function load() {
       listarSubcontratosObra(proyectoId.value).catch(() => []),
       listarEquiposObra(proyectoId.value).catch(() => []),
       listarPreUsoObra(proyectoId.value),
+      listarEventosObra(proyectoId.value),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -1768,6 +2210,13 @@ async function load() {
     subcontratos.value = listaSubcontratos
     equiposObra.value = listaEquipos
     preUsos.value = listaPreUsos
+    eventos.value = listaEventos
+    if (eventoEditandoId.value) {
+      const actual = listaEventos.find((item) => item.id === eventoEditandoId.value)
+      if (actual) {
+        cargarEventoEnForm(actual)
+      }
+    }
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -1799,6 +2248,7 @@ async function load() {
     subcontratos.value = []
     equiposObra.value = []
     preUsos.value = []
+    eventos.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -2234,6 +2684,9 @@ watch([filtroPartidaIperc, incluirInactivosIperc], () => {
 })
 
 onMounted(() => {
+  if (!eventoForm.fechaHora) {
+    eventoForm.fechaHora = ahoraLocalDatetime()
+  }
   void load()
 })
 </script>
@@ -2253,6 +2706,7 @@ onMounted(() => {
         <TabsTrigger value="petar" :class="tabTriggerClass">PETAR</TabsTrigger>
         <TabsTrigger value="inspecciones" :class="tabTriggerClass">Inspecciones</TabsTrigger>
         <TabsTrigger value="preUso" :class="tabTriggerClass">Pre-uso</TabsTrigger>
+        <TabsTrigger value="eventos" :class="tabTriggerClass">Eventos</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -4455,6 +4909,405 @@ onMounted(() => {
                   <TableCell>{{ fila.horometroLectura ?? '—' }}</TableCell>
                 </TableRow>
                 <TableEmpty v-if="!preUsosDelDia.length" :colspan="4">Sin pre-uso en esta fecha.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="eventos" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 class="text-base font-semibold text-palette-navy">
+                  {{ eventoEditandoId ? `Evento N° ${eventoSeleccionado?.numero ?? ''}` : 'Registrar evento SST' }}
+                </h3>
+                <p class="mt-1 text-sm text-slate-500">
+                  Datos, lesión, causas TASC y medidas correctivas. El descanso médico solo se escribe en tareo BORRADOR.
+                </p>
+              </div>
+              <Button v-if="eventoEditandoId" type="button" variant="outline" @click="resetEventoForm">
+                Nuevo evento
+              </Button>
+            </div>
+
+            <form class="mt-4 space-y-6" @submit.prevent="onGuardarEvento">
+              <section class="space-y-3">
+                <h4 class="text-sm font-semibold text-palette-navy">Datos</h4>
+                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-tipo">Tipo</label>
+                    <select id="soma-evt-tipo" v-model="eventoForm.tipoEvento" :class="selectClass" class="mt-1.5" required>
+                      <option v-for="item in TIPOS_EVENTO_SST" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                    </select>
+                  </div>
+                  <div v-if="eventoForm.tipoEvento === 'ACCIDENTE_INCAPACITANTE'">
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-grav">Gravedad</label>
+                    <select id="soma-evt-grav" v-model="eventoForm.gravedadIncapacidad" :class="selectClass" class="mt-1.5" required>
+                      <option value="">Seleccione</option>
+                      <option v-for="item in GRAVEDADES_INCAPACIDAD" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-fecha">Fecha y hora</label>
+                    <Input id="soma-evt-fecha" v-model="eventoForm.fechaHora" type="datetime-local" :class="inputClass" class="mt-1.5" required />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-lugar">Lugar exacto</label>
+                    <Input id="soma-evt-lugar" v-model="eventoForm.lugarExacto" :class="inputClass" class="mt-1.5" maxlength="200" required />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-partida">Partida</label>
+                    <select id="soma-evt-partida" v-model="eventoForm.partidaId" :class="selectClass" class="mt-1.5">
+                      <option value="">Sin partida</option>
+                      <option v-for="partida in partidasVigentes" :key="partida.id" :value="String(partida.id)">
+                        {{ partida.codigo }} · {{ partida.descripcion }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-persona">Persona afectada</label>
+                    <Combobox
+                      :model-value="eventoForm.personaAfectadaId ?? undefined"
+                      ignore-filter
+                      class="mt-1.5 min-w-0 w-full"
+                      @update:model-value="onEventoPersonaChange"
+                    >
+                      <ComboboxAnchor class="min-w-0 w-full">
+                        <ComboboxTrigger as-child>
+                          <Button
+                            id="soma-evt-persona"
+                            variant="outline"
+                            class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                            type="button"
+                          >
+                            <span
+                              class="min-w-0 flex-1 truncate text-left"
+                              :class="personaLabel(eventoPersonaSeleccionada) ? 'text-slate-900' : 'text-slate-400'"
+                            >
+                              {{ personaLabel(eventoPersonaSeleccionada) || 'Buscar personal de la obra' }}
+                            </span>
+                            <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                          </Button>
+                        </ComboboxTrigger>
+                      </ComboboxAnchor>
+                      <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                        <ComboboxInput v-model="eventoPersonaSearch" placeholder="Buscar persona..." autocomplete="off" />
+                        <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                        <ComboboxGroup>
+                          <ComboboxItem
+                            v-for="persona in opcionesEventoPersona"
+                            :key="persona.personaId"
+                            :value="persona.personaId"
+                          >
+                            {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                            <ComboboxItemIndicator>
+                              <CheckIcon />
+                            </ComboboxItemIndicator>
+                          </ComboboxItem>
+                        </ComboboxGroup>
+                      </ComboboxList>
+                    </Combobox>
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-sub">Subcontrato</label>
+                    <select id="soma-evt-sub" v-model="eventoForm.subcontratoId" :class="selectClass" class="mt-1.5">
+                      <option value="">Sin subcontrato</option>
+                      <option v-for="item in subcontratos" :key="item.id" :value="String(item.id)">
+                        {{ item.subcontratistaRazon }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="sm:col-span-2 lg:col-span-4">
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-desc">Descripción</label>
+                    <Textarea id="soma-evt-desc" v-model="eventoForm.descripcionEvento" class="mt-1.5" maxlength="2000" required />
+                  </div>
+                </div>
+              </section>
+
+              <section class="space-y-3">
+                <h4 class="text-sm font-semibold text-palette-navy">Lesión y descanso médico</h4>
+                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-cuerpo">Parte del cuerpo</label>
+                    <Input id="soma-evt-cuerpo" v-model="eventoForm.parteCuerpoLesionada" :class="inputClass" class="mt-1.5" maxlength="120" />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-nat">Naturaleza</label>
+                    <Input id="soma-evt-nat" v-model="eventoForm.naturalezaLesion" :class="inputClass" class="mt-1.5" maxlength="120" />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-agente">Agente causante</label>
+                    <Input id="soma-evt-agente" v-model="eventoForm.agenteCausante" :class="inputClass" class="mt-1.5" maxlength="160" />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-cert">Certificado DM</label>
+                    <Input id="soma-evt-cert" v-model="eventoForm.numeroCertificadoDm" :class="inputClass" class="mt-1.5" maxlength="60" />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-dmi">Inicio DM</label>
+                    <Input id="soma-evt-dmi" v-model="eventoForm.fechaInicioDm" type="date" :class="inputClass" class="mt-1.5" />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-dmf">Fin DM</label>
+                    <Input id="soma-evt-dmf" v-model="eventoForm.fechaFinDm" type="date" :class="inputClass" class="mt-1.5" />
+                  </div>
+                  <div>
+                    <label class="text-sm font-medium text-slate-700" for="soma-evt-cargo">Días cargo estadístico</label>
+                    <Input id="soma-evt-cargo" v-model="eventoForm.diasCargoEstadistico" :class="inputClass" class="mt-1.5" />
+                  </div>
+                  <p v-if="eventoSeleccionado" class="self-end text-sm text-slate-500">
+                    Días DM calculados: {{ eventoSeleccionado.diasDescansoMedico }}
+                  </p>
+                </div>
+              </section>
+
+              <section class="space-y-3">
+                <h4 class="text-sm font-semibold text-palette-navy">Causas (TASC)</h4>
+                <div class="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                  <div class="space-y-2">
+                    <p class="text-sm font-medium text-slate-700">Actos</p>
+                    <div class="flex gap-2">
+                      <Input v-model="causaDraft.actos" :class="inputClass" maxlength="200" placeholder="Agregar acto" />
+                      <Button type="button" variant="outline" @click="agregarCausa(eventoForm.causasActos, 'actos')">Agregar</Button>
+                    </div>
+                    <ul class="space-y-1 text-sm text-slate-600">
+                      <li v-for="(item, indice) in eventoForm.causasActos" :key="`acto-${indice}`" class="flex items-center justify-between gap-2">
+                        <span>{{ item }}</span>
+                        <Button type="button" variant="ghost" size="sm" @click="quitarCausa(eventoForm.causasActos, indice)">Quitar</Button>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="space-y-2">
+                    <p class="text-sm font-medium text-slate-700">Condiciones</p>
+                    <div class="flex gap-2">
+                      <Input v-model="causaDraft.condiciones" :class="inputClass" maxlength="200" placeholder="Agregar condición" />
+                      <Button type="button" variant="outline" @click="agregarCausa(eventoForm.causasCondiciones, 'condiciones')">Agregar</Button>
+                    </div>
+                    <ul class="space-y-1 text-sm text-slate-600">
+                      <li v-for="(item, indice) in eventoForm.causasCondiciones" :key="`cond-${indice}`" class="flex items-center justify-between gap-2">
+                        <span>{{ item }}</span>
+                        <Button type="button" variant="ghost" size="sm" @click="quitarCausa(eventoForm.causasCondiciones, indice)">Quitar</Button>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="space-y-2">
+                    <p class="text-sm font-medium text-slate-700">Factores personales</p>
+                    <div class="flex gap-2">
+                      <Input v-model="causaDraft.factoresPersonales" :class="inputClass" maxlength="200" placeholder="Agregar factor" />
+                      <Button type="button" variant="outline" @click="agregarCausa(eventoForm.causasFactoresPersonales, 'factoresPersonales')">Agregar</Button>
+                    </div>
+                    <ul class="space-y-1 text-sm text-slate-600">
+                      <li v-for="(item, indice) in eventoForm.causasFactoresPersonales" :key="`fp-${indice}`" class="flex items-center justify-between gap-2">
+                        <span>{{ item }}</span>
+                        <Button type="button" variant="ghost" size="sm" @click="quitarCausa(eventoForm.causasFactoresPersonales, indice)">Quitar</Button>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="space-y-2">
+                    <p class="text-sm font-medium text-slate-700">Factores de trabajo</p>
+                    <div class="flex gap-2">
+                      <Input v-model="causaDraft.factoresTrabajo" :class="inputClass" maxlength="200" placeholder="Agregar factor" />
+                      <Button type="button" variant="outline" @click="agregarCausa(eventoForm.causasFactoresTrabajo, 'factoresTrabajo')">Agregar</Button>
+                    </div>
+                    <ul class="space-y-1 text-sm text-slate-600">
+                      <li v-for="(item, indice) in eventoForm.causasFactoresTrabajo" :key="`ft-${indice}`" class="flex items-center justify-between gap-2">
+                        <span>{{ item }}</span>
+                        <Button type="button" variant="ghost" size="sm" @click="quitarCausa(eventoForm.causasFactoresTrabajo, indice)">Quitar</Button>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+
+              <div v-if="avisoMtpeEvento" class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p class="font-medium">Notificar al MTPE dentro de las 24 h.</p>
+                <label class="mt-2 flex items-center gap-2">
+                  <input v-model="eventoForm.notificadoMtpe" type="checkbox" />
+                  Notificado al MTPE
+                </label>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <Button type="submit" :disabled="eventoSaving || !eventoEnInvestigacion">
+                  {{ eventoSaving ? 'Guardando…' : 'Guardar' }}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  :disabled="eventoSaving || !eventoEditandoId || !eventoEnInvestigacion"
+                  @click="onCerrarEvento"
+                >
+                  Cerrar investigación
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  :disabled="eventoSaving || !eventoEditandoId"
+                  @click="onSincronizarDmEvento"
+                >
+                  Sincronizar descanso médico
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Medidas correctivas</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Se crean como hallazgos SOMA y se enlazan al evento. Para cerrar, todas deben estar levantadas.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onAgregarMedidaEvento">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-clasif">Clasificación</label>
+                  <select id="soma-evt-med-clasif" v-model="eventoMedidaForm.clasificacion" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in CLASIFICACIONES_HALLAZGO" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-pot">Potencial</label>
+                  <select id="soma-evt-med-pot" v-model="eventoMedidaForm.potencialPerdida" :class="selectClass" class="mt-1.5">
+                    <option v-for="item in POTENCIALES_HALLAZGO" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-ubi">Ubicación</label>
+                  <Input id="soma-evt-med-ubi" v-model="eventoMedidaForm.ubicacion" :class="inputClass" class="mt-1.5" maxlength="200" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-det">Detección</label>
+                  <Input id="soma-evt-med-det" v-model="eventoMedidaForm.fechaDeteccion" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-lim">Fecha límite</label>
+                  <Input id="soma-evt-med-lim" v-model="eventoMedidaForm.fechaLimite" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-resp">Responsable</label>
+                  <Combobox
+                    :model-value="eventoMedidaForm.responsablePersonaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onEventoMedidaResponsableChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-evt-med-resp"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(eventoMedidaResponsableSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(eventoMedidaResponsableSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="eventoMedidaResponsableSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesEventoMedidaResponsable"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-desc">Descripción</label>
+                  <Textarea id="soma-evt-med-desc" v-model="eventoMedidaForm.descripcion" class="mt-1.5" maxlength="1000" required />
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-evt-med-acc">Acción correctiva</label>
+                  <Textarea id="soma-evt-med-acc" v-model="eventoMedidaForm.accionCorrectiva" class="mt-1.5" maxlength="1000" required />
+                </div>
+                <label class="flex items-center gap-2 text-sm text-slate-600">
+                  <input
+                    v-model="eventoMedidaForm.paralizacionFrente"
+                    type="checkbox"
+                    :disabled="eventoMedidaForm.potencialPerdida !== 'ALTO_GRAVE'"
+                  />
+                  Paralización de frente
+                </label>
+              </div>
+              <Button type="submit" :disabled="eventoMedidaSaving || !eventoEditandoId || !eventoEnInvestigacion">
+                {{ eventoMedidaSaving ? 'Guardando…' : 'Agregar medida' }}
+              </Button>
+            </form>
+            <Table class="mt-4">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Límite</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in eventoSeleccionado?.hallazgos ?? []" :key="fila.id">
+                  <TableCell>{{ fila.descripcion }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="fila.estado === 'LEVANTADO' ? 'default' : 'secondary'">{{ fila.estado }}</Badge>
+                  </TableCell>
+                  <TableCell>{{ fila.fechaLimite }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!(eventoSeleccionado?.hallazgos ?? []).length" :colspan="3">
+                  Sin medidas enlazadas.
+                </TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Eventos de la obra</h3>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>N°</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Afectado</TableHead>
+                  <TableHead>Estado</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow
+                  v-for="fila in eventos"
+                  :key="fila.id"
+                  class="cursor-pointer"
+                  @click="cargarEventoEnForm(fila)"
+                >
+                  <TableCell>{{ fila.numero }}</TableCell>
+                  <TableCell>{{ tipoEventoLabel(fila.tipoEvento) }}</TableCell>
+                  <TableCell>{{ isoADatetimeLocal(fila.fechaHora).replace('T', ' ') }}</TableCell>
+                  <TableCell>{{ fila.personaAfectadaNombre || fila.subcontratoNombre || '—' }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="fila.estadoInvestigacion === 'CERRADO' ? 'secondary' : 'default'">
+                      {{ estadoInvestigacionLabel(fila.estadoInvestigacion) }}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!eventos.length" :colspan="5">Sin eventos SST en esta obra.</TableEmpty>
               </TableBody>
             </Table>
           </div>

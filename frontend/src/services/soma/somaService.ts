@@ -20,6 +20,9 @@ import type {
   SomaPreUso,
   SomaPreUsoBloqueo,
   SomaPreUsoRequest,
+  SomaEvento,
+  SomaEventoRequest,
+  SomaEventoSyncDm,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEmoRequest,
@@ -351,4 +354,49 @@ export function listarBloqueosPreUso(proyectoId: number, fecha: string): Promise
   return apiRequest<SomaPreUsoBloqueo[]>(
     `/api/proyectos/${proyectoId}/soma/equipos-preuso/bloqueos?${params}`,
   )
+}
+
+export function listarEventosObra(proyectoId: number): Promise<SomaEvento[]> {
+  return apiRequest<SomaEvento[]>(`/api/proyectos/${proyectoId}/soma/eventos`)
+}
+
+export function crearEventoObra(proyectoId: number, request: SomaEventoRequest): Promise<SomaEvento> {
+  return apiRequest<SomaEvento>(`/api/proyectos/${proyectoId}/soma/eventos`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function actualizarEventoObra(
+  proyectoId: number,
+  eventoId: number,
+  request: SomaEventoRequest,
+): Promise<SomaEvento> {
+  return apiRequest<SomaEvento>(`/api/proyectos/${proyectoId}/soma/eventos/${eventoId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function agregarHallazgoEventoObra(
+  proyectoId: number,
+  eventoId: number,
+  request: SomaHallazgoRequest,
+): Promise<SomaHallazgo> {
+  return apiRequest<SomaHallazgo>(`/api/proyectos/${proyectoId}/soma/eventos/${eventoId}/hallazgos`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function cerrarEventoObra(proyectoId: number, eventoId: number): Promise<SomaEvento> {
+  return apiRequest<SomaEvento>(`/api/proyectos/${proyectoId}/soma/eventos/${eventoId}/cerrar`, {
+    method: 'POST',
+  })
+}
+
+export function sincronizarDmEventoObra(proyectoId: number, eventoId: number): Promise<SomaEventoSyncDm> {
+  return apiRequest<SomaEventoSyncDm>(`/api/proyectos/${proyectoId}/soma/eventos/${eventoId}/sincronizar-dm`, {
+    method: 'POST',
+  })
 }

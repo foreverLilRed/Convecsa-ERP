@@ -23,6 +23,9 @@ import com.convecsa.erp.soma.dto.SomaPetarRequest;
 import com.convecsa.erp.soma.dto.SomaPreUsoBloqueoDTO;
 import com.convecsa.erp.soma.dto.SomaPreUsoDTO;
 import com.convecsa.erp.soma.dto.SomaPreUsoRequest;
+import com.convecsa.erp.soma.dto.SomaEventoDTO;
+import com.convecsa.erp.soma.dto.SomaEventoRequest;
+import com.convecsa.erp.soma.dto.SomaEventoSyncDmDTO;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
@@ -44,6 +47,7 @@ import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaPetarService;
 import com.convecsa.erp.soma.service.InterfazSomaPreUsoService;
+import com.convecsa.erp.soma.service.InterfazSomaEventoService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +84,7 @@ public class SomaObraController {
     private final InterfazSomaPetarService somaPetarService;
     private final InterfazSomaInspeccionService somaInspeccionService;
     private final InterfazSomaPreUsoService somaPreUsoService;
+    private final InterfazSomaEventoService somaEventoService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -342,5 +347,43 @@ public class SomaObraController {
     public List<SomaPreUsoBloqueoDTO> bloqueosPreUso(
             @PathVariable Long proyectoId, @RequestParam LocalDate fecha) {
         return somaPreUsoService.listarBloqueos(proyectoId, fecha);
+    }
+
+    @GetMapping("/eventos")
+    public List<SomaEventoDTO> listarEventos(@PathVariable Long proyectoId) {
+        return somaEventoService.listar(proyectoId);
+    }
+
+    @PostMapping("/eventos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaEventoDTO crearEvento(@PathVariable Long proyectoId, @RequestBody SomaEventoRequest request) {
+        return somaEventoService.crear(proyectoId, request);
+    }
+
+    @PutMapping("/eventos/{eventoId}")
+    public SomaEventoDTO actualizarEvento(
+            @PathVariable Long proyectoId,
+            @PathVariable Long eventoId,
+            @RequestBody SomaEventoRequest request) {
+        return somaEventoService.actualizar(proyectoId, eventoId, request);
+    }
+
+    @PostMapping("/eventos/{eventoId}/hallazgos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaHallazgoDTO agregarHallazgoEvento(
+            @PathVariable Long proyectoId,
+            @PathVariable Long eventoId,
+            @RequestBody SomaHallazgoRequest request) {
+        return somaEventoService.agregarHallazgo(proyectoId, eventoId, request);
+    }
+
+    @PostMapping("/eventos/{eventoId}/cerrar")
+    public SomaEventoDTO cerrarEvento(@PathVariable Long proyectoId, @PathVariable Long eventoId) {
+        return somaEventoService.cerrar(proyectoId, eventoId);
+    }
+
+    @PostMapping("/eventos/{eventoId}/sincronizar-dm")
+    public SomaEventoSyncDmDTO sincronizarDmEvento(@PathVariable Long proyectoId, @PathVariable Long eventoId) {
+        return somaEventoService.sincronizarDm(proyectoId, eventoId);
     }
 }

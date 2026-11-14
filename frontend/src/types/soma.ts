@@ -566,3 +566,90 @@ export type SomaPreUsoBloqueo = {
   codigo: string | null
   descripcion: string | null
 }
+
+export type TipoEventoSst =
+  | 'INCIDENTE'
+  | 'INCIDENTE_PELIGROSO'
+  | 'ACCIDENTE_LEVE'
+  | 'ACCIDENTE_INCAPACITANTE'
+  | 'ACCIDENTE_MORTAL'
+  | 'ENFERMEDAD_OCUPACIONAL'
+
+export type GravedadIncapacidadSst = 'TOTAL_TEMPORAL' | 'PARCIAL_PERMANENTE' | 'TOTAL_PERMANENTE'
+
+export type EstadoInvestigacionSst = 'EN_INVESTIGACION' | 'CERRADO'
+
+export type CausasInmediatasEvento = {
+  actos: string[]
+  condiciones: string[]
+}
+
+export type CausasBasicasEvento = {
+  factoresPersonales: string[]
+  factoresTrabajo: string[]
+}
+
+export type SomaEvento = {
+  id: number
+  proyectoId: number
+  numero: number
+  tipoEvento: TipoEventoSst
+  gravedadIncapacidad: GravedadIncapacidadSst | null
+  fechaHora: string
+  lugarExacto: string
+  partidaId: number | null
+  partidaCodigo: string | null
+  partidaDescripcion: string | null
+  personaAfectadaId: number | null
+  personaAfectadaNombre: string | null
+  subcontratoId: number | null
+  subcontratoNombre: string | null
+  descripcionEvento: string
+  parteCuerpoLesionada: string | null
+  naturalezaLesion: string | null
+  agenteCausante: string | null
+  numeroCertificadoDm: string | null
+  diasDescansoMedico: number
+  diasCargoEstadistico: number
+  fechaInicioDm: string | null
+  fechaFinDm: string | null
+  causasInmediatas: CausasInmediatasEvento
+  causasBasicas: CausasBasicasEvento
+  notificadoMtpe: boolean
+  estadoInvestigacion: EstadoInvestigacionSst
+  informeDocId: number | null
+  createdAt: string
+  hallazgos: SomaHallazgo[]
+}
+
+export type SomaEventoRequest = {
+  tipoEvento: TipoEventoSst
+  gravedadIncapacidad?: GravedadIncapacidadSst | null
+  fechaHora: string
+  lugarExacto: string
+  partidaId?: number | null
+  personaAfectadaId?: number | null
+  subcontratoId?: number | null
+  descripcionEvento: string
+  parteCuerpoLesionada?: string | null
+  naturalezaLesion?: string | null
+  agenteCausante?: string | null
+  numeroCertificadoDm?: string | null
+  diasCargoEstadistico?: number | null
+  fechaInicioDm?: string | null
+  fechaFinDm?: string | null
+  causasInmediatas?: CausasInmediatasEvento
+  causasBasicas?: CausasBasicasEvento
+  notificadoMtpe?: boolean
+  informeDocId?: number | null
+}
+
+export type SomaEventoDmOmitido = {
+  fecha: string
+  motivo: string
+}
+
+export type SomaEventoSyncDm = {
+  aplicados: string[]
+  omitidos: SomaEventoDmOmitido[]
+}
