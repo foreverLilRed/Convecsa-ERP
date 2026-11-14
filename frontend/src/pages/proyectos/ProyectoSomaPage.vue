@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import {
   listarCuadrillasObra,
+  listarEquiposObra,
   listarPersonalObra,
   listarResponsablesObra,
   listarSubcontratosObra,
@@ -50,6 +51,7 @@ import {
   crearCharlaAtsObra,
   crearHallazgoObra,
   crearPetarObra,
+  crearPreUsoObra,
   crearInspeccionObra,
   crearEntregaEpp,
   crearIpercObra,
@@ -69,6 +71,7 @@ import {
   listarMaterialesEpp,
   listarPetarObra,
   listarPolizasSctr,
+  listarPreUsoObra,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
   levantarHallazgoObra,
@@ -79,7 +82,7 @@ import {
   suspenderPetarObra,
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
-import type { CuadrillaObra, PartidaPresupuesto, PersonalObra, ResponsableObra, SubcontratoObra } from '@/types/construccion'
+import type { AsignacionEquipo, CuadrillaObra, PartidaPresupuesto, PersonalObra, ResponsableObra, SubcontratoObra } from '@/types/construccion'
 import type {
   AptitudEmo,
   EstadoItemEpp,
@@ -97,6 +100,8 @@ import type {
   SomaPetar,
   SomaPetarFaltanteTareo,
   SomaPetarRequest,
+  ResultadoPreUsoEquipo,
+  SomaPreUso,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEntregaEpp,
@@ -114,7 +119,7 @@ import type {
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones' | 'preUso'
 type PetarChecklistDraft = { clave: string; etiqueta: string; valor: boolean }
 type PetarTrabajadorDraft = { personaId: number; rolEnTarea: string }
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
@@ -157,6 +162,22 @@ const ESTADOS_PETAR: { valor: EstadoPetar; label: string }[] = [
   { valor: 'AUTORIZADO', label: 'Autorizado' },
   { valor: 'SUSPENDIDO', label: 'Suspendido' },
   { valor: 'CERRADO', label: 'Cerrado' },
+]
+
+const CHECKLIST_PREUSO: { clave: string; etiqueta: string }[] = [
+  { clave: 'frenos', etiqueta: 'Frenos' },
+  { clave: 'luces', etiqueta: 'Luces' },
+  { clave: 'alarmaRetroceso', etiqueta: 'Alarma de retroceso' },
+  { clave: 'extintor', etiqueta: 'Extintor' },
+  { clave: 'cinturon', etiqueta: 'Cinturón' },
+  { clave: 'sistemaHidraulico', etiqueta: 'Sistema hidráulico' },
+  { clave: 'guardasSeguridad', etiqueta: 'Guardas de seguridad' },
+]
+
+const RESULTADOS_PREUSO: { valor: ResultadoPreUsoEquipo; label: string }[] = [
+  { valor: 'OPERATIVO', label: 'Operativo' },
+  { valor: 'OPERATIVO_CON_OBSERVACION', label: 'Operativo con observación' },
+  { valor: 'INOPERATIVO_BLOQUEADO', label: 'Inoperativo / bloqueado' },
 ]
 
 const MESES = [
@@ -307,6 +328,11 @@ const inspectorSearch = ref('')
 const responsableSearch = ref('')
 const filtroEstadoHallazgo = ref<EstadoHallazgoSoma | ''>('')
 const filtroVencidosHallazgo = ref(false)
+const equiposObra = ref<AsignacionEquipo[]>([])
+const preUsos = ref<SomaPreUso[]>([])
+const preUsoSaving = ref(false)
+const preUsoOperadorSearch = ref('')
+const preUsoChecklist = ref(CHECKLIST_PREUSO.map((item) => ({ ...item, valor: false })))
 
 const capForm = reactive({
   tipo: 'INDUCCION_HOMBRE_NUEVO' as TipoCapacitacionSoma,
@@ -390,6 +416,15 @@ const hallazgoForm = reactive({
   fechaDeteccion: hoyIso(),
   fechaLimite: hoyIso(),
   paralizacionFrente: false,
+})
+
+const preUsoForm = reactive({
+  asignacionEquipoId: '',
+  fecha: hoyIso(),
+  horometroLectura: '',
+  operadorPersonaId: null as number | null,
+  resultado: 'OPERATIVO' as ResultadoPreUsoEquipo,
+  observaciones: '',
 })
 
 const eppForm = reactive({
@@ -618,6 +653,22 @@ const hallazgosFiltrados = computed(() =>
     return true
   }),
 )
+
+const preUsosDelDia = computed(() => preUsos.value.filter((item) => item.fecha === preUsoForm.fecha))
+
+const preUsoOperadorSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === preUsoForm.operadorPersonaId) ?? null,
+)
+
+const opcionesPreUsoOperador = computed(() => {
+  const q = preUsoOperadorSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
 
 const filasHabilitacion = computed(() => {
   const filas = habilitacion.value?.filas ?? []
@@ -1479,6 +1530,60 @@ async function onLevantarHallazgo(hallazgo: SomaHallazgo, event: Event) {
   }
 }
 
+function resultadoPreUsoLabel(resultado: ResultadoPreUsoEquipo): string {
+  return RESULTADOS_PREUSO.find((item) => item.valor === resultado)?.label ?? resultado
+}
+
+function onPreUsoOperadorChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  preUsoForm.operadorPersonaId = Number.isFinite(id) ? id : null
+}
+
+function resetPreUsoForm() {
+  preUsoForm.asignacionEquipoId = ''
+  preUsoForm.fecha = hoyIso()
+  preUsoForm.horometroLectura = ''
+  preUsoForm.operadorPersonaId = null
+  preUsoForm.resultado = 'OPERATIVO'
+  preUsoForm.observaciones = ''
+  preUsoOperadorSearch.value = ''
+  preUsoChecklist.value = CHECKLIST_PREUSO.map((item) => ({ ...item, valor: false }))
+}
+
+async function onRegistrarPreUso() {
+  if (!preUsoForm.asignacionEquipoId) {
+    toast.error('Seleccione el equipo.')
+    return
+  }
+  if (!preUsoForm.fecha) {
+    toast.error('Indique la fecha.')
+    return
+  }
+  const checklist: Record<string, boolean> = {}
+  for (const item of preUsoChecklist.value) {
+    checklist[item.clave] = item.valor
+  }
+  preUsoSaving.value = true
+  try {
+    await crearPreUsoObra(proyectoId.value, {
+      asignacionEquipoId: Number(preUsoForm.asignacionEquipoId),
+      operadorPersonaId: preUsoForm.operadorPersonaId,
+      fecha: preUsoForm.fecha,
+      horometroLectura: preUsoForm.horometroLectura.trim() ? n(preUsoForm.horometroLectura) : null,
+      checklist,
+      resultado: preUsoForm.resultado,
+      observaciones: preUsoForm.observaciones.trim() || null,
+    })
+    toast.success('Pre-uso registrado.')
+    resetPreUsoForm()
+    preUsos.value = await listarPreUsoObra(proyectoId.value)
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo registrar el pre-uso.')
+  } finally {
+    preUsoSaving.value = false
+  }
+}
+
 watch(
   () => hallazgoForm.potencialPerdida,
   (valor) => {
@@ -1615,6 +1720,8 @@ async function load() {
       listaInspecciones,
       listaHallazgos,
       listaSubcontratos,
+      listaEquipos,
+      listaPreUsos,
     ] = await Promise.all([
       obtenerResumenSoma(proyectoId.value),
       listarHabilitacionObra(proyectoId.value, fechaHabilitacion.value || undefined),
@@ -1638,6 +1745,8 @@ async function load() {
       listarInspeccionesObra(proyectoId.value),
       listarHallazgosObra(proyectoId.value),
       listarSubcontratosObra(proyectoId.value).catch(() => []),
+      listarEquiposObra(proyectoId.value).catch(() => []),
+      listarPreUsoObra(proyectoId.value),
     ])
     resumen.value = resumenObra
     habilitacion.value = listaHabilitacion
@@ -1657,6 +1766,8 @@ async function load() {
     inspecciones.value = listaInspecciones
     hallazgos.value = listaHallazgos
     subcontratos.value = listaSubcontratos
+    equiposObra.value = listaEquipos
+    preUsos.value = listaPreUsos
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
@@ -1686,6 +1797,8 @@ async function load() {
     inspecciones.value = []
     hallazgos.value = []
     subcontratos.value = []
+    equiposObra.value = []
+    preUsos.value = []
     toast.error(err instanceof Error ? err.message : 'No se pudo cargar SOMA.')
   } finally {
     loading.value = false
@@ -2139,6 +2252,7 @@ onMounted(() => {
         <TabsTrigger value="charlaAts" :class="tabTriggerClass">Charla y ATS</TabsTrigger>
         <TabsTrigger value="petar" :class="tabTriggerClass">PETAR</TabsTrigger>
         <TabsTrigger value="inspecciones" :class="tabTriggerClass">Inspecciones</TabsTrigger>
+        <TabsTrigger value="preUso" :class="tabTriggerClass">Pre-uso</TabsTrigger>
       </TabsList>
 
       <TabsContent value="habilitacion" class="mt-4 space-y-4">
@@ -4203,6 +4317,144 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!hallazgosFiltrados.length" :colspan="5">Sin hallazgos.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="preUso" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Check-list pre-uso de equipos</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Si algún ítem está en falso, el resultado no puede ser operativo. Un equipo inoperativo avisa en Recursos ese día.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onRegistrarPreUso">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-preuso-equipo">Equipo</label>
+                  <select id="soma-preuso-equipo" v-model="preUsoForm.asignacionEquipoId" :class="selectClass" class="mt-1.5" required>
+                    <option value="">Seleccione</option>
+                    <option v-for="equipo in equiposObra" :key="equipo.id" :value="String(equipo.id)">
+                      {{ equipo.codigo }} — {{ equipo.descripcion }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-preuso-fecha">Fecha</label>
+                  <Input id="soma-preuso-fecha" v-model="preUsoForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-preuso-horometro">Horómetro</label>
+                  <Input id="soma-preuso-horometro" v-model="preUsoForm.horometroLectura" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-preuso-resultado">Resultado</label>
+                  <select id="soma-preuso-resultado" v-model="preUsoForm.resultado" :class="selectClass" class="mt-1.5" required>
+                    <option v-for="item in RESULTADOS_PREUSO" :key="item.valor" :value="item.valor">{{ item.label }}</option>
+                  </select>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-preuso-operador">Operador</label>
+                  <Combobox
+                    :model-value="preUsoForm.operadorPersonaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onPreUsoOperadorChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-preuso-operador"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(preUsoOperadorSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(preUsoOperadorSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="preUsoOperadorSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesPreUsoOperador"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-preuso-obs">Observaciones</label>
+                  <Textarea id="soma-preuso-obs" v-model="preUsoForm.observaciones" class="mt-1.5" maxlength="600" />
+                </div>
+              </div>
+
+              <div>
+                <p class="text-sm font-medium text-slate-700">Checklist</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                  <label v-for="item in preUsoChecklist" :key="item.clave" class="flex items-center gap-2 text-sm text-slate-600">
+                    <input v-model="item.valor" type="checkbox" />
+                    {{ item.etiqueta }}
+                  </label>
+                </div>
+              </div>
+
+              <Button type="submit" :disabled="preUsoSaving">
+                {{ preUsoSaving ? 'Guardando…' : 'Registrar pre-uso' }}
+              </Button>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Pre-uso del día</h3>
+            <p class="mt-1 text-sm text-slate-500">Inspecciones de la fecha del formulario en esta obra.</p>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Equipo</TableHead>
+                  <TableHead>Operador</TableHead>
+                  <TableHead>Resultado</TableHead>
+                  <TableHead>Horómetro</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in preUsosDelDia" :key="fila.id">
+                  <TableCell>
+                    <p>{{ fila.equipoCodigo }}</p>
+                    <p class="text-xs text-slate-500">{{ fila.equipoDescripcion }}</p>
+                  </TableCell>
+                  <TableCell>{{ fila.operadorNombre || 'Sin operador' }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="fila.resultado === 'INOPERATIVO_BLOQUEADO' ? 'secondary' : 'default'">
+                      {{ resultadoPreUsoLabel(fila.resultado) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{{ fila.horometroLectura ?? '—' }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!preUsosDelDia.length" :colspan="4">Sin pre-uso en esta fecha.</TableEmpty>
               </TableBody>
             </Table>
           </div>

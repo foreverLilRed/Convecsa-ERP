@@ -20,7 +20,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S7 | Charla diaria y ATS | V63 | Hecho |
 | S8 | PETAR y cruce con tareo | V65 | Hecho |
 | S9 | Inspecciones y hallazgos | V64 | Hecho |
-| S10 | Check-list pre-uso de equipos | V66 | Pendiente |
+| S10 | Check-list pre-uso de equipos | V66 | Hecho |
 | S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Pendiente |
 | S12 | Estadísticas HHT, IF, IS, IA | — | Pendiente |
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Pendiente |
@@ -832,6 +832,11 @@ CREATE INDEX idx_soma_insp_equipo_asig ON soma_inspeccion_equipo (asignacion_equ
 **Frontend.** Sub-pestaña "Pre-uso" en SOMA. En `ProyectoRecursosPage.vue`, al elegir equipo y fecha de imputación, se consulta `bloqueos` y se muestra un aviso con `sonner`.
 
 **Tests (`SomaPreUsoServiceImplTest`):** rechaza un `OPERATIVO` con ítems en falso y rechaza una asignación de otra obra.
+
+**Notas S10**
+- Flyway: `V66__soma_preuso_equipo.sql`.
+- Checklist keys: `frenos`, `luces`, `alarmaRetroceso`, `extintor`, `cinturon`, `sistemaHidraulico`, `guardasSeguridad`.
+- El bloqueo `INOPERATIVO_BLOQUEADO` aplica solo el día de la inspección; la imputación de Recursos no se corta (aviso `sonner`).
 
 ---
 

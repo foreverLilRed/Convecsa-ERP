@@ -531,3 +531,38 @@ export type SomaPetarFaltanteTareo = {
   fecha: string
   tipoTrabajo: TipoTrabajoPetar
 }
+
+export type ResultadoPreUsoEquipo = 'OPERATIVO' | 'OPERATIVO_CON_OBSERVACION' | 'INOPERATIVO_BLOQUEADO'
+
+export type SomaPreUso = {
+  id: number
+  proyectoId: number
+  asignacionEquipoId: number
+  equipoCodigo: string | null
+  equipoDescripcion: string | null
+  operadorPersonaId: number | null
+  operadorNombre: string | null
+  operadorDocumento: string | null
+  fecha: string
+  horometroLectura: number | null
+  checklist: Record<string, boolean>
+  resultado: ResultadoPreUsoEquipo
+  observaciones: string | null
+  createdAt: string
+}
+
+export type SomaPreUsoRequest = {
+  asignacionEquipoId: number
+  operadorPersonaId?: number | null
+  fecha: string
+  horometroLectura?: number | null
+  checklist: Record<string, boolean>
+  resultado: ResultadoPreUsoEquipo
+  observaciones?: string | null
+}
+
+export type SomaPreUsoBloqueo = {
+  asignacionId: number
+  codigo: string | null
+  descripcion: string | null
+}

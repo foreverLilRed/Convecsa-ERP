@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { toast } from 'vue-sonner'
 
@@ -40,6 +40,7 @@ import {
   registrarAvanceSubcontrato,
   registrarImputacionEquipo,
 } from '@/services/construccion/construccionService'
+import { listarBloqueosPreUso } from '@/services/soma/somaService'
 import type {
   AsignacionEquipo,
   CuadrillaObra,
@@ -560,6 +561,20 @@ async function onQuitarMiembro(personaId: number) {
     saving.value = false
   }
 }
+
+watch([equipoSeleccionadoId, () => imputacionForm.fecha], async ([equipoId, fecha]) => {
+  if (!equipoId || !fecha) {
+    return
+  }
+  try {
+    const bloqueos = await listarBloqueosPreUso(proyectoId.value, fecha)
+    if (bloqueos.some((item) => item.asignacionId === equipoId)) {
+      toast.warning('El equipo está inoperativo / bloqueado ese día según el pre-uso SOMA. Puede imputar igual.')
+    }
+  } catch {
+    /* el aviso no debe impedir imputar */
+  }
+})
 
 onMounted(() => {
   void load()

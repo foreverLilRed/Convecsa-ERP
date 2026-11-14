@@ -20,6 +20,9 @@ import com.convecsa.erp.soma.dto.SomaPetarChecklistItemDTO;
 import com.convecsa.erp.soma.dto.SomaPetarDTO;
 import com.convecsa.erp.soma.dto.SomaPetarFaltanteTareoDTO;
 import com.convecsa.erp.soma.dto.SomaPetarRequest;
+import com.convecsa.erp.soma.dto.SomaPreUsoBloqueoDTO;
+import com.convecsa.erp.soma.dto.SomaPreUsoDTO;
+import com.convecsa.erp.soma.dto.SomaPreUsoRequest;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
@@ -40,6 +43,7 @@ import com.convecsa.erp.soma.service.InterfazSomaInspeccionService;
 import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
 import com.convecsa.erp.soma.service.InterfazSomaPetarService;
+import com.convecsa.erp.soma.service.InterfazSomaPreUsoService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
@@ -75,6 +79,7 @@ public class SomaObraController {
     private final InterfazSomaCharlaAtsService somaCharlaAtsService;
     private final InterfazSomaPetarService somaPetarService;
     private final InterfazSomaInspeccionService somaInspeccionService;
+    private final InterfazSomaPreUsoService somaPreUsoService;
 
     @GetMapping("/resumen")
     public SomaResumenObraDTO resumen(@PathVariable Long proyectoId) {
@@ -320,5 +325,22 @@ public class SomaObraController {
             @PathVariable Long hallazgoId,
             @RequestBody SomaHallazgoLevantarRequest request) {
         return somaInspeccionService.levantar(proyectoId, hallazgoId, request);
+    }
+
+    @GetMapping("/equipos-preuso")
+    public List<SomaPreUsoDTO> listarPreUso(@PathVariable Long proyectoId) {
+        return somaPreUsoService.listar(proyectoId);
+    }
+
+    @PostMapping("/equipos-preuso")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaPreUsoDTO crearPreUso(@PathVariable Long proyectoId, @RequestBody SomaPreUsoRequest request) {
+        return somaPreUsoService.crear(proyectoId, request);
+    }
+
+    @GetMapping("/equipos-preuso/bloqueos")
+    public List<SomaPreUsoBloqueoDTO> bloqueosPreUso(
+            @PathVariable Long proyectoId, @RequestParam LocalDate fecha) {
+        return somaPreUsoService.listarBloqueos(proyectoId, fecha);
     }
 }

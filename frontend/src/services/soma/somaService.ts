@@ -17,6 +17,9 @@ import type {
   SomaPetarChecklistItem,
   SomaPetarFaltanteTareo,
   SomaPetarRequest,
+  SomaPreUso,
+  SomaPreUsoBloqueo,
+  SomaPreUsoRequest,
   TipoTrabajoPetar,
   SomaEmo,
   SomaEmoRequest,
@@ -330,4 +333,22 @@ export function levantarHallazgoObra(
     method: 'PUT',
     body: JSON.stringify(request),
   })
+}
+
+export function listarPreUsoObra(proyectoId: number): Promise<SomaPreUso[]> {
+  return apiRequest<SomaPreUso[]>(`/api/proyectos/${proyectoId}/soma/equipos-preuso`)
+}
+
+export function crearPreUsoObra(proyectoId: number, request: SomaPreUsoRequest): Promise<SomaPreUso> {
+  return apiRequest<SomaPreUso>(`/api/proyectos/${proyectoId}/soma/equipos-preuso`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function listarBloqueosPreUso(proyectoId: number, fecha: string): Promise<SomaPreUsoBloqueo[]> {
+  const params = new URLSearchParams({ fecha })
+  return apiRequest<SomaPreUsoBloqueo[]>(
+    `/api/proyectos/${proyectoId}/soma/equipos-preuso/bloqueos?${params}`,
+  )
 }
