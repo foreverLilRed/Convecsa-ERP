@@ -2,10 +2,12 @@ package com.convecsa.erp.soma.controller;
 
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
 import com.convecsa.erp.soma.dto.SomaCapacitacionDTO;
+import com.convecsa.erp.soma.dto.SomaDashboardDTO;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEstadisticaAnioDTO;
 import com.convecsa.erp.soma.service.InterfazSomaCapacitacionService;
+import com.convecsa.erp.soma.service.InterfazSomaDashboardService;
 import com.convecsa.erp.soma.service.InterfazSomaEmoService;
 import com.convecsa.erp.soma.service.InterfazSomaEstadisticaService;
 import com.convecsa.erp.soma.service.InterfazSomaSunafilService;
@@ -35,6 +37,7 @@ public class SomaCorporativoController {
     private final InterfazSomaEmoService somaEmoService;
     private final InterfazSomaCapacitacionService somaCapacitacionService;
     private final InterfazSomaEstadisticaService somaEstadisticaService;
+    private final InterfazSomaDashboardService somaDashboardService;
     private final InterfazSomaSunafilService somaSunafilService;
 
     @GetMapping("/emos")
@@ -59,6 +62,11 @@ public class SomaCorporativoController {
     @GetMapping("/estadisticas")
     public SomaEstadisticaAnioDTO estadisticas(@RequestParam(required = false) Integer anio) {
         return somaEstadisticaService.corporativo(anio);
+    }
+
+    @GetMapping("/dashboard")
+    public SomaDashboardDTO dashboard(@RequestParam(required = false) Integer anio) {
+        return somaDashboardService.corporativo(anio);
     }
 
     @GetMapping("/formatos-sunafil/{formato}")

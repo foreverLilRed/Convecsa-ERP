@@ -1,3 +1,5 @@
+import type { RolUsuario } from '@/types/auth'
+
 export type NavChild = {
   name: string
   label: string
@@ -18,6 +20,7 @@ export type NavGroup = {
   label: string
   icon: string
   children: NavChild[]
+  roles?: RolUsuario[]
 }
 
 export type NavItem = NavLink | NavGroup
@@ -65,7 +68,13 @@ export const navItems: NavItem[] = [
     id: 'soma',
     label: 'SOMA',
     icon: 'shield',
-    children: [],
+    roles: ['SUPERADMIN', 'ADMIN', 'INGENIERO_SOMA'],
+    children: [
+      { name: 'soma-dashboard', label: 'Tablero SST', path: '/soma/dashboard' },
+      { name: 'soma-habilitacion', label: 'Vigilancia médica y SCTR', path: '/soma/habilitacion' },
+      { name: 'soma-capacitaciones', label: 'Capacitaciones', path: '/soma/capacitaciones' },
+      { name: 'soma-formatos', label: 'Formatos SUNAFIL', path: '/soma/formatos' },
+    ],
   },
 ]
 

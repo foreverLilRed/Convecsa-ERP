@@ -31,6 +31,7 @@ import type {
   SomaComiteRequerimiento,
   SomaMonitoreo,
   SomaMonitoreoRequest,
+  SomaDashboard,
   SomaResiduo,
   SomaResiduoRequest,
   TipoTrabajoPetar,
@@ -64,6 +65,18 @@ export function listarHabilitacionObra(proyectoId: number, fecha?: string): Prom
 
 export function listarEmosObra(proyectoId: number): Promise<SomaEmo[]> {
   return apiRequest<SomaEmo[]>(`/api/proyectos/${proyectoId}/soma/emos`)
+}
+
+export function listarEmosCorporativo(vencenAntesDe?: string, personaId?: number): Promise<SomaEmo[]> {
+  const params = new URLSearchParams()
+  if (vencenAntesDe) {
+    params.set('vencenAntesDe', vencenAntesDe)
+  }
+  if (personaId != null) {
+    params.set('personaId', String(personaId))
+  }
+  const qs = params.toString()
+  return apiRequest<SomaEmo[]>(`/api/soma/emos${qs ? `?${qs}` : ''}`)
 }
 
 export function registrarEmoObra(proyectoId: number, request: SomaEmoRequest): Promise<SomaEmo> {
@@ -414,6 +427,36 @@ export function sincronizarDmEventoObra(proyectoId: number, eventoId: number): P
 export function obtenerEstadisticasObra(proyectoId: number, anio: number): Promise<SomaEstadisticaAnio> {
   const params = new URLSearchParams({ anio: String(anio) })
   return apiRequest<SomaEstadisticaAnio>(`/api/proyectos/${proyectoId}/soma/estadisticas?${params}`)
+}
+
+export function obtenerDashboardSoma(anio?: number): Promise<SomaDashboard> {
+  const params = new URLSearchParams()
+  if (anio != null) {
+    params.set('anio', String(anio))
+  }
+  const qs = params.toString()
+  return apiRequest<SomaDashboard>(`/api/soma/dashboard${qs ? `?${qs}` : ''}`)
+}
+
+export function descargarFormatoSunafil(params: {
+  formato: number
+  tipo: 'pdf' | 'xlsx'
+  proyectoId?: number | null
+  anio?: number | null
+  mes?: number | null
+  filename: string
+}): Promise<void> {
+  const query = new URLSearchParams({ tipo: params.tipo })
+  if (params.proyectoId != null) {
+    query.set('proyectoId', String(params.proyectoId))
+  }
+  if (params.anio != null) {
+    query.set('anio', String(params.anio))
+  }
+  if (params.mes != null) {
+    query.set('mes', String(params.mes))
+  }
+  return downloadAuthenticatedFile(`/api/soma/formatos-sunafil/${params.formato}?${query}`, params.filename)
 }
 
 export function obtenerRequerimientoComite(proyectoId: number): Promise<SomaComiteRequerimiento> {

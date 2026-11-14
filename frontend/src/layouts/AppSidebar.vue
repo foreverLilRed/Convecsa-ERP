@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { LogOutIcon, MenuIcon } from '@lucide/vue'
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
-import { getGroupIdForRouteName, navItems, type NavGroup } from '@/layouts/nav'
+import { getGroupIdForRouteName, navItems, type NavGroup, type NavItem } from '@/layouts/nav'
+import { getSession } from '@/services/auth/authService'
 
 const props = defineProps<{
   open: boolean
@@ -19,6 +20,16 @@ const emit = defineEmits<{
 
 const route = useRoute()
 const openGroups = ref<Record<string, boolean>>({})
+const session = getSession()
+
+const visibleNavItems = computed<NavItem[]>(() =>
+  navItems.filter((item) => {
+    if (item.kind !== 'group' || !item.roles || item.roles.length === 0) {
+      return true
+    }
+    return session?.rol != null && item.roles.includes(session.rol)
+  }),
+)
 
 function isGroupOpen(id: string): boolean {
   return Boolean(openGroups.value[id])
@@ -76,7 +87,7 @@ watch(() => route.name, syncOpenGroupFromRoute)
     </div>
 
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4" :class="collapsed ? 'lg:px-2' : ''">
-      <template v-for="item in navItems" :key="item.kind === 'link' ? item.name : item.id">
+      <template v-for="item in visibleNavItems" :key="item.kind === 'link' ? item.name : item.id">
         <RouterLink
           v-if="item.kind === 'link'"
           :to="{ name: item.name }"

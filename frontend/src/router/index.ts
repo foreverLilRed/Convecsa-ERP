@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 import { getSession, isAuthenticated } from '@/services/auth/authService'
 import { esAlmacen } from '@/types/auth'
+import type { RolUsuario } from '@/types/auth'
 import AppLayout from '@/layouts/AppLayout.vue'
 import DashboardPage from '@/pages/DashboardPage.vue'
 import AsistenciaPage from '@/pages/gestion-humana/AsistenciaPage.vue'
@@ -38,6 +39,12 @@ import ProyectoDocumentosPage from '@/pages/proyectos/ProyectoDocumentosPage.vue
 import ProyectoBitacoraPage from '@/pages/proyectos/ProyectoBitacoraPage.vue'
 import ProyectoMaterialesPage from '@/pages/proyectos/ProyectoMaterialesPage.vue'
 import ProyectoSomaPage from '@/pages/proyectos/ProyectoSomaPage.vue'
+import SomaCapacitacionesPage from '@/pages/soma/SomaCapacitacionesPage.vue'
+import SomaDashboardPage from '@/pages/soma/SomaDashboardPage.vue'
+import SomaFormatosPage from '@/pages/soma/SomaFormatosPage.vue'
+import SomaHabilitacionPage from '@/pages/soma/SomaHabilitacionPage.vue'
+
+const ROLES_SOMA_CORPORATIVO: RolUsuario[] = ['SUPERADMIN', 'ADMIN', 'INGENIERO_SOMA']
 
 const RUTAS_FICHA_NO_ALMACEN = new Set([
   'proyecto-ficha',
@@ -251,6 +258,30 @@ const router = createRouter({
             },
           ],
         },
+        {
+          path: 'soma/dashboard',
+          name: 'soma-dashboard',
+          component: SomaDashboardPage,
+          meta: { roles: ROLES_SOMA_CORPORATIVO },
+        },
+        {
+          path: 'soma/habilitacion',
+          name: 'soma-habilitacion',
+          component: SomaHabilitacionPage,
+          meta: { roles: ROLES_SOMA_CORPORATIVO },
+        },
+        {
+          path: 'soma/capacitaciones',
+          name: 'soma-capacitaciones',
+          component: SomaCapacitacionesPage,
+          meta: { roles: ROLES_SOMA_CORPORATIVO },
+        },
+        {
+          path: 'soma/formatos',
+          name: 'soma-formatos',
+          component: SomaFormatosPage,
+          meta: { roles: ROLES_SOMA_CORPORATIVO },
+        },
       ],
     },
   ],
@@ -267,9 +298,16 @@ router.beforeEach((to) => {
     return { name: 'dashboard' }
   }
 
+  const session = getSession()
   const nombre = typeof to.name === 'string' ? to.name : ''
-  if (esAlmacen(getSession()?.rol) && RUTAS_FICHA_NO_ALMACEN.has(nombre) && to.params.id) {
+  if (esAlmacen(session?.rol) && RUTAS_FICHA_NO_ALMACEN.has(nombre) && to.params.id) {
     return { name: 'proyecto-almacen', params: { id: to.params.id } }
+  }
+
+  const roles = to.matched
+    .flatMap((record) => record.meta.roles ?? [])
+  if (roles.length > 0 && (session?.rol == null || !roles.includes(session.rol))) {
+    return { name: 'dashboard' }
   }
 
   return true

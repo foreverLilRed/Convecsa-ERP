@@ -11,5 +11,6 @@ declare module 'vue-router' {
     requiresAuth?: boolean
     guestOnly?: boolean
     title?: string
+    roles?: import('./src/types/auth').RolUsuario[]
   }
 }

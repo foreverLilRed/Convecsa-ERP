@@ -27,7 +27,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Hecho |
 | S15 | Alertas SOMA en la ficha de obra | — | Hecho |
 | S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | Hecho |
-| S17 | Vistas corporativas `/soma/*` y menú | — | Pendiente |
+| S17 | Vistas corporativas `/soma/*` y menú | — | Hecho |
 
 > **Numeración Flyway:** los números de la columna "Migración" suponen que la última versión existente es `V56`. Antes de crear un archivo, el agente lista `backend/erp/src/main/resources/db/migration/` y usa **el siguiente número libre**, manteniendo el sufijo descriptivo (`__soma_...`).
 
@@ -1170,6 +1170,10 @@ Cada alerta trae un mensaje con la cantidad (por ejemplo, "3 trabajadores con EM
 **Backend.** `GET /api/soma/dashboard`, que agrega datos de las obras visibles: todas para gerencia, las asignadas en `usuario_proyecto` para `INGENIERO_SOMA`.
 
 **Verificación final:** `mvn -q test` completo en `backend/erp`, `npx vue-tsc --build` sin errores nuevos, y una revisión manual en el navegador (escritorio y móvil) de la pestaña SOMA y de las vistas `/soma/*`.
+
+**Notas S17**
+- Dashboard por obras visibles: gerencia usa `corporativo` de S12; `INGENIERO_SOMA` suma `porObra` y recalcula índices con `SomaEstadisticaCalculator`. Capacitaciones: solo listado anual (sin POST corporativo). Formatos: `downloadAuthenticatedFile`.
+- Grupo SOMA en el menú con `roles` (gerencia e `INGENIERO_SOMA`). Guard de `/soma/*` redirige al dashboard general si el rol no aplica.
 
 ---
 

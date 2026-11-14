@@ -678,6 +678,19 @@ export type SomaEstadisticaAnio = {
   diasSinAccidente: number | null
 }
 
+export type SomaDashboardObraAlerta = {
+  proyectoId: number
+  codigo: string
+  nombre: string
+}
+
+export type SomaDashboard = {
+  estadistica: SomaEstadisticaAnio
+  hallazgosAbiertos: number
+  hallazgosLevantados: number
+  obrasConAlertasCriticas: SomaDashboardObraAlerta[]
+}
+
 export type RepresentacionComiteSoma = 'EMPLEADOR' | 'TRABAJADORES'
 
 export type CargoComiteSoma =

@@ -20,3 +20,7 @@ export function esGerencia(rol?: RolUsuario | null): boolean {
 export function esAlmacen(rol?: RolUsuario | null): boolean {
   return rol === 'ALMACEN'
 }
+
+export function puedeSomaCorporativo(rol?: RolUsuario | null): boolean {
+  return esGerencia(rol) || rol === 'INGENIERO_SOMA'
+}
