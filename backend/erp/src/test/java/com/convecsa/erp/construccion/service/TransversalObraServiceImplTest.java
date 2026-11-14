@@ -39,6 +39,7 @@ import com.convecsa.erp.construccion.repository.PresupuestoVersionRepository;
 import com.convecsa.erp.construccion.repository.ProyectoRepository;
 import com.convecsa.erp.construccion.service.impl.TransversalObraServiceImpl;
 import com.convecsa.erp.construccion.support.DocumentoObraStorage;
+import com.convecsa.erp.soma.service.InterfazSomaAlertaService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -82,6 +83,9 @@ class TransversalObraServiceImplTest {
     @Mock
     private AuditoriaObraRepository auditoriaObraRepository;
 
+    @Mock
+    private InterfazSomaAlertaService somaAlertaService;
+
     @InjectMocks
     private TransversalObraServiceImpl servicio;
 
@@ -121,6 +125,7 @@ class TransversalObraServiceImplTest {
                 .thenAnswer(invocation -> List.copyOf(factoring));
         lenient().when(presupuestoVersionRepository.existsByProyectoIdAndEstado(
                 7L, EstadoVersionPresupuesto.VIGENTE)).thenReturn(false);
+        lenient().when(somaAlertaService.alertas(7L)).thenReturn(List.of());
     }
 
     @Test

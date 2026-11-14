@@ -38,6 +38,7 @@ import com.convecsa.erp.construccion.support.AuditoriaObraRegistrar;
 import com.convecsa.erp.construccion.support.DocumentoObraStorage;
 import com.convecsa.erp.construccion.support.UitObraAlerta;
 import com.convecsa.erp.nomina.declaracion.dto.ArchivoDescargaDTO;
+import com.convecsa.erp.soma.service.InterfazSomaAlertaService;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -72,6 +73,7 @@ public class TransversalObraServiceImpl implements InterfazTransversalObraServic
     private final InterfazConstruccionService construccionService;
     private final BitacoraObraRepository bitacoraObraRepository;
     private final AuditoriaObraRepository auditoriaObraRepository;
+    private final InterfazSomaAlertaService somaAlertaService;
 
     @Override
     @Transactional(readOnly = true)
@@ -152,6 +154,7 @@ public class TransversalObraServiceImpl implements InterfazTransversalObraServic
         agregarFacturas(alertas, proyectoId);
         agregarFactoring(alertas, proyectoId);
         agregarDesvio(alertas, proyectoId);
+        alertas.addAll(somaAlertaService.alertas(proyectoId));
         return alertas;
     }
 

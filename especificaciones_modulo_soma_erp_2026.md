@@ -25,7 +25,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S12 | Estadísticas HHT, IF, IS, IA | — | Hecho |
 | S13 | Comité / Subcomité / Supervisor SST | V68 | Hecho |
 | S14 | Gestión ambiental (residuos y monitoreos) | V69 | Hecho |
-| S15 | Alertas SOMA en la ficha de obra | — | Pendiente |
+| S15 | Alertas SOMA en la ficha de obra | — | Hecho |
 | S16 | Formatos SUNAFIL (R.M. 050-2013-TR) en PDF y Excel | — | Pendiente |
 | S17 | Vistas corporativas `/soma/*` y menú | — | Pendiente |
 
@@ -1095,6 +1095,12 @@ CREATE TABLE soma_monitoreo (
 Cada alerta trae un mensaje con la cantidad (por ejemplo, "3 trabajadores con EMO vencido"). Una alerta cuya entrega aún no existe se omite; esto no aplica si el agente sigue el orden.
 
 **Tests (`SomaAlertaServiceImplTest`):** un caso positivo y uno negativo por código. También se ejecuta el test existente de `TransversalObraServiceImpl` si lo hay, para confirmar que no se rompe.
+
+**Notas S15**
+- Sin migración (Flyway permanece en **V69**).
+- Enganche en `TransversalObraServiceImpl.listarAlertas`: `alertas.addAll(somaAlertaService.alertas(proyectoId))`.
+- Convención `InterfazSomaAlertaService` + `SomaAlertaServiceImpl`. La ficha no cambió: ya pinta `GET /api/proyectos/{id}/alertas`.
+- `ALTO_GRAVE` es `PotencialPerdidaSoma` (potencial de pérdida), no la clasificación del hallazgo.
 
 ---
 
