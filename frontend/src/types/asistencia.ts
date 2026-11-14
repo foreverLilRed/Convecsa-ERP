@@ -66,6 +66,9 @@ export type AsistenciaFila = {
   jornadaCodigo: string | null
   jornadaLabel: string | null
   horasEsperadasDia: number
+  cargo: string | null
+  fechaIngreso: string | null
+  fechaCese: string | null
   registros: AsistenciaRegistro[]
 }
 

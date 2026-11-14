@@ -292,6 +292,9 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
                     null,
                     jornada,
                     horasJornadaService.horasEsperadasDia(null, diasConfig),
+                    contrato.metadata("cargo"),
+                    contrato.getFechaInicio(),
+                    fechaCese(contrato),
                     porPersonaRegistros.getOrDefault(persona.getId(), List.of()).stream()
                             .map(AsistenciaServiceImpl::toRegistroDto)
                             .toList()));
@@ -380,6 +383,16 @@ public class AsistenciaServiceImpl implements InterfazAsistenciaService {
             fechas.add(yearMonth.atDay(dia));
         }
         return fechas;
+    }
+
+    private static LocalDate fechaCese(Contrato contrato) {
+        if (contrato.getFechaFin() != null) {
+            return contrato.getFechaFin();
+        }
+        if (!contrato.isActivo() && contrato.getFechaCorte() != null) {
+            return contrato.getFechaCorte();
+        }
+        return null;
     }
 
     private static CodigoTareo codigoInicial(

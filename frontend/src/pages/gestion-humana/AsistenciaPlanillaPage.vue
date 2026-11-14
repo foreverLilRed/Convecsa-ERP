@@ -50,8 +50,6 @@ const {
   codigoDe,
   minutosDe,
   horasBloqueadas,
-  totalFila,
-  estadoClase,
   estadoSelectClase,
   onHoras,
   onCodigo,
@@ -90,8 +88,8 @@ const inputClass =
       <div class="flex flex-wrap items-end justify-between gap-2">
         <div class="flex flex-wrap items-end gap-1.5">
           <div>
-            <p class="text-[10px] font-semibold uppercase tracking-widest text-palette-royal">Asistencia</p>
-            <h1 class="text-base font-bold text-palette-navy">Planilla · {{ tituloPeriodo }}</h1>
+            <p class="text-[10px] font-semibold uppercase tracking-widest text-palette-royal">Parte diario de asistencia</p>
+            <h1 class="text-base font-bold text-palette-navy">Del 1 al 31 · {{ tituloPeriodo }}</h1>
           </div>
           <Button
             variant="outline"
@@ -143,22 +141,30 @@ const inputClass =
         </div>
 
         <div class="flex flex-wrap items-center gap-1.5">
-          <ul class="mr-1 hidden flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-700 lg:flex" aria-label="Leyenda de estados">
+          <ul class="mr-1 hidden flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-700 lg:flex" aria-label="Leyenda de códigos">
             <li class="inline-flex items-center gap-1">
-              <span class="size-2.5 rounded-sm border-l-2 border-l-emerald-700 bg-emerald-100" aria-hidden="true" />
+              <span class="inline-flex h-4 w-4 items-center justify-center rounded border border-[#bbf7d0] bg-[#dcfce7] font-mono text-[9px] font-bold text-[#15803d]">A</span>
               Asistió
             </li>
             <li class="inline-flex items-center gap-1">
-              <span class="size-2.5 rounded-sm border-l-2 border-l-red-700 bg-red-100" aria-hidden="true" />
+              <span class="inline-flex h-4 w-4 items-center justify-center rounded border border-[#fecdd3] bg-[#ffe4e6] font-mono text-[9px] font-bold text-[#be123c]">FI</span>
               Falta
             </li>
             <li class="inline-flex items-center gap-1">
-              <span class="size-2.5 rounded-sm border-l-2 border-l-amber-700 bg-amber-100" aria-hidden="true" />
-              Permiso
+              <span class="inline-flex h-4 w-4 items-center justify-center rounded border border-[#bfdbfe] bg-[#dbeafe] font-mono text-[9px] font-bold text-[#1d4ed8]">DM</span>
+              D. médico
             </li>
             <li class="inline-flex items-center gap-1">
-              <span class="size-2.5 rounded-sm border-l-2 border-l-slate-500 bg-slate-200" aria-hidden="true" />
+              <span class="inline-flex h-4 w-4 items-center justify-center rounded border border-[#e2e8f0] bg-[#f1f5f9] font-mono text-[9px] font-bold text-[#64748b]">D</span>
               Descanso
+            </li>
+            <li class="inline-flex items-center gap-1">
+              <span class="inline-flex h-4 w-4 items-center justify-center rounded border border-[#e9d5ff] bg-[#f3e8ff] font-mono text-[9px] font-bold text-[#6b21a8]">VAC</span>
+              Vacaciones
+            </li>
+            <li class="inline-flex items-center gap-1">
+              <span class="inline-flex h-4 w-4 items-center justify-center rounded border border-[#fed7aa] bg-[#ffedd5] font-mono text-[9px] font-bold text-[#9a3412]">LSG</span>
+              Lic. s/ goce
             </li>
           </ul>
 
@@ -182,7 +188,7 @@ const inputClass =
                       Cómo registrar el tareo diario
                     </DialogTitle>
                     <DialogDescription class="mt-1 text-sm leading-6 text-slate-600">
-                      Esta planilla registra el resultado del día, no las horas de entrada y salida.
+                      Cada día muestra una letra. Haga clic en la letra para editar horas, extras y el código.
                     </DialogDescription>
                   </div>
                   <DialogClose as-child>
@@ -194,35 +200,36 @@ const inputClass =
 
                 <div class="overflow-y-auto px-5 py-5 sm:px-6">
                   <div class="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm leading-6 text-sky-950">
-                    <strong>Si completó sus 8 horas:</strong> escriba <strong>8</strong> en Horas, seleccione
-                    <strong>A · Asistencia</strong> y deje HE 25%, HE 35% y Tardanza en <strong>0</strong>.
+                    <strong>Clic en la letra del día</strong> para abrir horas, código, HE 25%, HE 35% y tardanza.
+                    Jornada completa: código <strong>A</strong>, <strong>8</strong> horas y extras en <strong>0</strong>.
                   </div>
 
                   <ol class="mt-5 space-y-4">
                     <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
                       <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">1</span>
                       <div>
-                        <h4 class="font-semibold text-palette-navy">Horas trabajadas</h4>
+                        <h4 class="font-semibold text-palette-navy">Leer el mes de un vistazo</h4>
                         <p class="mt-1 text-sm leading-6 text-slate-600">
-                          Ingrese el total real trabajado ese día. Jornada completa: <strong>8</strong>.
+                          Cada columna es un día del 1 al 31. La letra es el código real (A, FI, DM, VAC…).
+                          Una <strong>T</strong> pequeña indica tardanza, no un código nuevo.
                         </p>
                       </div>
                     </li>
                     <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
                       <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">2</span>
                       <div>
-                        <h4 class="font-semibold text-palette-navy">Código del día</h4>
+                        <h4 class="font-semibold text-palette-navy">Editar el día</h4>
                         <p class="mt-1 text-sm leading-6 text-slate-600">
-                          Use <strong>A</strong> para asistencia normal. Seleccione otro código cuando corresponda.
+                          Clic en la letra. Cambie horas, el código y los minutos de extras o tardanza.
                         </p>
                       </div>
                     </li>
                     <li class="grid gap-3 rounded-xl border border-slate-200 p-4 sm:grid-cols-[2rem_1fr]">
                       <span class="flex size-8 items-center justify-center rounded-full bg-palette-navy text-sm font-bold text-white">3</span>
                       <div>
-                        <h4 class="font-semibold text-palette-navy">Minutos adicionales</h4>
+                        <h4 class="font-semibold text-palette-navy">Guardar</h4>
                         <p class="mt-1 text-sm leading-6 text-slate-600">
-                          HE 25%, HE 35% y tardanza en minutos. Una hora extra = <strong>60</strong>.
+                          Use <strong>Guardar</strong> o <strong>Ctrl+S</strong>. La fecha de cese no se edita aquí.
                         </p>
                       </div>
                     </li>
@@ -316,8 +323,6 @@ const inputClass =
         :codigo-de="codigoDe"
         :minutos-de="minutosDe"
         :horas-bloqueadas="horasBloqueadas"
-        :total-fila="totalFila"
-        :estado-clase="estadoClase"
         :estado-select-clase="estadoSelectClase"
         @horas="onHoras"
         @codigo="onCodigo"

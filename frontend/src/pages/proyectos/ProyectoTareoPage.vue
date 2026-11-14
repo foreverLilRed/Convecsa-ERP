@@ -257,6 +257,18 @@ async function onGuardar() {
 
       <p v-if="cerrado" class="text-sm text-amber-700">El periodo está cerrado. El tareo es de solo lectura.</p>
 
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-700">
+        <span class="font-bold text-slate-900">Construcción Civil</span>
+        <span><strong>Ord:</strong> horas ordinarias</span>
+        <span><strong class="text-indigo-700">60%:</strong> H.E. 60%</span>
+        <span><strong class="text-violet-700">100%:</strong> H.E. 100%</span>
+        <span><code class="font-bold text-rose-700">F</code> falta u otra incidencia (en Ord)</span>
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block size-3 rounded-full border border-amber-500 bg-amber-400" />
+          Cesado en el mes
+        </span>
+      </div>
+
       <div v-if="loading && !grilla" class="space-y-3">
         <Skeleton class="h-10 w-full" />
         <Skeleton class="h-24 w-full" />

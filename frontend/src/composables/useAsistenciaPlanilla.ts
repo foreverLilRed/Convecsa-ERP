@@ -185,14 +185,6 @@ export function useAsistenciaPlanilla(options: UseAsistenciaPlanillaOptions = {}
     codigo: CodigoTareo,
     _esperado: number,
   ) {
-    const originalHoras = String(Number(registro.horasTrabajadas))
-    const sameHoras = Number(horasTrabajadas) === Number(originalHoras)
-    const sameEstado = estado === registro.estado
-    const sameCodigo = codigo === registro.codigo
-    if (sameHoras && sameEstado && sameCodigo) {
-      delete edits[registro.id]
-      return
-    }
     const previo = edits[registro.id]
     edits[registro.id] = {
       horasTrabajadas,
@@ -202,6 +194,7 @@ export function useAsistenciaPlanilla(options: UseAsistenciaPlanillaOptions = {}
       minutosExtras35: previo?.minutosExtras35 ?? String(registro.minutosExtras35),
       minutosTardanza: previo?.minutosTardanza ?? String(registro.minutosTardanza),
     }
+    limpiarSiSinCambios(registro)
   }
 
   function onMinutos(
@@ -210,7 +203,35 @@ export function useAsistenciaPlanilla(options: UseAsistenciaPlanillaOptions = {}
     valor: string,
   ) {
     markEdit(registro, String(horasDe(registro)), estadoDe(registro), codigoDe(registro), 0)
+    if (!edits[registro.id]) {
+      edits[registro.id] = {
+        horasTrabajadas: String(horasDe(registro)),
+        estado: estadoDe(registro),
+        codigo: codigoDe(registro),
+        minutosExtras25: String(registro.minutosExtras25),
+        minutosExtras35: String(registro.minutosExtras35),
+        minutosTardanza: String(registro.minutosTardanza),
+      }
+    }
     edits[registro.id]![campo] = valor
+    limpiarSiSinCambios(registro)
+  }
+
+  function limpiarSiSinCambios(registro: AsistenciaRegistro) {
+    const edit = edits[registro.id]
+    if (!edit) {
+      return
+    }
+    if (
+      Number(edit.horasTrabajadas) === Number(registro.horasTrabajadas)
+      && edit.estado === registro.estado
+      && edit.codigo === registro.codigo
+      && Number(edit.minutosExtras25) === registro.minutosExtras25
+      && Number(edit.minutosExtras35) === registro.minutosExtras35
+      && Number(edit.minutosTardanza) === registro.minutosTardanza
+    ) {
+      delete edits[registro.id]
+    }
   }
 
   function clearEdits() {

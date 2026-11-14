@@ -54,7 +54,7 @@ const props = withDefaults(
 )
 
 const cellInputClass =
-  'h-6 min-w-0 rounded border-slate-300 px-0.5 text-center text-[11px] tabular-nums'
+  'h-6 w-8 min-w-0 rounded border-transparent bg-transparent px-0.5 text-center font-mono text-[10px] font-bold tabular-nums text-slate-900'
 
 const extrasPanel = ref<HTMLElement | null>(null)
 const extrasDia = ref<TareoCcDia | null>(null)
@@ -111,8 +111,11 @@ function fechaLocal(fecha: string): Date {
   return new Date(Number(fecha.slice(0, 4)), Number(fecha.slice(5, 7)) - 1, Number(fecha.slice(8, 10)))
 }
 
-function diaCorto(fecha: string): string {
-  return fechaLocal(fecha).toLocaleDateString('es-PE', { weekday: 'short' }).replace('.', '')
+function diaNombreCompleto(fecha: string): string {
+  return fechaLocal(fecha)
+    .toLocaleDateString('es-PE', { weekday: 'long' })
+    .replace('.', '')
+    .toUpperCase()
 }
 
 function numeroDia(fecha: string): string {
@@ -170,8 +173,11 @@ function totalDe(persona: PersonalObra, campo: 'horasOrd' | 'he60' | 'he100'): n
   return suma
 }
 
-function fmtHoras(valor: number): string {
-  return valor.toLocaleString('es-PE', { maximumFractionDigits: 2 })
+function fmtHoras(valor: number, vacioGuion = false): string {
+  if (vacioGuion && valor <= 0) {
+    return '—'
+  }
+  return `${valor.toLocaleString('es-PE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}h`
 }
 
 function setHoras(dia: TareoCcDia, campo: 'horasOrd' | 'he60' | 'he100', valor: string | number) {
@@ -204,12 +210,25 @@ async function abrirExtras(event: MouseEvent, dia: TareoCcDia) {
 }
 
 function diaHeaderClass(fecha: string): string {
-  return esDomingo(fecha) ? 'bg-amber-100' : 'bg-palette-ice'
+  return esDomingo(fecha) ? 'bg-amber-300 text-amber-950' : 'bg-slate-200 text-slate-900'
 }
 
-function diaCellClass(fecha: string, hoy: boolean): string {
+function diaSubHeaderClass(fecha: string, tono: 'ord' | '60' | '100'): string {
+  if (esDomingo(fecha)) {
+    return 'bg-amber-200 text-amber-950'
+  }
+  if (tono === '60') {
+    return 'bg-indigo-50 text-indigo-900'
+  }
+  if (tono === '100') {
+    return 'bg-violet-50 text-violet-900'
+  }
+  return 'bg-slate-50 text-slate-800'
+}
+
+function diaCellClass(fecha: string, hoy: boolean, cesado: boolean): string {
   return [
-    esDomingo(fecha) ? 'bg-amber-50' : '',
+    !cesado && esDomingo(fecha) ? 'bg-amber-100/80' : '',
     hoy ? 'ring-1 ring-inset ring-sky-400' : '',
   ].join(' ')
 }
@@ -235,28 +254,28 @@ function diaCellClass(fecha: string, hoy: boolean): string {
         Cada día tiene horas ordinarias, extras al 60 por ciento y extras al 100 por ciento.
       </TableCaption>
       <TableHeader>
-        <TableRow class="hover:bg-transparent">
+        <TableRow class="border-b border-slate-800 hover:bg-transparent">
           <TableHead
             rowspan="2"
-            class="sticky top-0 left-0 z-30 box-border h-auto w-8 min-w-8 max-w-8 overflow-hidden bg-palette-ice px-1 text-center"
+            class="sticky top-0 left-0 z-30 box-border h-auto w-8 min-w-8 max-w-8 overflow-hidden bg-slate-900 px-1 text-center text-[9.5px] font-bold uppercase text-white"
           >
             #
           </TableHead>
           <TableHead
             rowspan="2"
-            class="sticky top-0 left-8 z-30 box-border h-auto w-48 min-w-48 max-w-48 overflow-hidden bg-palette-ice px-1.5"
+            class="sticky top-0 left-8 z-30 box-border h-auto w-52 min-w-52 max-w-52 overflow-hidden bg-slate-900 px-3 text-[9.5px] font-bold uppercase text-white"
           >
-            Trabajador
+            Obrero Construcción Civil
           </TableHead>
           <TableHead
             rowspan="2"
-            class="sticky top-0 left-56 z-30 box-border h-auto w-24 min-w-24 max-w-24 overflow-hidden bg-palette-ice px-1 text-center"
+            class="sticky top-0 left-60 z-30 box-border h-auto w-[85px] min-w-[85px] max-w-[85px] overflow-hidden bg-slate-900 px-1 text-center text-[9.5px] font-bold uppercase text-white"
           >
             F. Ingreso
           </TableHead>
           <TableHead
             rowspan="2"
-            class="sticky top-0 left-80 z-30 box-border h-auto w-24 min-w-24 max-w-24 overflow-hidden bg-palette-ice px-1 text-center shadow-[2px_0_0_0_#8cd2f5]"
+            class="sticky top-0 left-[325px] z-30 box-border h-auto w-[110px] min-w-[110px] max-w-[110px] overflow-hidden bg-slate-900 px-1 text-center text-[9.5px] font-bold uppercase text-white shadow-[2px_0_0_0_#334155]"
           >
             F. Cese
           </TableHead>
@@ -264,52 +283,52 @@ function diaCellClass(fecha: string, hoy: boolean): string {
             v-for="fecha in diasDelMes"
             :key="`h-${fecha}`"
             colspan="3"
-            class="sticky top-0 z-20 h-10 min-w-28 px-0.5 text-center"
+            class="sticky top-0 z-20 h-auto min-w-24 px-1 py-1.5 text-center text-[9px] font-black uppercase"
             :class="diaHeaderClass(fecha)"
             :aria-current="fecha === hoyIso ? 'date' : undefined"
           >
-            <span class="block text-[9px] font-semibold uppercase tracking-wide text-slate-600">
-              {{ diaCorto(fecha) }}
-            </span>
-            <span class="font-bold text-palette-navy">{{ numeroDia(fecha) }}</span>
+            {{ diaNombreCompleto(fecha) }} {{ numeroDia(fecha) }}
           </TableHead>
           <TableHead
-            colspan="3"
-            class="sticky top-0 z-20 bg-palette-ice px-1 text-center"
+            rowspan="2"
+            class="sticky top-0 z-20 h-auto min-w-[55px] bg-slate-800 px-2 py-2.5 text-center text-[9.5px] font-bold uppercase text-white"
           >
-            Total
+            Hrs Ord
+          </TableHead>
+          <TableHead
+            rowspan="2"
+            class="sticky top-0 z-20 h-auto min-w-[48px] bg-indigo-800 px-2 py-2.5 text-center text-[9.5px] font-bold uppercase text-white"
+          >
+            +60%
+          </TableHead>
+          <TableHead
+            rowspan="2"
+            class="sticky top-0 z-20 h-auto min-w-[48px] bg-violet-800 px-2 py-2.5 text-center text-[9.5px] font-bold uppercase text-white"
+          >
+            +100%
           </TableHead>
         </TableRow>
-        <TableRow class="hover:bg-transparent">
+        <TableRow class="border-b-2 border-slate-300 hover:bg-transparent">
           <template v-for="fecha in diasDelMes" :key="`sub-${fecha}`">
             <TableHead
-              class="sticky top-10 z-20 min-w-10 px-0.5 py-0.5 text-center text-[9px] font-semibold text-slate-600"
-              :class="diaHeaderClass(fecha)"
+              class="sticky top-9 z-20 min-w-8 px-0.5 py-1 text-center text-[8.5px] font-bold"
+              :class="diaSubHeaderClass(fecha, 'ord')"
             >
               Ord
             </TableHead>
             <TableHead
-              class="sticky top-10 z-20 min-w-10 px-0.5 py-0.5 text-center text-[9px] font-semibold text-slate-600"
-              :class="diaHeaderClass(fecha)"
+              class="sticky top-9 z-20 min-w-[26px] px-0.5 py-1 text-center text-[8.5px] font-extrabold"
+              :class="diaSubHeaderClass(fecha, '60')"
             >
-              +60
+              60%
             </TableHead>
             <TableHead
-              class="sticky top-10 z-20 min-w-10 px-0.5 py-0.5 text-center text-[9px] font-semibold text-slate-600"
-              :class="diaHeaderClass(fecha)"
+              class="sticky top-9 z-20 min-w-[26px] px-0.5 py-1 text-center text-[8.5px] font-extrabold"
+              :class="diaSubHeaderClass(fecha, '100')"
             >
-              +100
+              100%
             </TableHead>
           </template>
-          <TableHead class="sticky top-10 z-20 bg-palette-ice px-1 py-0.5 text-center text-[9px] font-semibold text-slate-600">
-            Ord
-          </TableHead>
-          <TableHead class="sticky top-10 z-20 bg-palette-ice px-1 py-0.5 text-center text-[9px] font-semibold text-slate-600">
-            +60
-          </TableHead>
-          <TableHead class="sticky top-10 z-20 bg-palette-ice px-1 py-0.5 text-center text-[9px] font-semibold text-slate-600">
-            +100
-          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -320,34 +339,44 @@ function diaCellClass(fecha: string, hoy: boolean): string {
           v-for="(persona, index) in grilla.personal"
           v-else
           :key="persona.personaId"
-          class="hover:bg-transparent"
-          :class="cesadoEnMes(persona) ? 'bg-amber-300/40' : ''"
+          class="border-b border-slate-300 hover:bg-transparent"
+          :class="cesadoEnMes(persona) ? 'bg-amber-300/90 font-bold text-slate-950' : 'bg-white'"
         >
           <TableCell
-            class="sticky left-0 z-10 box-border w-8 min-w-8 max-w-8 overflow-hidden px-1 text-center tabular-nums text-slate-600"
-            :class="cesadoEnMes(persona) ? 'bg-amber-300/40' : 'bg-white'"
+            class="sticky left-0 z-10 box-border w-8 min-w-8 max-w-8 overflow-hidden px-1 text-center font-mono text-[10px] font-black text-slate-800"
+            :class="cesadoEnMes(persona) ? 'bg-[#fcd34d]' : 'bg-white'"
           >
             {{ index + 1 }}
           </TableCell>
           <TableHead
             scope="row"
-            class="sticky left-8 z-10 box-border w-48 min-w-48 max-w-48 overflow-hidden whitespace-normal px-1.5 text-left font-medium"
-            :class="cesadoEnMes(persona) ? 'bg-amber-300/40' : 'bg-white'"
+            class="sticky left-8 z-10 box-border w-52 min-w-52 max-w-52 overflow-hidden whitespace-normal px-3 py-2 text-left font-medium"
+            :class="cesadoEnMes(persona) ? 'bg-[#fcd34d]' : 'bg-white'"
           >
-            {{ persona.apellidos }}, {{ persona.nombres }}
-            <span class="mt-0.5 block font-normal text-[10px] text-slate-600">
-              {{ persona.numeroDocumento }} · {{ persona.categoria }}
+            <div class="flex items-center gap-1.5">
+              <span class="truncate text-[11px] font-black leading-tight text-slate-950">
+                {{ persona.apellidos }}, {{ persona.nombres }}
+              </span>
+              <Badge
+                v-if="cesadoEnMes(persona)"
+                class="shrink-0 border-amber-800 bg-amber-800 px-1.5 py-0.5 text-[8px] font-black uppercase text-white"
+              >
+                CESADO
+              </Badge>
+            </div>
+            <span class="mt-0.5 block font-mono text-[10px] font-bold text-slate-700">
+              {{ persona.categoria }}
             </span>
           </TableHead>
           <TableCell
-            class="sticky left-56 z-10 box-border w-24 min-w-24 max-w-24 overflow-hidden px-1 text-center tabular-nums"
-            :class="cesadoEnMes(persona) ? 'bg-amber-300/40' : 'bg-white'"
+            class="sticky left-60 z-10 box-border w-[85px] min-w-[85px] max-w-[85px] overflow-hidden px-1 text-center font-mono text-[10px] font-bold text-slate-800"
+            :class="cesadoEnMes(persona) ? 'bg-[#fcd34d]' : 'bg-white'"
           >
             {{ fechaCorta(persona.fechaIngreso) }}
           </TableCell>
           <TableCell
-            class="sticky left-80 z-10 box-border w-24 min-w-24 max-w-24 overflow-hidden px-1 text-center tabular-nums shadow-[2px_0_0_0_#8cd2f5]"
-            :class="cesadoEnMes(persona) ? 'bg-amber-300/40' : 'bg-white'"
+            class="sticky left-[325px] z-10 box-border w-[110px] min-w-[110px] max-w-[110px] overflow-hidden px-1 text-center font-mono text-[10px] font-bold shadow-[2px_0_0_0_#cbd5e1]"
+            :class="cesadoEnMes(persona) ? 'bg-[#fcd34d]' : 'bg-white'"
           >
             {{ fechaCorta(persona.fechaCese) }}
           </TableCell>
@@ -356,41 +385,46 @@ function diaCellClass(fecha: string, hoy: boolean): string {
               <TableCell
                 v-for="sub in ['ord', '60', '100']"
                 :key="`${persona.personaId}-${fecha}-${sub}`"
-                class="min-w-10 bg-slate-100 px-0.5 py-0.5 text-center text-slate-400"
-                :class="diaCellClass(fecha, fecha === hoyIso)"
+                class="min-w-8 bg-slate-100 p-0 text-center text-slate-400"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
                 :title="`Sin vigencia el ${fecha}`"
               >
                 —
               </TableCell>
             </template>
-            <TableCell
-              v-else-if="esIncidencia(diaDe(persona.personaId, fecha)!.codigo)"
-              colspan="3"
-              class="px-0.5 py-0.5"
-              :class="diaCellClass(fecha, fecha === hoyIso)"
-            >
-              <div class="flex items-center justify-center gap-0.5">
-                <Badge :class="codigoBadgeClass(diaDe(persona.personaId, fecha)!.codigo)">
-                  {{ diaDe(persona.personaId, fecha)!.codigo }}
-                </Badge>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  :disabled="cerrado"
-                  :aria-label="`Atributos del ${fecha} de ${persona.apellidos}`"
-                  @click="abrirExtras($event, diaDe(persona.personaId, fecha)!)"
-                >
-                  <EllipsisVerticalIcon />
-                </Button>
-              </div>
-            </TableCell>
+            <template v-else-if="esIncidencia(diaDe(persona.personaId, fecha)!.codigo)">
+              <TableCell
+                class="p-0 text-center"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
+              >
+                <div class="flex items-center justify-center gap-0.5">
+                  <button
+                    type="button"
+                    class="inline-flex h-6 min-w-8 items-center justify-center rounded border px-1 font-mono text-[10px] font-black"
+                    :class="codigoBadgeClass(diaDe(persona.personaId, fecha)!.codigo)"
+                    :disabled="cerrado"
+                    :aria-label="`Atributos del ${fecha} de ${persona.apellidos}`"
+                    @click="abrirExtras($event, diaDe(persona.personaId, fecha)!)"
+                  >
+                    {{ diaDe(persona.personaId, fecha)!.codigo }}
+                  </button>
+                </div>
+              </TableCell>
+              <TableCell
+                class="p-0 text-center"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
+              />
+              <TableCell
+                class="p-0 text-center"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
+              />
+            </template>
             <template v-else>
               <TableCell
-                class="min-w-10 px-0.5 py-0.5"
-                :class="diaCellClass(fecha, fecha === hoyIso)"
+                class="p-0"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
               >
-                <div class="flex items-center gap-0.5">
+                <div class="flex items-center justify-center">
                   <label class="sr-only" :for="`ord-${persona.personaId}-${fecha}`">
                     Horas ordinarias de {{ persona.apellidos }} el {{ fecha }}
                   </label>
@@ -403,71 +437,74 @@ function diaCellClass(fecha: string, hoy: boolean): string {
                     step="0.5"
                     inputmode="decimal"
                     :disabled="cerrado"
-                    :model-value="diaDe(persona.personaId, fecha)!.horasOrd"
+                    :model-value="diaDe(persona.personaId, fecha)!.horasOrd || ''"
+                    :placeholder="'·'"
                     @update:model-value="setHoras(diaDe(persona.personaId, fecha)!, 'horasOrd', $event)"
+                    @dblclick="abrirExtras($event, diaDe(persona.personaId, fecha)!)"
                   />
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-xs"
+                    class="size-5"
                     :disabled="cerrado"
                     :aria-label="`Atributos del ${fecha} de ${persona.apellidos}`"
                     @click="abrirExtras($event, diaDe(persona.personaId, fecha)!)"
                   >
-                    <EllipsisVerticalIcon />
+                    <EllipsisVerticalIcon class="size-3" />
                   </Button>
                 </div>
               </TableCell>
               <TableCell
-                class="min-w-10 px-0.5 py-0.5"
-                :class="diaCellClass(fecha, fecha === hoyIso)"
+                class="p-0 text-center"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
               >
                 <label class="sr-only" :for="`he60-${persona.personaId}-${fecha}`">
                   Horas extras 60 por ciento de {{ persona.apellidos }} el {{ fecha }}
                 </label>
                 <Input
                   :id="`he60-${persona.personaId}-${fecha}`"
-                  :class="cellInputClass"
+                  :class="[cellInputClass, 'text-indigo-800']"
                   type="number"
                   min="0"
                   max="24"
                   step="0.5"
                   inputmode="decimal"
                   :disabled="cerrado"
-                  :model-value="diaDe(persona.personaId, fecha)!.he60"
+                  :model-value="diaDe(persona.personaId, fecha)!.he60 || ''"
                   @update:model-value="setHoras(diaDe(persona.personaId, fecha)!, 'he60', $event)"
                 />
               </TableCell>
               <TableCell
-                class="min-w-10 px-0.5 py-0.5"
-                :class="diaCellClass(fecha, fecha === hoyIso)"
+                class="p-0 text-center"
+                :class="diaCellClass(fecha, fecha === hoyIso, cesadoEnMes(persona))"
               >
                 <label class="sr-only" :for="`he100-${persona.personaId}-${fecha}`">
                   Horas extras 100 por ciento de {{ persona.apellidos }} el {{ fecha }}
                 </label>
                 <Input
                   :id="`he100-${persona.personaId}-${fecha}`"
-                  :class="cellInputClass"
+                  :class="[cellInputClass, 'text-violet-800']"
                   type="number"
                   min="0"
                   max="24"
                   step="0.5"
                   inputmode="decimal"
                   :disabled="cerrado"
-                  :model-value="diaDe(persona.personaId, fecha)!.he100"
+                  :model-value="diaDe(persona.personaId, fecha)!.he100 || ''"
                   @update:model-value="setHoras(diaDe(persona.personaId, fecha)!, 'he100', $event)"
                 />
               </TableCell>
             </template>
           </template>
-          <TableCell class="px-1 text-right font-semibold tabular-nums text-palette-navy">
+          <TableCell class="bg-slate-200 px-2 text-center font-mono font-black text-slate-900">
             {{ fmtHoras(totalDe(persona, 'horasOrd')) }}
           </TableCell>
-          <TableCell class="px-1 text-right font-semibold tabular-nums text-palette-navy">
-            {{ fmtHoras(totalDe(persona, 'he60')) }}
+          <TableCell class="bg-indigo-100 px-2 text-center font-mono font-black text-indigo-900">
+            {{ fmtHoras(totalDe(persona, 'he60'), true) }}
           </TableCell>
-          <TableCell class="px-1 text-right font-semibold tabular-nums text-palette-navy">
-            {{ fmtHoras(totalDe(persona, 'he100')) }}
+          <TableCell class="bg-violet-100 px-2 text-center font-mono font-black text-violet-900">
+            {{ fmtHoras(totalDe(persona, 'he100'), true) }}
           </TableCell>
         </TableRow>
       </TableBody>
