@@ -1,79 +1,90 @@
+import type { Component } from 'vue'
+import {
+  BadgeCheckIcon,
+  BookOpenIcon,
+  BoxesIcon,
+  Building2Icon,
+  CalendarCheckIcon,
+  ChartLineIcon,
+  ClipboardListIcon,
+  ContactIcon,
+  FileSpreadsheetIcon,
+  FileTextIcon,
+  FilesIcon,
+  FolderKanbanIcon,
+  GraduationCapIcon,
+  HeartPulseIcon,
+  LayoutDashboardIcon,
+  PalmtreeIcon,
+  PenLineIcon,
+  ShieldIcon,
+  UserPlusIcon,
+  UsersIcon,
+  WalletIcon,
+} from '@lucide/vue'
+
 import type { RolUsuario } from '@/types/auth'
 
 export type NavChild = {
   name: string
   label: string
   path: string
-}
-
-export type NavLink = {
-  kind: 'link'
-  name: string
-  label: string
-  path: string
-  icon: string
+  icon: Component
 }
 
 export type NavGroup = {
   kind: 'group'
   id: string
   label: string
-  icon: string
+  icon: Component
   children: NavChild[]
   roles?: RolUsuario[]
 }
 
-export type NavItem = NavLink | NavGroup
+export type NavItem = NavGroup
 
 export const navItems: NavItem[] = [
-  {
-    kind: 'link',
-    name: 'dashboard',
-    label: 'Dashboard',
-    path: '/',
-    icon: 'home',
-  },
   {
     kind: 'group',
     id: 'gestion-humana',
     label: 'Gestión Humana',
-    icon: 'users',
+    icon: UsersIcon,
     children: [
-      { name: 'gh-personal', label: 'Personal', path: '/gestion-humana/personal' },
-      { name: 'gh-contratos', label: 'Contratos', path: '/gestion-humana/contratos' },
-      { name: 'gh-plantillas-contrato', label: 'Plantillas de Contrato', path: '/gestion-humana/plantillas-contrato' },
-      { name: 'gh-onboarding', label: 'Onboarding y Offboarding', path: '/gestion-humana/onboarding' },
-      { name: 'gh-nominas', label: 'Nóminas', path: '/gestion-humana/nominas' },
-      { name: 'gh-declaraciones', label: 'Declaración mensual', path: '/gestion-humana/nominas/declaraciones' },
-      { name: 'gh-asistencia', label: 'Asistencia', path: '/gestion-humana/asistencia' },
-      { name: 'gh-kpis', label: 'KPIs y desempeño', path: '/gestion-humana/kpis' },
-      { name: 'gh-manuales-mof', label: 'Manuales MOF', path: '/gestion-humana/manuales-mof' },
-      { name: 'gh-vacaciones', label: 'Vacaciones', path: '/gestion-humana/vacaciones' },
-      { name: 'gh-constancias-certificados', label: 'Constancias y Certificados', path: '/gestion-humana/constancias-certificados' },
-      { name: 'gh-firmas-digitales', label: 'Firmas Digitales', path: '/gestion-humana/firmas-digitales' },
+      { name: 'gh-personal', label: 'Personal', path: '/gestion-humana/personal', icon: ContactIcon },
+      { name: 'gh-contratos', label: 'Contratos', path: '/gestion-humana/contratos', icon: FileTextIcon },
+      { name: 'gh-plantillas-contrato', label: 'Plantillas de Contrato', path: '/gestion-humana/plantillas-contrato', icon: FilesIcon },
+      { name: 'gh-onboarding', label: 'Onboarding y Offboarding', path: '/gestion-humana/onboarding', icon: UserPlusIcon },
+      { name: 'gh-nominas', label: 'Nóminas', path: '/gestion-humana/nominas', icon: WalletIcon },
+      { name: 'gh-declaraciones', label: 'Declaración mensual', path: '/gestion-humana/nominas/declaraciones', icon: ClipboardListIcon },
+      { name: 'gh-asistencia', label: 'Asistencia', path: '/gestion-humana/asistencia', icon: CalendarCheckIcon },
+      { name: 'gh-kpis', label: 'KPIs y desempeño', path: '/gestion-humana/kpis', icon: ChartLineIcon },
+      { name: 'gh-manuales-mof', label: 'Manuales MOF', path: '/gestion-humana/manuales-mof', icon: BookOpenIcon },
+      { name: 'gh-vacaciones', label: 'Vacaciones', path: '/gestion-humana/vacaciones', icon: PalmtreeIcon },
+      { name: 'gh-constancias-certificados', label: 'Constancias y Certificados', path: '/gestion-humana/constancias-certificados', icon: BadgeCheckIcon },
+      { name: 'gh-firmas-digitales', label: 'Firmas Digitales', path: '/gestion-humana/firmas-digitales', icon: PenLineIcon },
     ],
   },
   {
     kind: 'group',
     id: 'proyectos',
     label: 'Proyectos',
-    icon: 'folder',
+    icon: FolderKanbanIcon,
     children: [
-      { name: 'proyectos', label: 'Obras', path: '/proyectos' },
-      { name: 'proyecto-materiales', label: 'Catálogo de materiales', path: '/proyectos/materiales' },
+      { name: 'proyectos', label: 'Obras', path: '/proyectos', icon: Building2Icon },
+      { name: 'proyecto-materiales', label: 'Catálogo de materiales', path: '/proyectos/materiales', icon: BoxesIcon },
     ],
   },
   {
     kind: 'group',
     id: 'soma',
     label: 'SOMA',
-    icon: 'shield',
+    icon: ShieldIcon,
     roles: ['SUPERADMIN', 'ADMIN', 'INGENIERO_SOMA'],
     children: [
-      { name: 'soma-dashboard', label: 'Tablero SST', path: '/soma/dashboard' },
-      { name: 'soma-habilitacion', label: 'Vigilancia médica y SCTR', path: '/soma/habilitacion' },
-      { name: 'soma-capacitaciones', label: 'Capacitaciones', path: '/soma/capacitaciones' },
-      { name: 'soma-formatos', label: 'Formatos SUNAFIL', path: '/soma/formatos' },
+      { name: 'soma-dashboard', label: 'Tablero SST', path: '/soma/dashboard', icon: LayoutDashboardIcon },
+      { name: 'soma-habilitacion', label: 'Vigilancia médica y SCTR', path: '/soma/habilitacion', icon: HeartPulseIcon },
+      { name: 'soma-capacitaciones', label: 'Capacitaciones', path: '/soma/capacitaciones', icon: GraduationCapIcon },
+      { name: 'soma-formatos', label: 'Formatos SUNAFIL', path: '/soma/formatos', icon: FileSpreadsheetIcon },
     ],
   },
 ]
@@ -144,15 +155,9 @@ export function getNavLabelByRouteName(name: string | symbol | null | undefined)
   }
 
   for (const item of navItems) {
-    if (item.kind === 'link' && item.name === name) {
-      return item.label
-    }
-
-    if (item.kind === 'group') {
-      const child = item.children.find((entry) => entry.name === name)
-      if (child) {
-        return child.label
-      }
+    const child = item.children.find((entry) => entry.name === name)
+    if (child) {
+      return child.label
     }
   }
 
@@ -185,10 +190,5 @@ export function getGroupIdForRouteName(name: string | symbol | null | undefined)
     return 'proyectos'
   }
 
-  const group = navItems.find(
-    (item): item is NavGroup =>
-      item.kind === 'group' && item.children.some((child) => child.name === name),
-  )
-
-  return group?.id ?? null
+  return navItems.find((item) => item.children.some((child) => child.name === name))?.id ?? null
 }
