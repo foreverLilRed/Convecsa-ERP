@@ -23,9 +23,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ConstanciaTrabajoServiceTest {
 
-    private static final String FIRMA_PNG =
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8=";
-
     @Mock private ContratoRepository contratos;
     @Mock private NominaDocumentoConfiguracionRepository configuraciones;
 
@@ -67,7 +64,7 @@ class ConstanciaTrabajoServiceTest {
     }
 
     @Test
-    void usaRepresentanteYFirmaDeLaConfiguracion() {
+    void noIncluyeNombreNiFirmaDelGerente() {
         Contrato contrato = contrato();
         when(contratos.findById(10L)).thenReturn(Optional.of(contrato));
         NominaDocumentoConfiguracion configuracion = new NominaDocumentoConfiguracion();
@@ -75,13 +72,19 @@ class ConstanciaTrabajoServiceTest {
         configuracion.setRuc("20601414067");
         configuracion.setDomicilio("San Borja, Lima");
         configuracion.setRepresentante("ANA GERENTE");
-        configuracion.setFirmaDataUrl(FIRMA_PNG);
+        configuracion.setFirmaDataUrl(
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8=");
         when(configuraciones.findById(NominaDocumentoConfiguracion.ID_UNICO)).thenReturn(Optional.of(configuracion));
 
         String html = service.generar(10L);
 
-        assertThat(html).contains("ANA GERENTE", "class=\"signature-image\"", FIRMA_PNG, "San Borja, Lima");
-        assertThat(html).doesNotContain("OROSCO MARTÍNEZ JORGE LUIS", "Gerente General");
+        assertThat(html).contains("San Borja, Lima");
+        assertThat(html).doesNotContain(
+                "OROSCO MARTÍNEZ JORGE LUIS",
+                "Gerente General",
+                "ANA GERENTE",
+                "class=\"firma\"",
+                "signature-image");
     }
 
     @Test

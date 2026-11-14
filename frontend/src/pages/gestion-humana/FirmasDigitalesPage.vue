@@ -87,7 +87,7 @@ onMounted(load)
     <div class="w-full min-w-0">
       <h1 class="text-2xl font-bold text-palette-navy">Datos corporativos de boletas</h1>
       <p class="mt-2 max-w-3xl text-sm text-slate-500">
-        Estos datos, el logo y la firma se incorporan en las boletas PDF y en las constancias de trabajo.
+        Estos datos, el logo y la firma se incorporan en las boletas PDF.
       </p>
 
       <div v-if="loading" class="mt-3 space-y-4 rounded-xl border border-palette-cyan/70 bg-white p-6">

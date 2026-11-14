@@ -4,7 +4,6 @@ import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.repository.ContratoRepository;
 import com.convecsa.erp.nomina.entity.NominaDocumentoConfiguracion;
 import com.convecsa.erp.nomina.repository.NominaDocumentoConfiguracionRepository;
-import com.convecsa.erp.nomina.support.BoletaDualFilas;
 import com.convecsa.erp.onboarding.support.OnboardingHtmlPacket;
 import com.convecsa.erp.persona.entity.Persona;
 import java.io.IOException;
@@ -77,8 +76,7 @@ public class ConstanciaTrabajoService {
                 .brand img{max-width:80mm;max-height:22mm;object-fit:contain}
                 h1{color:#0052cc;text-align:center;font-size:17pt;letter-spacing:.08em;margin:17mm 0 12mm}
                 p{font-size:10pt;line-height:1.7;text-align:justify;margin:0 0 6mm}.saludo{font-weight:700}
-                .fecha{margin-top:auto;text-align:right;font-style:italic}.firma{width:64mm;margin-top:20mm;border-top:1px solid #1e293b;padding-top:6px;font-size:9pt}
-                .firma strong{display:block}.signature-image{display:block;height:18mm;width:auto;max-width:58mm;object-fit:contain;margin-bottom:4px}
+                .fecha{margin-top:auto;text-align:right;font-style:italic}
                 .footer{border-top:1px solid #e2e8f0;padding-top:5mm;text-align:center;color:#64748b;font-size:8pt;margin-top:18mm}
                 @media print{body{background:white}.page{margin:0;box-shadow:none;width:210mm;min-height:297mm}}
                 </style></head><body>
@@ -87,7 +85,7 @@ public class ConstanciaTrabajoService {
                 <p>Por medio de la presente, <strong>%s</strong>, con RUC N.° <strong>%s</strong> y domicilio fiscal en %s, deja constancia de que <strong>%s</strong>, con %s N.° <strong>%s</strong>, %s.</p>
                 <p>Durante dicho período, desempeñó el cargo de <strong>%s</strong>%s, según su contrato de trabajo.</p>
                 <p>Se expide la presente constancia para los fines que la persona interesada estime convenientes.</p>
-                <p class="fecha">Lima, %s</p>%s
+                <p class="fecha">Lima, %s</p>
                 <div class="footer">%s · RUC %s</div></main></body></html>
                 """.formatted(
                 nombre,
@@ -102,21 +100,8 @@ public class ConstanciaTrabajoService {
                 esc(cargo),
                 proyectoTexto,
                 FECHA.format(hoy),
-                bloqueFirma(configuracion),
                 razon,
                 ruc));
-    }
-
-    private static String bloqueFirma(NominaDocumentoConfiguracion configuracion) {
-        String imagen = BoletaDualFilas.imagen(
-                configuracion == null ? null : configuracion.getFirmaDataUrl(),
-                "signature-image");
-        String representante = configuracion == null ? "" : BoletaDualFilas.text(configuracion.getRepresentante()).trim();
-        if (imagen.isEmpty() && representante.isEmpty()) {
-            return "";
-        }
-        String nombre = representante.isEmpty() ? "" : "<strong>" + esc(representante) + "</strong>";
-        return "<div class=\"firma\">" + imagen + nombre + "</div>";
     }
 
     private static String logoSrc(NominaDocumentoConfiguracion configuracion) {

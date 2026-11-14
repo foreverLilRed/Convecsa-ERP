@@ -173,15 +173,16 @@
     <p class="mt-2 text-xs font-medium text-slate-400">Ruta: Gestión Humana → Constancias y Certificados</p>
     <p class="mt-3 text-sm leading-relaxed text-slate-600">
       Listado de contratos. En la fila correspondiente genere y abra la <strong>Constancia de trabajo</strong>. El
-      documento usa los datos del contrato y de Firmas Digitales.
+      documento usa los datos del contrato y el membrete corporativo (razón social, RUC, domicilio y logo). No incluye
+      nombre ni firma del gerente.
     </p>
 
     <h3 id="gh-firmas" class="mt-8 text-lg font-semibold text-palette-navy">Firmas digitales</h3>
     <p class="mt-2 text-xs font-medium text-slate-400">Ruta: Gestión Humana → Firmas Digitales</p>
     <p class="mt-3 text-sm leading-relaxed text-slate-600">
-      Configure razón social, RUC, domicilio, representante, logo y firma que aparecen en boletas PDF, constancias y
-      formatos. Pulse <strong>Guardar</strong> después de cada cambio. Sin esta configuración, los PDF salen sin
-      membrete corporativo.
+      Configure razón social, RUC, domicilio, representante, logo y firma que aparecen en las boletas PDF. La
+      constancia de trabajo solo toma razón social, RUC, domicilio y logo. Pulse <strong>Guardar</strong> después de
+      cada cambio. Sin esta configuración, los PDF salen sin membrete corporativo.
     </p>
   </section>
 </template>
