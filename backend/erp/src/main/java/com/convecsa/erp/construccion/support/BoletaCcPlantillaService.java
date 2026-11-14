@@ -1,26 +1,34 @@
 package com.convecsa.erp.construccion.support;
 
+import com.convecsa.erp.construccion.domain.CategoriaObrera;
+import com.convecsa.erp.construccion.domain.CodigoTareoCc;
 import com.convecsa.erp.construccion.entity.BoletaCc;
 import com.convecsa.erp.construccion.entity.BoletaCcConcepto;
+import com.convecsa.erp.construccion.entity.ContratoCc;
 import com.convecsa.erp.construccion.entity.PeriodoCc;
 import com.convecsa.erp.construccion.entity.TareoCcDia;
+import com.convecsa.erp.contrato.entity.Contrato;
 import com.convecsa.erp.contrato.support.SueldoEnLetras;
 import com.convecsa.erp.nomina.domain.CategoriaConcepto;
 import com.convecsa.erp.nomina.entity.NominaDocumentoConfiguracion;
+import com.convecsa.erp.nomina.support.BoletaDualFilas;
+import com.convecsa.erp.nomina.support.BoletaDualFilas.Celda;
 import com.convecsa.erp.persona.entity.Persona;
+import java.io.IOException;
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.time.format.DateTimeFormatter;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BoletaCcPlantillaService {
 
-    private static final Locale ES_PE = Locale.forLanguageTag("es-PE");
-    private static final DateTimeFormatter FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final String PLANTILLA = "templates/nominas/boleta-dual-a4.html";
 
     public String render(
             BoletaCc boleta,
@@ -28,172 +36,187 @@ public class BoletaCcPlantillaService {
             List<TareoCcDia> dias,
             BigDecimal tarifaDia,
             BigDecimal tarifaHora) {
+        return BoletaDualFilas.aplicar(plantilla(), tokens(boleta, configuracion, dias, tarifaDia, tarifaHora));
+    }
+
+    Map<String, String> tokens(
+            BoletaCc boleta,
+            NominaDocumentoConfiguracion configuracion,
+            List<TareoCcDia> dias,
+            BigDecimal tarifaDia,
+            BigDecimal tarifaHora) {
         Persona persona = boleta.getPersona();
+        Contrato contrato = boleta.getContrato();
         PeriodoCc periodo = boleta.getPeriodo();
-        String razon = text(configuracion == null ? "CONVECSA S.A.C." : configuracion.getRazonSocial());
-        String ruc = text(configuracion == null ? "20601414067" : configuracion.getRuc());
-        String domicilio = text(configuracion == null
+        ContratoCc contratoCc = contrato == null ? null : contrato.getConstruccionCivil();
+        String apellidos = BoletaDualFilas.text(persona == null ? null : persona.getApellidos());
+        String nombres = BoletaDualFilas.text(persona == null ? null : persona.getNombres());
+        String nombreCompleto = (apellidos + (nombres.isBlank() ? "" : ", " + nombres)).trim();
+        if (nombreCompleto.startsWith(",")) {
+            nombreCompleto = nombres;
+        }
+        ResumenTareo tareo = resumir(dias);
+        Map<String, String> valores = new LinkedHashMap<>();
+        valores.put("persona_nombres", nombres);
+        valores.put("persona_apellidos", apellidos);
+        valores.put("persona_nombre_completo", nombreCompleto);
+        valores.put("persona_dni", BoletaDualFilas.text(persona == null ? null : persona.getNumeroDocumento()));
+        valores.put("empleador_razon", BoletaDualFilas.escape(
+                configuracion == null ? "CONVECSA S.A.C." : configuracion.getRazonSocial()));
+        valores.put("empleador_ruc", BoletaDualFilas.escape(
+                configuracion == null ? "20601414067" : configuracion.getRuc()));
+        valores.put("empleador_domicilio", BoletaDualFilas.escape(configuracion == null
                 ? "Calle Van Gogh 345, Urb. San Borja, Lima"
-                : configuracion.getDomicilio());
-        return """
-                <!DOCTYPE html>
-                <html xmlns="http://www.w3.org/1999/xhtml">
-                <head>
-                  <meta charset="UTF-8"/>
-                  <title>Boleta RCC</title>
-                  <style>
-                    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #0f172a; margin: 24px; }
-                    h1 { font-size: 16px; margin: 0 0 4px; }
-                    .muted { color: #64748b; font-size: 11px; }
-                    table { width: 100%%; border-collapse: collapse; margin-top: 12px; }
-                    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; }
-                    th { background: #e2e8f0; text-align: left; }
-                    td.num, th.num { text-align: right; }
-                    .totales { font-weight: bold; }
-                    .grid { display: table; width: 100%%; margin-top: 8px; }
-                    .grid div { display: table-cell; }
-                  </style>
-                </head>
-                <body>
-                  <h1>Boleta de pago — Construcción Civil</h1>
-                  <p class="muted">%s · RUC %s<br/>%s</p>
-                  <div class="grid">
-                    <div>
-                      <p><strong>Trabajador:</strong> %s, %s<br/>
-                      <strong>Documento:</strong> %s</p>
-                    </div>
-                    <div>
-                      <p><strong>Periodo:</strong> %s al %s<br/>
-                      <strong>Obra:</strong> %s — %s<br/>
-                      <strong>Tarifa día:</strong> %s &nbsp; <strong>Tarifa hora:</strong> %s</p>
-                    </div>
-                  </div>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Código</th>
-                        <th class="num">Horas ord.</th>
-                        <th class="num">HE 60%%</th>
-                        <th class="num">HE 100%%</th>
-                      </tr>
-                    </thead>
-                    <tbody>%s</tbody>
-                  </table>
-                  <table>
-                    <thead><tr><th>Haberes</th><th class="num">Monto (S/)</th></tr></thead>
-                    <tbody>%s</tbody>
-                  </table>
-                  <table>
-                    <thead><tr><th>Descuentos</th><th class="num">Monto (S/)</th></tr></thead>
-                    <tbody>%s</tbody>
-                  </table>
-                  <table>
-                    <thead><tr><th>Aportes del empleador</th><th class="num">Monto (S/)</th></tr></thead>
-                    <tbody>%s</tbody>
-                  </table>
-                  <table>
-                    <tbody>
-                      <tr class="totales"><td>Total haberes</td><td class="num">%s</td></tr>
-                      <tr class="totales"><td>Total descuentos</td><td class="num">%s</td></tr>
-                      <tr class="totales"><td>Neto a pagar</td><td class="num">%s</td></tr>
-                    </tbody>
-                  </table>
-                  <p class="muted">Son: %s</p>
-                </body>
-                </html>
-                """.formatted(
-                escape(razon),
-                escape(ruc),
-                escape(domicilio),
-                escape(persona == null ? "" : persona.getApellidos()),
-                escape(persona == null ? "" : persona.getNombres()),
-                escape(persona == null ? "" : persona.getNumeroDocumento()),
-                periodo == null ? "" : periodo.getFechaDesde().format(FECHA),
-                periodo == null ? "" : periodo.getFechaHasta().format(FECHA),
-                periodo == null || periodo.getProyecto() == null ? "" : escape(periodo.getProyecto().getCodigo()),
-                periodo == null || periodo.getProyecto() == null ? "" : escape(periodo.getProyecto().getNombre()),
-                dinero(tarifaDia),
-                dinero(tarifaHora),
-                filasTareo(dias),
-                filas(boleta, CategoriaConcepto.HABER),
-                filas(boleta, CategoriaConcepto.DESCUENTO),
-                filas(boleta, CategoriaConcepto.APORTE_EMPLEADOR),
-                dinero(boleta.getTotalHaberes()),
-                dinero(boleta.getTotalDescuentos()),
-                dinero(boleta.getNeto()),
-                escape(SueldoEnLetras.de(boleta.getNeto())));
+                : configuracion.getDomicilio()));
+        valores.put("empleador_representante", BoletaDualFilas.escape(
+                configuracion == null ? "" : configuracion.getRepresentante()));
+        valores.put("logo_empresa_html", BoletaDualFilas.imagen(
+                configuracion == null ? null : configuracion.getLogoDataUrl(), "company-logo"));
+        valores.put("firma_representante_html", BoletaDualFilas.imagen(
+                configuracion == null ? null : configuracion.getFirmaDataUrl(), "signature-image"));
+        valores.put("periodo_titulo", BoletaDualFilas.escape(periodoTitulo(periodo)));
+        valores.put("filas_conceptos", BoletaDualFilas.zippear(
+                celdas(boleta, CategoriaConcepto.HABER),
+                celdas(boleta, CategoriaConcepto.DESCUENTO),
+                celdas(boleta, CategoriaConcepto.APORTE_EMPLEADOR)));
+        valores.put("ficha_col1", fichaCol1(persona, nombreCompleto));
+        valores.put("ficha_col2", fichaCol2(contrato, contratoCc));
+        valores.put("ficha_col3", fichaCol3(tarifaDia, tareo));
+        valores.put("ficha_col4", fichaCol4(tareo));
+        valores.put("total_haberes", BoletaDualFilas.dinero(boleta.getTotalHaberes()));
+        valores.put("total_descuentos", BoletaDualFilas.dinero(boleta.getTotalDescuentos()));
+        valores.put("total_aportes", BoletaDualFilas.dinero(boleta.getTotalAportesEmpleador()));
+        valores.put("neto", BoletaDualFilas.dinero(boleta.getNeto()));
+        valores.put("neto_letras", SueldoEnLetras.de(boleta.getNeto()));
+        return valores;
     }
 
-    private static String filasTareo(List<TareoCcDia> dias) {
-        if (dias == null || dias.isEmpty()) {
-            return "<tr><td colspan=\"5\">Sin tareo en el periodo</td></tr>";
-        }
-        StringBuilder filas = new StringBuilder();
-        for (TareoCcDia dia : dias) {
-            filas.append("<tr><td>")
-                    .append(dia.getFecha() == null ? "" : dia.getFecha().format(FECHA))
-                    .append("</td><td>")
-                    .append(escape(dia.getCodigo() == null ? "" : dia.getCodigo().name()))
-                    .append("</td><td class=\"num\">")
-                    .append(horas(dia.getHorasOrd()))
-                    .append("</td><td class=\"num\">")
-                    .append(horas(dia.getHe60()))
-                    .append("</td><td class=\"num\">")
-                    .append(horas(dia.getHe100()))
-                    .append("</td></tr>");
-        }
-        return filas.toString();
+    private static String fichaCol1(Persona persona, String nombreCompleto) {
+        return BoletaDualFilas.columna(
+                BoletaDualFilas.dato("Apellidos y Nombres:", nombreCompleto),
+                BoletaDualFilas.dato("Documento:", persona == null ? "" : persona.getNumeroDocumento()),
+                BoletaDualFilas.dato("Reg. Pens:", persona == null ? "" : persona.getPension()),
+                BoletaDualFilas.dato("CUSSP:", persona == null ? "" : persona.getCuspp()));
     }
 
-    private static String filas(BoletaCc boleta, CategoriaConcepto categoria) {
-        StringBuilder filas = new StringBuilder();
+    private static String fichaCol2(Contrato contrato, ContratoCc contratoCc) {
+        String categoria = contratoCc == null ? "" : etiqueta(contratoCc.getCategoria());
+        String cargo = contrato == null ? "" : BoletaDualFilas.text(contrato.metadata("cargo"));
+        return BoletaDualFilas.columna(
+                BoletaDualFilas.dato("Categoría:", categoria),
+                BoletaDualFilas.dato("Cargo:", cargo),
+                BoletaDualFilas.dato("Fec. Ingreso:",
+                        contrato == null ? "" : BoletaDualFilas.fecha(contrato.getFechaInicio())),
+                BoletaDualFilas.dato("Fec. Cese:", fechaCese(contrato)));
+    }
+
+    private static String fichaCol3(BigDecimal tarifaDia, ResumenTareo tareo) {
+        return BoletaDualFilas.columna(
+                BoletaDualFilas.dato("Básico:", BoletaDualFilas.tieneMonto(tarifaDia)
+                        ? BoletaDualFilas.dinero(tarifaDia)
+                        : ""),
+                BoletaDualFilas.dato("Días D Medico:", tareo.diasMedicos > 0
+                        ? String.valueOf(tareo.diasMedicos)
+                        : ""),
+                BoletaDualFilas.dato("Hor. Ord.:", BoletaDualFilas.tieneMonto(tareo.horasOrd)
+                        ? BoletaDualFilas.horas(tareo.horasOrd)
+                        : ""),
+                BoletaDualFilas.dato("Días computable:", tareo.conTareo
+                        ? String.valueOf(tareo.diasLaborados)
+                        : ""));
+    }
+
+    private static String fichaCol4(ResumenTareo tareo) {
+        return BoletaDualFilas.columna(
+                BoletaDualFilas.dato("H. Extra 60%:", BoletaDualFilas.tieneMonto(tareo.he60)
+                        ? BoletaDualFilas.horas(tareo.he60)
+                        : ""),
+                BoletaDualFilas.dato("H. Extra 100%:", BoletaDualFilas.tieneMonto(tareo.he100)
+                        ? BoletaDualFilas.horas(tareo.he100)
+                        : ""));
+    }
+
+    private static String fechaCese(Contrato contrato) {
+        if (contrato == null) {
+            return "";
+        }
+        if (contrato.getFechaFin() != null) {
+            return BoletaDualFilas.fecha(contrato.getFechaFin());
+        }
+        if (!contrato.isActivo() && contrato.getFechaCorte() != null) {
+            return BoletaDualFilas.fecha(contrato.getFechaCorte());
+        }
+        return "";
+    }
+
+    private static String periodoTitulo(PeriodoCc periodo) {
+        if (periodo == null || periodo.getFechaDesde() == null || periodo.getFechaHasta() == null) {
+            return "";
+        }
+        return BoletaDualFilas.fecha(periodo.getFechaDesde())
+                + " AL "
+                + BoletaDualFilas.fecha(periodo.getFechaHasta());
+    }
+
+    private static String etiqueta(CategoriaObrera categoria) {
+        if (categoria == null) {
+            return "";
+        }
+        String nombre = categoria.name().toLowerCase(Locale.ROOT);
+        return Character.toUpperCase(nombre.charAt(0)) + nombre.substring(1);
+    }
+
+    private static List<Celda> celdas(BoletaCc boleta, CategoriaConcepto categoria) {
+        List<Celda> celdas = new ArrayList<>();
         for (BoletaCcConcepto concepto : boleta.getConceptos()) {
             if (concepto.getCategoria() != categoria) {
                 continue;
             }
-            filas.append("<tr><td>")
-                    .append(escape(concepto.getLabel()))
-                    .append("</td><td class=\"num\">")
-                    .append(dinero(concepto.getMonto()))
-                    .append("</td></tr>");
+            celdas.add(new Celda(concepto.getLabel(), BoletaDualFilas.dinero(concepto.getMonto())));
         }
-        if (filas.isEmpty()) {
-            return "<tr><td>-</td><td class=\"num\">0.00</td></tr>";
-        }
-        return filas.toString();
+        return celdas;
     }
 
-    private static String dinero(BigDecimal monto) {
-        if (monto == null) {
-            return "0.00";
+    private static ResumenTareo resumir(List<TareoCcDia> dias) {
+        ResumenTareo resumen = new ResumenTareo();
+        if (dias == null || dias.isEmpty()) {
+            return resumen;
         }
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(ES_PE);
-        symbols.setGroupingSeparator(',');
-        symbols.setDecimalSeparator('.');
-        return new DecimalFormat("#,##0.00", symbols).format(monto);
+        resumen.conTareo = true;
+        for (TareoCcDia dia : dias) {
+            if (dia.getHorasOrd() != null) {
+                resumen.horasOrd = resumen.horasOrd.add(dia.getHorasOrd());
+            }
+            if (dia.getHe60() != null) {
+                resumen.he60 = resumen.he60.add(dia.getHe60());
+            }
+            if (dia.getHe100() != null) {
+                resumen.he100 = resumen.he100.add(dia.getHe100());
+            }
+            if (dia.getCodigo() == CodigoTareoCc.LAB) {
+                resumen.diasLaborados++;
+            }
+            if (dia.getCodigo() == CodigoTareoCc.DM) {
+                resumen.diasMedicos++;
+            }
+        }
+        return resumen;
     }
 
-    private static String horas(BigDecimal valor) {
-        if (valor == null) {
-            return "0.00";
+    private static String plantilla() {
+        try {
+            return new ClassPathResource(PLANTILLA).getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            throw new IllegalStateException("No se encontró la plantilla dual de boleta", ex);
         }
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(ES_PE);
-        symbols.setDecimalSeparator('.');
-        return new DecimalFormat("0.##", symbols).format(valor);
     }
 
-    private static String escape(String value) {
-        if (value == null || value.isEmpty()) {
-            return "";
-        }
-        return value.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
-    }
-
-    private static String text(String value) {
-        return value == null ? "" : value;
+    private static final class ResumenTareo {
+        private boolean conTareo;
+        private int diasLaborados;
+        private int diasMedicos;
+        private BigDecimal horasOrd = BigDecimal.ZERO;
+        private BigDecimal he60 = BigDecimal.ZERO;
+        private BigDecimal he100 = BigDecimal.ZERO;
     }
 }

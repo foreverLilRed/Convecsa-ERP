@@ -34,35 +34,36 @@ class BoletaPdfServiceTest {
     void generaMuestraVisualConPlantillaReal() throws Exception {
         String html;
         try (InputStream input = getClass().getClassLoader()
-                .getResourceAsStream("templates/nominas/boleta-01.html")) {
+                .getResourceAsStream("templates/nominas/boleta-dual-a4.html")) {
             if (input == null) {
-                throw new IllegalStateException("No se encontró la plantilla de boleta");
+                throw new IllegalStateException("No se encontró la plantilla dual de boleta");
             }
             html = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         }
         Map<String, String> tokens = Map.ofEntries(
-                Map.entry("persona_apellidos", "MORAN GARCIA"),
-                Map.entry("persona_nombres", "PEDRO"),
+                Map.entry("persona_nombre_completo", "MORAN GARCIA, PEDRO"),
                 Map.entry("persona_dni", "41546529"),
-                Map.entry("persona_cargo", "Administrador"),
-                Map.entry("persona_banco", "BCP"),
-                Map.entry("persona_cci", "00212345678901234567"),
                 Map.entry("empleador_razon", "CONVECSA S.A.C."),
                 Map.entry("empleador_ruc", "20601414067"),
                 Map.entry("empleador_domicilio", "San Borja, Lima"),
                 Map.entry("empleador_representante", "Representante Legal"),
                 Map.entry("logo_empresa_html", ""),
                 Map.entry("firma_representante_html", ""),
-                Map.entry("periodo_mes_largo", "Octubre"),
-                Map.entry("periodo_anio", "2026"),
-                Map.entry("dias_trabajados", "30"),
-                Map.entry("afp_nombre", "AFP Integra"),
-                Map.entry("regimen", "Pequeña Empresa - REMYPE"),
-                Map.entry("tabla_haberes", "<tr><td>Sueldo básico</td><td class=\"num\">2,500.00</td></tr>"),
-                Map.entry("tabla_descuentos", "<tr><td>AFP</td><td class=\"num\">325.00</td></tr>"),
-                Map.entry("tabla_aportes", "<tr><td>EsSalud</td><td class=\"num\">225.00</td></tr>"),
+                Map.entry("periodo_titulo", "OCTUBRE 2026"),
+                Map.entry("ficha_col1", "<table class=\"kv\"><tr><td class=\"lbl\">Apellidos y Nombres:</td>"
+                        + "<td class=\"val\">MORAN GARCIA, PEDRO</td></tr></table>"),
+                Map.entry("ficha_col2", "<table class=\"kv\"><tr><td class=\"lbl\">Cargo:</td>"
+                        + "<td class=\"val\">Administrador</td></tr></table>"),
+                Map.entry("ficha_col3", "<table class=\"kv\"><tr><td class=\"lbl\">Básico:</td>"
+                        + "<td class=\"val\">2,500.00</td></tr></table>"),
+                Map.entry("ficha_col4", "<table class=\"kv\"></table>"),
+                Map.entry("filas_conceptos",
+                        "<tr><td class=\"concepto\">Sueldo básico</td><td class=\"monto\">2,500.00</td>"
+                                + "<td class=\"concepto\">AFP</td><td class=\"monto\">325.00</td>"
+                                + "<td class=\"concepto\">EsSalud</td><td class=\"monto\">225.00</td></tr>"),
                 Map.entry("total_haberes", "2,500.00"),
                 Map.entry("total_descuentos", "325.00"),
+                Map.entry("total_aportes", "225.00"),
                 Map.entry("neto", "2,175.00"),
                 Map.entry("neto_letras", "DOS MIL CIENTO SETENTA Y CINCO CON 00/100 SOLES"));
         for (Map.Entry<String, String> token : tokens.entrySet()) {

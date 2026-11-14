@@ -796,7 +796,11 @@ public class ConstruccionServiceImpl implements InterfazConstruccionService {
         BoletaCc boleta = buscarBoleta(proyectoId, periodoId, boletaId);
         boleta.getPeriodo().getProyecto().getNombre();
         boleta.getPersona().getNombres();
-        boleta.getContrato().getId();
+        boleta.getPersona().getCuspp();
+        boleta.getContrato().getFechaInicio();
+        if (boleta.getContrato().getConstruccionCivil() != null) {
+            boleta.getContrato().getConstruccionCivil().getCategoria();
+        }
         boleta.getConceptos().size();
         NominaDocumentoConfiguracion configuracion = documentoConfiguracionRepository
                 .findById(NominaDocumentoConfiguracion.ID_UNICO)

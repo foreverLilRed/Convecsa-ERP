@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Boleta de pago - {{persona_nombre_completo}}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @page { size: A4 portrait; margin: 0; }
+    html, body {
+      width: 210mm;
+      height: 297mm;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #0f172a;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    table.sheet {
+      width: 194mm;
+      height: 288mm;
+      margin: 5mm 8mm 4mm 8mm;
+      border-collapse: collapse;
+    }
+    td.half {
+      height: 141.5mm;
+      max-height: 141.5mm;
+      vertical-align: top;
+      overflow: hidden;
+    }
+    td.corte {
+      height: 4mm;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 6.5pt;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      border-top: 1px dashed #cbd5e1;
+      border-bottom: none;
+    }
+    table.copia {
+      width: 100%;
+      height: 141.5mm;
+      border-collapse: collapse;
+    }
+    td.copia-cuerpo { vertical-align: top; }
+    td.copia-firmas { vertical-align: bottom; height: 22mm; text-align: right; padding-bottom: 1mm; }
+    table.hdr { width: 100%; border-collapse: collapse; margin-bottom: 2mm; }
+    td.brand { vertical-align: top; width: 62%; }
+    td.doc { vertical-align: top; text-align: right; width: 38%; }
+    .marca { font-size: 10pt; font-weight: 800; letter-spacing: 0.04em; color: #1e3a8a; text-transform: uppercase; }
+    .badge {
+      display: inline-block;
+      border: 0.75px solid #94a3b8;
+      padding: 1px 5px;
+      font-size: 6.5pt;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .emp { font-size: 6.8pt; font-weight: 700; color: #1e293b; line-height: 1.35; }
+    .doc-t { font-size: 9.5pt; font-weight: 800; text-transform: uppercase; color: #020617; }
+    .doc-p { font-size: 6.8pt; color: #64748b; margin-top: 1px; }
+    .company-logo { height: 18px; width: auto; max-width: 48px; vertical-align: middle; margin-right: 4px; }
+    table.ficha { width: 100%; border-collapse: collapse; border: 0.75px solid #94a3b8; margin-bottom: 2mm; }
+    table.ficha th {
+      text-align: left;
+      font-size: 6.8pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #1e293b;
+      border-bottom: 0.75px solid #94a3b8;
+      padding: 2px 6px;
+    }
+    table.ficha td.col {
+      width: 25%;
+      vertical-align: top;
+      padding: 3px 6px;
+      border-right: 0.75px solid #e2e8f0;
+    }
+    table.ficha td.col:last-child { border-right: none; }
+    table.kv { width: 100%; border-collapse: collapse; }
+    table.kv td { font-size: 6.8pt; padding: 0.5px 0; vertical-align: top; line-height: 1.3; }
+    table.kv td.lbl { color: #64748b; white-space: nowrap; padding-right: 4px; }
+    table.kv td.val { font-weight: 700; color: #020617; text-align: right; }
+    table.conceptos { width: 100%; border-collapse: collapse; border: 0.75px solid #94a3b8; }
+    table.conceptos th {
+      font-size: 6.8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #1e293b;
+      border-bottom: 0.75px solid #94a3b8;
+      border-right: 0.75px solid #94a3b8;
+      padding: 2px 4px;
+    }
+    table.conceptos th.grupo { text-align: center; }
+    table.conceptos th.sub { font-size: 6.5pt; color: #475569; }
+    table.conceptos th.num, table.conceptos td.monto { text-align: right; }
+    table.conceptos th:last-child, table.conceptos td:last-child { border-right: none; }
+    table.conceptos td {
+      font-size: 6.8pt;
+      padding: 1px 5px;
+      border-bottom: 0.75px solid #f1f5f9;
+      border-right: 0.75px solid #94a3b8;
+      color: #1e293b;
+      vertical-align: top;
+    }
+    table.conceptos td.concepto { font-weight: 600; }
+    table.conceptos td.monto { font-family: "Courier New", Courier, monospace; font-weight: 700; color: #0f172a; }
+    table.conceptos tr.totales td {
+      font-weight: 800;
+      font-size: 7pt;
+      border-top: 0.75px solid #94a3b8;
+      border-bottom: none;
+      padding: 2px 5px;
+    }
+    table.neto {
+      width: 62mm;
+      border-collapse: collapse;
+      border: 0.75px solid #94a3b8;
+      margin-top: 2mm;
+    }
+    table.neto td { padding: 2px 6px; }
+    table.neto td.lbl { font-size: 7.2pt; font-weight: 800; text-transform: uppercase; }
+    table.neto td.monto { font-size: 9pt; font-weight: 800; font-family: "Courier New", Courier, monospace; text-align: right; }
+    table.neto td.letras { font-size: 5.8pt; color: #64748b; font-style: italic; }
+    table.firmas { border-collapse: collapse; margin-left: auto; }
+    table.firmas td.firma {
+      width: 48mm;
+      text-align: center;
+      font-size: 7pt;
+      padding: 0 6px;
+      vertical-align: bottom;
+    }
+    .signature-image { height: 28px; width: auto; max-width: 90px; display: block; margin: 0 auto 2px auto; }
+    .linea-firma { border-top: 1.5px solid #0f172a; margin-top: 10px; padding-top: 3px; }
+    .firma-nombre { font-weight: 700; color: #0f172a; }
+    .firma-dni { color: #64748b; font-size: 6.4pt; font-family: "Courier New", Courier, monospace; }
+    .firma-rol { font-weight: 800; text-transform: uppercase; font-size: 6.6pt; color: #020617; margin-top: 1px; }
+    @media print {
+      html, body { width: 210mm !important; height: 297mm !important; background: #ffffff !important; }
+    }
+  </style>
+</head>
+<body>
+  <table class="sheet">
+    <tr>
+      <td class="half">
+        <table class="copia">
+          <tr>
+            <td class="copia-cuerpo">
+              <table class="hdr">
+                <tr>
+                  <td class="brand">
+                    <div>
+                      {{logo_empresa_html}}<span class="marca">CONVECSA</span>
+                      <span class="badge">Copia Empleador</span>
+                    </div>
+                    <div class="emp">EMPRESA: {{empleador_razon}}</div>
+                    <div class="emp">RUC: {{empleador_ruc}}</div>
+                    <div class="emp">DIRECCION: {{empleador_domicilio}}</div>
+                  </td>
+                  <td class="doc">
+                    <div class="doc-t">BOLETA DE PAGO {{periodo_titulo}}</div>
+                    <div class="doc-p">PERIODO DE PAGO: {{periodo_titulo}}</div>
+                  </td>
+                </tr>
+              </table>
+              <table class="ficha">
+                <thead>
+                  <tr><th colspan="4">DATOS DEL TRABAJADOR</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="col">{{ficha_col1}}</td>
+                    <td class="col">{{ficha_col2}}</td>
+                    <td class="col">{{ficha_col3}}</td>
+                    <td class="col">{{ficha_col4}}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table class="conceptos">
+                <thead>
+                  <tr>
+                    <th class="grupo" colspan="2">INGRESO</th>
+                    <th class="grupo" colspan="2">DESCUENTO</th>
+                    <th class="grupo" colspan="2">APORTES EMPLEADOR</th>
+                  </tr>
+                  <tr>
+                    <th class="sub">CONCEPTO</th>
+                    <th class="sub num">SOLES</th>
+                    <th class="sub">CONCEPTO</th>
+                    <th class="sub num">SOLES</th>
+                    <th class="sub">CONCEPTO</th>
+                    <th class="sub num">SOLES</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{filas_conceptos}}
+                  <tr class="totales">
+                    <td class="concepto">TOTAL INGRESO</td>
+                    <td class="monto">{{total_haberes}}</td>
+                    <td class="concepto">TOTAL DESCUENTO</td>
+                    <td class="monto">{{total_descuentos}}</td>
+                    <td class="concepto">TOTAL APORTE</td>
+                    <td class="monto">{{total_aportes}}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table class="neto">
+                <tr>
+                  <td class="lbl">NETO A PAGAR:</td>
+                  <td class="monto">S/ {{neto}}</td>
+                </tr>
+                <tr>
+                  <td class="letras" colspan="2">SON: {{neto_letras}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="copia-firmas">
+              <table class="firmas">
+                <tr>
+                  <td class="firma">
+                    {{firma_representante_html}}
+                    <div class="linea-firma">
+                      <div class="firma-nombre">{{empleador_representante}}</div>
+                      <div class="firma-rol">FIRMA DEL EMPLEADOR</div>
+                    </div>
+                  </td>
+                  <td class="firma">
+                    <div class="linea-firma">
+                      <div class="firma-nombre">{{persona_nombre_completo}}</div>
+                      <div class="firma-dni">DNI: {{persona_dni}}</div>
+                      <div class="firma-rol">FIRMA DEL TRABAJADOR</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td class="corte">Corte por aqui · Copia Empleador / Copia Trabajador</td>
+    </tr>
+    <tr>
+      <td class="half">
+        <table class="copia">
+          <tr>
+            <td class="copia-cuerpo">
+              <table class="hdr">
+                <tr>
+                  <td class="brand">
+                    <div>
+                      {{logo_empresa_html}}<span class="marca">CONVECSA</span>
+                      <span class="badge">Copia Trabajador</span>
+                    </div>
+                    <div class="emp">EMPRESA: {{empleador_razon}}</div>
+                    <div class="emp">RUC: {{empleador_ruc}}</div>
+                    <div class="emp">DIRECCION: {{empleador_domicilio}}</div>
+                  </td>
+                  <td class="doc">
+                    <div class="doc-t">BOLETA DE PAGO {{periodo_titulo}}</div>
+                    <div class="doc-p">PERIODO DE PAGO: {{periodo_titulo}}</div>
+                  </td>
+                </tr>
+              </table>
+              <table class="ficha">
+                <thead>
+                  <tr><th colspan="4">DATOS DEL TRABAJADOR</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="col">{{ficha_col1}}</td>
+                    <td class="col">{{ficha_col2}}</td>
+                    <td class="col">{{ficha_col3}}</td>
+                    <td class="col">{{ficha_col4}}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table class="conceptos">
+                <thead>
+                  <tr>
+                    <th class="grupo" colspan="2">INGRESO</th>
+                    <th class="grupo" colspan="2">DESCUENTO</th>
+                    <th class="grupo" colspan="2">APORTES EMPLEADOR</th>
+                  </tr>
+                  <tr>
+                    <th class="sub">CONCEPTO</th>
+                    <th class="sub num">SOLES</th>
+                    <th class="sub">CONCEPTO</th>
+                    <th class="sub num">SOLES</th>
+                    <th class="sub">CONCEPTO</th>
+                    <th class="sub num">SOLES</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{filas_conceptos}}
+                  <tr class="totales">
+                    <td class="concepto">TOTAL INGRESO</td>
+                    <td class="monto">{{total_haberes}}</td>
+                    <td class="concepto">TOTAL DESCUENTO</td>
+                    <td class="monto">{{total_descuentos}}</td>
+                    <td class="concepto">TOTAL APORTE</td>
+                    <td class="monto">{{total_aportes}}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <table class="neto">
+                <tr>
+                  <td class="lbl">NETO A PAGAR:</td>
+                  <td class="monto">S/ {{neto}}</td>
+                </tr>
+                <tr>
+                  <td class="letras" colspan="2">SON: {{neto_letras}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td class="copia-firmas">
+              <table class="firmas">
+                <tr>
+                  <td class="firma">
+                    {{firma_representante_html}}
+                    <div class="linea-firma">
+                      <div class="firma-nombre">{{empleador_representante}}</div>
+                      <div class="firma-rol">FIRMA DEL EMPLEADOR</div>
+                    </div>
+                  </td>
+                  <td class="firma">
+                    <div class="linea-firma">
+                      <div class="firma-nombre">{{persona_nombre_completo}}</div>
+                      <div class="firma-dni">DNI: {{persona_dni}}</div>
+                      <div class="firma-rol">FIRMA DEL TRABAJADOR</div>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
