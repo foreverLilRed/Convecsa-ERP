@@ -13,6 +13,11 @@ import type {
   SomaHallazgoRequest,
   SomaInspeccion,
   SomaInspeccionRequest,
+  SomaPetar,
+  SomaPetarChecklistItem,
+  SomaPetarFaltanteTareo,
+  SomaPetarRequest,
+  TipoTrabajoPetar,
   SomaEmo,
   SomaEmoRequest,
   SomaEntregaEpp,
@@ -198,6 +203,68 @@ export function crearCharlaAtsObra(proyectoId: number, request: SomaCharlaAtsReq
     method: 'POST',
     body: JSON.stringify(request),
   })
+}
+
+export function listarPetarObra(proyectoId: number, fecha?: string | null): Promise<SomaPetar[]> {
+  const params = new URLSearchParams()
+  if (fecha) {
+    params.set('fecha', fecha)
+  }
+  const qs = params.toString()
+  return apiRequest<SomaPetar[]>(`/api/proyectos/${proyectoId}/soma/petar${qs ? `?${qs}` : ''}`)
+}
+
+export function crearPetarObra(proyectoId: number, request: SomaPetarRequest): Promise<SomaPetar> {
+  return apiRequest<SomaPetar>(`/api/proyectos/${proyectoId}/soma/petar`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  })
+}
+
+export function actualizarPetarObra(
+  proyectoId: number,
+  petarId: number,
+  request: SomaPetarRequest,
+): Promise<SomaPetar> {
+  return apiRequest<SomaPetar>(`/api/proyectos/${proyectoId}/soma/petar/${petarId}`, {
+    method: 'PUT',
+    body: JSON.stringify(request),
+  })
+}
+
+export function autorizarPetarObra(proyectoId: number, petarId: number): Promise<SomaPetar> {
+  return apiRequest<SomaPetar>(`/api/proyectos/${proyectoId}/soma/petar/${petarId}/autorizar`, {
+    method: 'POST',
+  })
+}
+
+export function cerrarPetarObra(proyectoId: number, petarId: number): Promise<SomaPetar> {
+  return apiRequest<SomaPetar>(`/api/proyectos/${proyectoId}/soma/petar/${petarId}/cerrar`, {
+    method: 'POST',
+  })
+}
+
+export function suspenderPetarObra(proyectoId: number, petarId: number): Promise<SomaPetar> {
+  return apiRequest<SomaPetar>(`/api/proyectos/${proyectoId}/soma/petar/${petarId}/suspender`, {
+    method: 'POST',
+  })
+}
+
+export function reanudarPetarObra(proyectoId: number, petarId: number): Promise<SomaPetar> {
+  return apiRequest<SomaPetar>(`/api/proyectos/${proyectoId}/soma/petar/${petarId}/reanudar`, {
+    method: 'POST',
+  })
+}
+
+export function checklistPetarObra(
+  proyectoId: number,
+  tipo: TipoTrabajoPetar,
+): Promise<SomaPetarChecklistItem[]> {
+  return apiRequest<SomaPetarChecklistItem[]>(`/api/proyectos/${proyectoId}/soma/petar/checklist/${tipo}`)
+}
+
+export function faltantesTareoPetar(proyectoId: number): Promise<SomaPetarFaltanteTareo[]> {
+  return apiRequest<SomaPetarFaltanteTareo[]>(`/api/proyectos/${proyectoId}/soma/petar/faltantes-tareo`)
 }
 
 export function precargarCuadrillaCharlaAts(

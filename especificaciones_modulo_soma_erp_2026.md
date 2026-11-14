@@ -18,7 +18,7 @@ El agente actualiza esta tabla al cerrar cada entrega (estado: `Pendiente`, `En 
 | S5 | Semáforo de habilitación (pase de ingreso a obra) | — | Hecho |
 | S6 | Matriz IPERC por partida | V62 | Hecho |
 | S7 | Charla diaria y ATS | V63 | Hecho |
-| S8 | PETAR y cruce con tareo | V64 | Pendiente |
+| S8 | PETAR y cruce con tareo | V65 | Hecho |
 | S9 | Inspecciones y hallazgos | V64 | Hecho |
 | S10 | Check-list pre-uso de equipos | V66 | Pendiente |
 | S11 | Eventos SST (incidentes, accidentes, enfermedades) | V67 | Pendiente |
@@ -711,6 +711,11 @@ CREATE TABLE soma_petar_trabajador (
 - Cada transición válida e inválida.
 - Autorizar falla por un trabajador bloqueado, por una restricción de altura o por un checklist incompleto.
 - La consulta de faltantes contra datos simulados.
+
+**Notas S8**
+- Flyway real: `V65__soma_petar.sql` (S9 ya ocupó V64).
+- Checklist keys: `ALTURA` `eppCompleto, arnesCertificado, lineasVida, puntosAnclaje, areaDelimitada, charlaAts`; `EXCAVACION_ZANJA` `eppCompleto, taludesEstables, apuntalamiento, accesoEgreso, serviciosSubterraneos, charlaAts`; `TRABAJO_CALIENTE` `eppCompleto, extintorCercano, areaLibreCombustibles, vigilanciaIncendio, charlaAts`; `ESPACIO_CONFINADO` `eppCompleto, vigiaExterior, ventilacion, rescateListo, atmosferaMedida, charlaAts`; `IZAJE_CARGAS` `eppCompleto, riggerAsignado, eslingasCertificadas, areaIzajeDelimitada, charlaAts`; `ENERGIA_ELECTRICA` `eppCompleto, bloqueoEtiquetado, tensionVerificada, eppDielectrico, charlaAts`.
+- Obra `0000` sin `contrato_cc` ni tareo: S5 vacío; POST queda en `BORRADOR`; autorizar 400 por habilitación; `faltantes-tareo` vacío.
 
 ---
 

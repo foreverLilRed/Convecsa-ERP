@@ -454,3 +454,80 @@ export type SomaHallazgoLevantarRequest = {
   evidenciaDespuesDocId: number
   fechaCierre?: string | null
 }
+
+export type TipoTrabajoPetar =
+  | 'ALTURA'
+  | 'EXCAVACION_ZANJA'
+  | 'TRABAJO_CALIENTE'
+  | 'ESPACIO_CONFINADO'
+  | 'IZAJE_CARGAS'
+  | 'ENERGIA_ELECTRICA'
+
+export type EstadoPetar = 'BORRADOR' | 'AUTORIZADO' | 'CERRADO' | 'SUSPENDIDO'
+
+export type SomaPetarTrabajador = {
+  id: number | null
+  personaId: number
+  personaNombre: string | null
+  numeroDocumento: string | null
+  rolEnTarea: string
+}
+
+export type SomaPetar = {
+  id: number
+  proyectoId: number
+  numero: number
+  tipoTrabajo: TipoTrabajoPetar
+  partidaId: number | null
+  partidaCodigo: string | null
+  partidaDescripcion: string | null
+  cuadrillaId: number | null
+  cuadrillaNombre: string | null
+  fecha: string
+  horaInicio: string
+  horaFin: string
+  ubicacionFrente: string
+  descripcionTrabajo: string
+  checklist: Record<string, boolean>
+  mediciones: Record<string, number>
+  residentePersonaId: number | null
+  residenteNombre: string | null
+  supervisorSsomaId: number | null
+  supervisorSsomaNombre: string | null
+  estado: EstadoPetar
+  autorizadoPor: string | null
+  autorizadoAt: string | null
+  documentoObraId: number | null
+  createdAt: string
+  trabajadores: SomaPetarTrabajador[]
+}
+
+export type SomaPetarRequest = {
+  tipoTrabajo: TipoTrabajoPetar
+  partidaId?: number | null
+  cuadrillaId?: number | null
+  fecha: string
+  horaInicio: string
+  horaFin: string
+  ubicacionFrente: string
+  descripcionTrabajo: string
+  checklist: Record<string, boolean>
+  mediciones: Record<string, number>
+  residentePersonaId?: number | null
+  supervisorSsomaId?: number | null
+  documentoObraId?: number | null
+  trabajadores: Array<{
+    personaId: number
+    rolEnTarea?: string | null
+  }>
+}
+
+export type SomaPetarChecklistItem = {
+  clave: string
+  etiqueta: string
+}
+
+export type SomaPetarFaltanteTareo = {
+  fecha: string
+  tipoTrabajo: TipoTrabajoPetar
+}

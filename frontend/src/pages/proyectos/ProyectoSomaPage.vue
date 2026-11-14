@@ -33,6 +33,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   listarCuadrillasObra,
   listarPersonalObra,
+  listarResponsablesObra,
   listarSubcontratosObra,
   obtenerPresupuesto,
   subirDocumentoObra,
@@ -42,14 +43,20 @@ import {
   cambiarEstadoItemEpp,
   actualizarIpercObra,
   crearCapacitacionObra,
+  actualizarPetarObra,
+  autorizarPetarObra,
+  cerrarPetarObra,
+  checklistPetarObra,
   crearCharlaAtsObra,
   crearHallazgoObra,
+  crearPetarObra,
   crearInspeccionObra,
   crearEntregaEpp,
   crearIpercObra,
   crearPolizaSctr,
   desactivarIpercObra,
   descargarKardexEpp,
+  faltantesTareoPetar,
   guardarNominaSctr,
   listarCapacitacionesObra,
   listarCharlasAtsObra,
@@ -60,16 +67,19 @@ import {
   listarInspeccionesObra,
   listarIpercObra,
   listarMaterialesEpp,
+  listarPetarObra,
   listarPolizasSctr,
   obtenerResumenSoma,
   precargarCuadrillaCapacitacion,
   levantarHallazgoObra,
   marcarHallazgoEnProcesoObra,
   precargarCuadrillaCharlaAts,
+  reanudarPetarObra,
   registrarEmoObra,
+  suspenderPetarObra,
   sugerirNominaSctr,
 } from '@/services/soma/somaService'
-import type { CuadrillaObra, PartidaPresupuesto, PersonalObra, SubcontratoObra } from '@/types/construccion'
+import type { CuadrillaObra, PartidaPresupuesto, PersonalObra, ResponsableObra, SubcontratoObra } from '@/types/construccion'
 import type {
   AptitudEmo,
   EstadoItemEpp,
@@ -80,9 +90,14 @@ import type {
   ClasificacionHallazgoSoma,
   EstadoHallazgoSoma,
   PotencialPerdidaSoma,
+  EstadoPetar,
   SomaCharlaAts,
   SomaHallazgo,
   SomaInspeccion,
+  SomaPetar,
+  SomaPetarFaltanteTareo,
+  SomaPetarRequest,
+  TipoTrabajoPetar,
   SomaEmo,
   SomaEntregaEpp,
   SomaEppMaterial,
@@ -99,7 +114,9 @@ import type {
 import { nivelRiesgoIpercDesdePuntaje } from '@/types/soma'
 import { fieldInputClass, fieldSelectClass, tabsListClass } from './fieldClasses'
 
-type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'inspecciones'
+type TabSoma = 'habilitacion' | 'resumen' | 'vigilancia' | 'sctr' | 'epp' | 'capacitaciones' | 'iperc' | 'charlaAts' | 'petar' | 'inspecciones'
+type PetarChecklistDraft = { clave: string; etiqueta: string; valor: boolean }
+type PetarTrabajadorDraft = { personaId: number; rolEnTarea: string }
 type FiltroHabilitacion = 'TODOS' | EstadoHabilitacionSoma
 type EppItemDraft = { materialId: string; cantidad: string; talla: string }
 type CapAsistenteDraft = { personaId: number; nota: string; aprobado: boolean }
@@ -124,6 +141,22 @@ const APTITUDES: { valor: AptitudEmo; label: string }[] = [
   { valor: 'APTO_CON_RESTRICCION', label: 'Apto con restricción' },
   { valor: 'OBSERVADO', label: 'Observado' },
   { valor: 'NO_APTO', label: 'No apto' },
+]
+
+const TIPOS_PETAR: { valor: TipoTrabajoPetar; label: string }[] = [
+  { valor: 'ALTURA', label: 'Trabajo en altura' },
+  { valor: 'EXCAVACION_ZANJA', label: 'Excavación / zanja' },
+  { valor: 'TRABAJO_CALIENTE', label: 'Trabajo en caliente' },
+  { valor: 'ESPACIO_CONFINADO', label: 'Espacio confinado' },
+  { valor: 'IZAJE_CARGAS', label: 'Izaje de cargas' },
+  { valor: 'ENERGIA_ELECTRICA', label: 'Energía eléctrica' },
+]
+
+const ESTADOS_PETAR: { valor: EstadoPetar; label: string }[] = [
+  { valor: 'BORRADOR', label: 'Borrador' },
+  { valor: 'AUTORIZADO', label: 'Autorizado' },
+  { valor: 'SUSPENDIDO', label: 'Suspendido' },
+  { valor: 'CERRADO', label: 'Cerrado' },
 ]
 
 const MESES = [
@@ -257,6 +290,17 @@ const charlaAsistentes = ref<CharlaAsistenteDraft[]>([])
 const inspecciones = ref<SomaInspeccion[]>([])
 const hallazgos = ref<SomaHallazgo[]>([])
 const subcontratos = ref<SubcontratoObra[]>([])
+const petars = ref<SomaPetar[]>([])
+const petarFaltantes = ref<SomaPetarFaltanteTareo[]>([])
+const responsablesObra = ref<ResponsableObra[]>([])
+const petarSaving = ref(false)
+const petarChecklist = ref<PetarChecklistDraft[]>([])
+const petarTrabajadores = ref<PetarTrabajadorDraft[]>([])
+const petarAgregarPersonaId = ref<number | null>(null)
+const petarPersonaSearch = ref('')
+const petarResidenteSearch = ref('')
+const petarSupervisorSearch = ref('')
+const petarEditandoId = ref<number | null>(null)
 const inspeccionSaving = ref(false)
 const hallazgoSaving = ref(false)
 const inspectorSearch = ref('')
@@ -317,6 +361,22 @@ const inspeccionForm = reactive({
   inspectorPersonaId: null as number | null,
   puntajeCumplimiento: '',
   observaciones: '',
+})
+
+const petarForm = reactive({
+  tipoTrabajo: 'ALTURA' as TipoTrabajoPetar,
+  fecha: hoyIso(),
+  horaInicio: '07:00',
+  horaFin: '17:00',
+  ubicacionFrente: '',
+  descripcionTrabajo: '',
+  partidaId: '',
+  cuadrillaId: '',
+  residentePersonaId: null as number | null,
+  supervisorSsomaId: null as number | null,
+  oxigenoPct: '',
+  lelPct: '',
+  vientoKmh: '',
 })
 
 const hallazgoForm = reactive({
@@ -464,6 +524,59 @@ const opcionesCharlaPersona = computed(() => {
 
 const charlasAtsDelDia = computed(() =>
   charlasAts.value.filter((item) => item.fecha === charlaForm.fecha),
+)
+
+const petarsDelDia = computed(() => petars.value.filter((item) => item.fecha === petarForm.fecha))
+
+const petarResidenteSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === petarForm.residentePersonaId) ?? null,
+)
+
+const opcionesPetarResidente = computed(() => {
+  const q = petarResidenteSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const petarSupervisorSeleccionado = computed(
+  () => personal.value.find((item) => item.personaId === petarForm.supervisorSsomaId) ?? null,
+)
+
+const opcionesPetarSupervisor = computed(() => {
+  const q = petarSupervisorSearch.value.trim().toLowerCase()
+  if (!q) {
+    return personal.value
+  }
+  return personal.value.filter((item) =>
+    `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q),
+  )
+})
+
+const petarPersonaSeleccionada = computed(
+  () => personal.value.find((item) => item.personaId === petarAgregarPersonaId.value) ?? null,
+)
+
+const opcionesPetarPersona = computed(() => {
+  const ids = new Set(petarTrabajadores.value.map((item) => item.personaId))
+  const q = petarPersonaSearch.value.trim().toLowerCase()
+  return personal.value.filter((item) => {
+    if (ids.has(item.personaId)) {
+      return false
+    }
+    if (!q) {
+      return true
+    }
+    return `${item.apellidos} ${item.nombres} ${item.numeroDocumento}`.toLowerCase().includes(q)
+  })
+})
+
+const petarExigeAtmosfera = computed(() => petarForm.tipoTrabajo === 'ESPACIO_CONFINADO')
+const petarExigeViento = computed(
+  () => petarForm.tipoTrabajo === 'ALTURA' || petarForm.tipoTrabajo === 'IZAJE_CARGAS',
 )
 
 const inspectorSeleccionado = computed(
@@ -941,6 +1054,248 @@ async function onRegistrarCharlaAts() {
   }
 }
 
+function horaCorta(valor: string | null | undefined): string {
+  if (!valor) {
+    return ''
+  }
+  return valor.length >= 5 ? valor.slice(0, 5) : valor
+}
+
+function tipoPetarLabel(tipo: TipoTrabajoPetar): string {
+  return TIPOS_PETAR.find((item) => item.valor === tipo)?.label ?? tipo
+}
+
+function estadoPetarLabel(estado: EstadoPetar): string {
+  return ESTADOS_PETAR.find((item) => item.valor === estado)?.label ?? estado
+}
+
+function prefillResponsablesPetar() {
+  if (petarForm.residentePersonaId == null) {
+    const residente = responsablesObra.value.find((item) => item.rol === 'RESIDENTE')
+    if (residente) {
+      petarForm.residentePersonaId = residente.personaId
+    }
+  }
+  if (petarForm.supervisorSsomaId == null) {
+    const supervisor = responsablesObra.value.find((item) => item.rol === 'SUPERVISOR_SSOMA')
+    if (supervisor) {
+      petarForm.supervisorSsomaId = supervisor.personaId
+    }
+  }
+}
+
+async function cargarChecklistPetar(tipo: TipoTrabajoPetar, valores?: Record<string, boolean>) {
+  try {
+    const items = await checklistPetarObra(proyectoId.value, tipo)
+    petarChecklist.value = items.map((item) => ({
+      clave: item.clave,
+      etiqueta: item.etiqueta,
+      valor: Boolean(valores?.[item.clave]),
+    }))
+  } catch {
+    petarChecklist.value = []
+  }
+}
+
+function resetPetarForm() {
+  petarEditandoId.value = null
+  petarForm.tipoTrabajo = 'ALTURA'
+  petarForm.fecha = hoyIso()
+  petarForm.horaInicio = '07:00'
+  petarForm.horaFin = '17:00'
+  petarForm.ubicacionFrente = ''
+  petarForm.descripcionTrabajo = ''
+  petarForm.partidaId = ''
+  petarForm.cuadrillaId = ''
+  petarForm.residentePersonaId = null
+  petarForm.supervisorSsomaId = null
+  petarForm.oxigenoPct = ''
+  petarForm.lelPct = ''
+  petarForm.vientoKmh = ''
+  petarTrabajadores.value = []
+  petarAgregarPersonaId.value = null
+  petarPersonaSearch.value = ''
+  petarResidenteSearch.value = ''
+  petarSupervisorSearch.value = ''
+  prefillResponsablesPetar()
+  void cargarChecklistPetar(petarForm.tipoTrabajo)
+}
+
+function onPetarResidenteChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  petarForm.residentePersonaId = Number.isFinite(id) ? id : null
+}
+
+function onPetarSupervisorChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  petarForm.supervisorSsomaId = Number.isFinite(id) ? id : null
+}
+
+function onPetarPersonaChange(value: unknown) {
+  const id = typeof value === 'number' ? value : Number(value)
+  petarAgregarPersonaId.value = Number.isFinite(id) ? id : null
+}
+
+function agregarTrabajadorPetar() {
+  if (!petarAgregarPersonaId.value) {
+    toast.error('Seleccione una persona para agregar.')
+    return
+  }
+  if (petarTrabajadores.value.some((item) => item.personaId === petarAgregarPersonaId.value)) {
+    toast.error('La persona ya está en el PETAR.')
+    return
+  }
+  petarTrabajadores.value.push({
+    personaId: petarAgregarPersonaId.value,
+    rolEnTarea: 'EJECUTANTE',
+  })
+  petarAgregarPersonaId.value = null
+  petarPersonaSearch.value = ''
+}
+
+function quitarTrabajadorPetar(personaId: number) {
+  petarTrabajadores.value = petarTrabajadores.value.filter((item) => item.personaId !== personaId)
+}
+
+function medicionTexto(mapa: Record<string, number> | undefined, clave: string): string {
+  const valor = mapa?.[clave]
+  return valor == null ? '' : String(valor)
+}
+
+function cargarPetarEnFormulario(petar: SomaPetar) {
+  petarEditandoId.value = petar.id
+  petarForm.tipoTrabajo = petar.tipoTrabajo
+  petarForm.fecha = petar.fecha
+  petarForm.horaInicio = horaCorta(petar.horaInicio)
+  petarForm.horaFin = horaCorta(petar.horaFin)
+  petarForm.ubicacionFrente = petar.ubicacionFrente
+  petarForm.descripcionTrabajo = petar.descripcionTrabajo
+  petarForm.partidaId = petar.partidaId ? String(petar.partidaId) : ''
+  petarForm.cuadrillaId = petar.cuadrillaId ? String(petar.cuadrillaId) : ''
+  petarForm.residentePersonaId = petar.residentePersonaId
+  petarForm.supervisorSsomaId = petar.supervisorSsomaId
+  petarForm.oxigenoPct = medicionTexto(petar.mediciones, 'oxigenoPct')
+  petarForm.lelPct = medicionTexto(petar.mediciones, 'lelPct')
+  petarForm.vientoKmh = medicionTexto(petar.mediciones, 'vientoKmh')
+  petarTrabajadores.value = petar.trabajadores.map((item) => ({
+    personaId: item.personaId,
+    rolEnTarea: item.rolEnTarea || 'EJECUTANTE',
+  }))
+  void cargarChecklistPetar(petar.tipoTrabajo, petar.checklist)
+}
+
+function construirPetarRequest(): SomaPetarRequest | null {
+  if (!petarForm.fecha) {
+    toast.error('Indique la fecha del PETAR.')
+    return null
+  }
+  if (!petarForm.horaInicio || !petarForm.horaFin) {
+    toast.error('Indique hora de inicio y de fin.')
+    return null
+  }
+  if (!petarForm.ubicacionFrente.trim()) {
+    toast.error('Indique la ubicación / frente.')
+    return null
+  }
+  if (!petarForm.descripcionTrabajo.trim()) {
+    toast.error('Indique la descripción del trabajo.')
+    return null
+  }
+  const checklist: Record<string, boolean> = {}
+  for (const item of petarChecklist.value) {
+    checklist[item.clave] = item.valor
+  }
+  const mediciones: Record<string, number> = {}
+  if (petarExigeAtmosfera.value) {
+    if (petarForm.oxigenoPct.trim()) {
+      mediciones.oxigenoPct = n(petarForm.oxigenoPct)
+    }
+    if (petarForm.lelPct.trim()) {
+      mediciones.lelPct = n(petarForm.lelPct)
+    }
+  }
+  if (petarExigeViento.value && petarForm.vientoKmh.trim()) {
+    mediciones.vientoKmh = n(petarForm.vientoKmh)
+  }
+  return {
+    tipoTrabajo: petarForm.tipoTrabajo,
+    partidaId: petarForm.partidaId ? Number(petarForm.partidaId) : null,
+    cuadrillaId: petarForm.cuadrillaId ? Number(petarForm.cuadrillaId) : null,
+    fecha: petarForm.fecha,
+    horaInicio: petarForm.horaInicio,
+    horaFin: petarForm.horaFin,
+    ubicacionFrente: petarForm.ubicacionFrente.trim(),
+    descripcionTrabajo: petarForm.descripcionTrabajo.trim(),
+    checklist,
+    mediciones,
+    residentePersonaId: petarForm.residentePersonaId,
+    supervisorSsomaId: petarForm.supervisorSsomaId,
+    trabajadores: petarTrabajadores.value.map((item) => ({
+      personaId: item.personaId,
+      rolEnTarea: item.rolEnTarea.trim() || 'EJECUTANTE',
+    })),
+  }
+}
+
+async function recargarPetar() {
+  const [lista, faltantes] = await Promise.all([
+    listarPetarObra(proyectoId.value),
+    faltantesTareoPetar(proyectoId.value),
+  ])
+  petars.value = lista
+  petarFaltantes.value = faltantes
+}
+
+async function onGuardarPetar() {
+  const request = construirPetarRequest()
+  if (!request) {
+    return
+  }
+  petarSaving.value = true
+  try {
+    if (petarEditandoId.value) {
+      await actualizarPetarObra(proyectoId.value, petarEditandoId.value, request)
+      toast.success('PETAR actualizado.')
+    } else {
+      await crearPetarObra(proyectoId.value, request)
+      toast.success('PETAR registrado en borrador.')
+    }
+    resetPetarForm()
+    await recargarPetar()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo guardar el PETAR.')
+  } finally {
+    petarSaving.value = false
+  }
+}
+
+async function onTransicionPetar(petar: SomaPetar, accion: 'autorizar' | 'cerrar' | 'suspender' | 'reanudar') {
+  petarSaving.value = true
+  try {
+    if (accion === 'autorizar') {
+      await autorizarPetarObra(proyectoId.value, petar.id)
+      toast.success('PETAR autorizado.')
+    } else if (accion === 'cerrar') {
+      await cerrarPetarObra(proyectoId.value, petar.id)
+      toast.success('PETAR cerrado.')
+    } else if (accion === 'suspender') {
+      await suspenderPetarObra(proyectoId.value, petar.id)
+      toast.success('PETAR suspendido.')
+    } else {
+      await reanudarPetarObra(proyectoId.value, petar.id)
+      toast.success('PETAR reanudado.')
+    }
+    if (petarEditandoId.value === petar.id) {
+      resetPetarForm()
+    }
+    await recargarPetar()
+  } catch (err) {
+    toast.error(err instanceof Error ? err.message : 'No se pudo cambiar el estado del PETAR.')
+  } finally {
+    petarSaving.value = false
+  }
+}
+
 function onInspectorChange(value: unknown) {
   const id = typeof value === 'number' ? value : Number(value)
   inspeccionForm.inspectorPersonaId = Number.isFinite(id) ? id : null
@@ -1254,6 +1609,9 @@ async function load() {
       listaCuadrillas,
       listaIperc,
       listaCharlas,
+      listaPetars,
+      listaFaltantesPetar,
+      listaResponsables,
       listaInspecciones,
       listaHallazgos,
       listaSubcontratos,
@@ -1274,6 +1632,9 @@ async function load() {
         incluirInactivosIperc.value,
       ),
       listarCharlasAtsObra(proyectoId.value),
+      listarPetarObra(proyectoId.value),
+      faltantesTareoPetar(proyectoId.value),
+      listarResponsablesObra(proyectoId.value).catch(() => []),
       listarInspeccionesObra(proyectoId.value),
       listarHallazgosObra(proyectoId.value),
       listarSubcontratosObra(proyectoId.value).catch(() => []),
@@ -1290,12 +1651,21 @@ async function load() {
     cuadrillas.value = listaCuadrillas
     filasIperc.value = listaIperc
     charlasAts.value = listaCharlas
+    petars.value = listaPetars
+    petarFaltantes.value = listaFaltantesPetar
+    responsablesObra.value = listaResponsables
     inspecciones.value = listaInspecciones
     hallazgos.value = listaHallazgos
     subcontratos.value = listaSubcontratos
     if (polizaSeleccionadaId.value && !listaPolizas.some((item) => item.id === polizaSeleccionadaId.value)) {
       polizaSeleccionadaId.value = null
       nominaEdicion.value = []
+    }
+    if (petarEditandoId.value == null) {
+      prefillResponsablesPetar()
+    }
+    if (!petarChecklist.value.length) {
+      await cargarChecklistPetar(petarForm.tipoTrabajo)
     }
   } catch (err) {
     resumen.value = null
@@ -1310,6 +1680,9 @@ async function load() {
     cuadrillas.value = []
     filasIperc.value = []
     charlasAts.value = []
+    petars.value = []
+    petarFaltantes.value = []
+    responsablesObra.value = []
     inspecciones.value = []
     hallazgos.value = []
     subcontratos.value = []
@@ -1764,6 +2137,7 @@ onMounted(() => {
         <TabsTrigger value="capacitaciones" :class="tabTriggerClass">Capacitaciones</TabsTrigger>
         <TabsTrigger value="iperc" :class="tabTriggerClass">IPERC</TabsTrigger>
         <TabsTrigger value="charlaAts" :class="tabTriggerClass">Charla y ATS</TabsTrigger>
+        <TabsTrigger value="petar" :class="tabTriggerClass">PETAR</TabsTrigger>
         <TabsTrigger value="inspecciones" :class="tabTriggerClass">Inspecciones</TabsTrigger>
       </TabsList>
 
@@ -3148,6 +3522,376 @@ onMounted(() => {
                   </TableCell>
                 </TableRow>
                 <TableEmpty v-if="!charlasAtsDelDia.length" :colspan="4">Sin charlas en esta fecha.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+        </template>
+      </TabsContent>
+
+      <TabsContent value="petar" class="mt-4 space-y-4">
+        <div v-if="loading" class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+          <div class="space-y-3">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </div>
+        </div>
+
+        <template v-else>
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">
+              {{ petarEditandoId ? `Editar PETAR N° ${petarEditandoId}` : 'Registrar PETAR' }}
+            </h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Se guarda en borrador. Autorizar exige trabajadores habilitados, checklist completo y mediciones del tipo.
+            </p>
+            <form class="mt-4 space-y-4" @submit.prevent="onGuardarPetar">
+              <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-tipo">Tipo de trabajo</label>
+                  <select
+                    id="soma-petar-tipo"
+                    v-model="petarForm.tipoTrabajo"
+                    :class="selectClass"
+                    class="mt-1.5"
+                    required
+                    @change="cargarChecklistPetar(petarForm.tipoTrabajo)"
+                  >
+                    <option v-for="tipo in TIPOS_PETAR" :key="tipo.valor" :value="tipo.valor">{{ tipo.label }}</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-fecha">Fecha</label>
+                  <Input id="soma-petar-fecha" v-model="petarForm.fecha" type="date" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-hora-inicio">Hora inicio</label>
+                  <Input id="soma-petar-hora-inicio" v-model="petarForm.horaInicio" type="time" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-hora-fin">Hora fin</label>
+                  <Input id="soma-petar-hora-fin" v-model="petarForm.horaFin" type="time" :class="inputClass" class="mt-1.5" required />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-ubicacion">Ubicación / frente</label>
+                  <Input id="soma-petar-ubicacion" v-model="petarForm.ubicacionFrente" :class="inputClass" class="mt-1.5" maxlength="200" required />
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-cuadrilla">Cuadrilla</label>
+                  <select id="soma-petar-cuadrilla" v-model="petarForm.cuadrillaId" :class="selectClass" class="mt-1.5">
+                    <option value="">Sin cuadrilla</option>
+                    <option v-for="cuadrilla in cuadrillas" :key="cuadrilla.id" :value="String(cuadrilla.id)">
+                      {{ cuadrilla.codigo }} — {{ cuadrilla.nombre }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-partida">Partida</label>
+                  <select id="soma-petar-partida" v-model="petarForm.partidaId" :class="selectClass" class="mt-1.5">
+                    <option value="">Sin partida</option>
+                    <option v-for="partida in partidasVigentes" :key="partida.id" :value="String(partida.id)">
+                      {{ partida.codigo }} — {{ partida.descripcion }}
+                    </option>
+                  </select>
+                </div>
+                <div class="sm:col-span-2 lg:col-span-4">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-descripcion">Descripción del trabajo</label>
+                  <Textarea id="soma-petar-descripcion" v-model="petarForm.descripcionTrabajo" class="mt-1.5" maxlength="1000" required />
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-residente">Residente</label>
+                  <Combobox
+                    :model-value="petarForm.residentePersonaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onPetarResidenteChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-petar-residente"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(petarResidenteSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(petarResidenteSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="petarResidenteSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesPetarResidente"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div class="sm:col-span-2">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-supervisor">Supervisor SSOMA</label>
+                  <Combobox
+                    :model-value="petarForm.supervisorSsomaId ?? undefined"
+                    ignore-filter
+                    class="mt-1.5 min-w-0 w-full"
+                    @update:model-value="onPetarSupervisorChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          id="soma-petar-supervisor"
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(petarSupervisorSeleccionado) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(petarSupervisorSeleccionado) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="petarSupervisorSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesPetarSupervisor"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                </div>
+                <div v-if="petarExigeAtmosfera">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-oxigeno">Oxígeno %</label>
+                  <Input id="soma-petar-oxigeno" v-model="petarForm.oxigenoPct" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div v-if="petarExigeAtmosfera">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-lel">LEL %</label>
+                  <Input id="soma-petar-lel" v-model="petarForm.lelPct" :class="inputClass" class="mt-1.5" />
+                </div>
+                <div v-if="petarExigeViento">
+                  <label class="text-sm font-medium text-slate-700" for="soma-petar-viento">Viento km/h</label>
+                  <Input id="soma-petar-viento" v-model="petarForm.vientoKmh" :class="inputClass" class="mt-1.5" />
+                </div>
+              </div>
+
+              <div>
+                <p class="text-sm font-medium text-slate-700">Checklist</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                  <label v-for="item in petarChecklist" :key="item.clave" class="flex items-center gap-2 text-sm text-slate-600">
+                    <input v-model="item.valor" type="checkbox" />
+                    {{ item.etiqueta }}
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <p class="text-sm font-medium text-slate-700">Trabajadores</p>
+                <div class="mt-2 grid gap-2 grid-cols-1 sm:grid-cols-[1fr_auto]">
+                  <Combobox
+                    :model-value="petarAgregarPersonaId ?? undefined"
+                    ignore-filter
+                    class="min-w-0 w-full"
+                    @update:model-value="onPetarPersonaChange"
+                  >
+                    <ComboboxAnchor class="min-w-0 w-full">
+                      <ComboboxTrigger as-child>
+                        <Button
+                          variant="outline"
+                          class="h-10 min-w-0 w-full justify-between overflow-hidden rounded-lg border-slate-200 px-3 font-normal text-slate-900"
+                          type="button"
+                        >
+                          <span
+                            class="min-w-0 flex-1 truncate text-left"
+                            :class="personaLabel(petarPersonaSeleccionada) ? 'text-slate-900' : 'text-slate-400'"
+                          >
+                            {{ personaLabel(petarPersonaSeleccionada) || 'Buscar personal de la obra' }}
+                          </span>
+                          <ChevronsUpDownIcon class="size-4 shrink-0 opacity-50" />
+                        </Button>
+                      </ComboboxTrigger>
+                    </ComboboxAnchor>
+                    <ComboboxList class="z-100 max-w-[calc(100vw-2rem)] w-(--reka-combobox-trigger-width)" align="start">
+                      <ComboboxInput v-model="petarPersonaSearch" placeholder="Buscar persona..." autocomplete="off" />
+                      <ComboboxEmpty>Sin personal disponible.</ComboboxEmpty>
+                      <ComboboxGroup>
+                        <ComboboxItem
+                          v-for="persona in opcionesPetarPersona"
+                          :key="persona.personaId"
+                          :value="persona.personaId"
+                        >
+                          {{ persona.apellidos }}, {{ persona.nombres }} · {{ persona.numeroDocumento }}
+                          <ComboboxItemIndicator>
+                            <CheckIcon />
+                          </ComboboxItemIndicator>
+                        </ComboboxItem>
+                      </ComboboxGroup>
+                    </ComboboxList>
+                  </Combobox>
+                  <Button variant="outline" type="button" @click="agregarTrabajadorPetar">Agregar</Button>
+                </div>
+                <Table class="mt-3">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Persona</TableHead>
+                      <TableHead>Rol en la tarea</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow v-for="fila in petarTrabajadores" :key="fila.personaId">
+                      <TableCell>{{ asistenteCapLabel(fila.personaId, null) }}</TableCell>
+                      <TableCell>
+                        <Input v-model="fila.rolEnTarea" :class="inputClass" maxlength="60" />
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" type="button" @click="quitarTrabajadorPetar(fila.personaId)">
+                          Quitar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableEmpty v-if="!petarTrabajadores.length" :colspan="3">Sin trabajadores.</TableEmpty>
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div class="flex flex-wrap gap-2">
+                <Button type="submit" :disabled="petarSaving">
+                  {{ petarSaving ? 'Guardando…' : petarEditandoId ? 'Guardar PETAR' : 'Registrar PETAR' }}
+                </Button>
+                <Button v-if="petarEditandoId" variant="outline" type="button" :disabled="petarSaving" @click="resetPetarForm">
+                  Cancelar edición
+                </Button>
+              </div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">PETAR del día</h3>
+            <p class="mt-1 text-sm text-slate-500">Permisos de la fecha del formulario en esta obra.</p>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>N°</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Horario</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in petarsDelDia" :key="fila.id">
+                  <TableCell>{{ fila.numero }}</TableCell>
+                  <TableCell>
+                    <p>{{ tipoPetarLabel(fila.tipoTrabajo) }}</p>
+                    <p class="text-xs text-slate-500">{{ fila.ubicacionFrente }}</p>
+                  </TableCell>
+                  <TableCell>{{ horaCorta(fila.horaInicio) }} – {{ horaCorta(fila.horaFin) }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="fila.estado === 'AUTORIZADO' ? 'default' : 'secondary'">
+                      {{ estadoPetarLabel(fila.estado) }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div class="flex flex-wrap gap-2">
+                      <Button
+                        v-if="fila.estado === 'BORRADOR'"
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        :disabled="petarSaving"
+                        @click="cargarPetarEnFormulario(fila)"
+                      >
+                        Editar
+                      </Button>
+                      <Button
+                        v-if="fila.estado === 'BORRADOR'"
+                        size="sm"
+                        type="button"
+                        :disabled="petarSaving"
+                        @click="onTransicionPetar(fila, 'autorizar')"
+                      >
+                        Autorizar
+                      </Button>
+                      <Button
+                        v-if="fila.estado === 'AUTORIZADO'"
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        :disabled="petarSaving"
+                        @click="onTransicionPetar(fila, 'cerrar')"
+                      >
+                        Cerrar
+                      </Button>
+                      <Button
+                        v-if="fila.estado === 'AUTORIZADO'"
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        :disabled="petarSaving"
+                        @click="onTransicionPetar(fila, 'suspender')"
+                      >
+                        Suspender
+                      </Button>
+                      <Button
+                        v-if="fila.estado === 'SUSPENDIDO'"
+                        size="sm"
+                        type="button"
+                        :disabled="petarSaving"
+                        @click="onTransicionPetar(fila, 'reanudar')"
+                      >
+                        Reanudar
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+                <TableEmpty v-if="!petarsDelDia.length" :colspan="5">Sin PETAR en esta fecha.</TableEmpty>
+              </TableBody>
+            </Table>
+          </div>
+
+          <div class="rounded-lg border border-palette-cyan/70 bg-white px-4 py-5 sm:px-6">
+            <h3 class="text-base font-semibold text-palette-navy">Tareo sin PETAR</h3>
+            <p class="mt-1 text-sm text-slate-500">
+              Días del tareo en borrador con altura o cota cero sin PETAR autorizado o cerrado.
+            </p>
+            <Table class="mt-3">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Tipo requerido</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="fila in petarFaltantes" :key="`${fila.fecha}-${fila.tipoTrabajo}`">
+                  <TableCell>{{ fechaLabel(fila.fecha) }}</TableCell>
+                  <TableCell>{{ tipoPetarLabel(fila.tipoTrabajo) }}</TableCell>
+                </TableRow>
+                <TableEmpty v-if="!petarFaltantes.length" :colspan="2">Sin faltantes de PETAR en el tareo.</TableEmpty>
               </TableBody>
             </Table>
           </div>

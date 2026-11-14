@@ -13,8 +13,13 @@ import com.convecsa.erp.soma.dto.SomaHallazgoRequest;
 import com.convecsa.erp.soma.dto.SomaHabilitacionDTO;
 import com.convecsa.erp.soma.dto.SomaInspeccionDTO;
 import com.convecsa.erp.soma.dto.SomaInspeccionRequest;
+import com.convecsa.erp.soma.domain.TipoTrabajoPetar;
 import com.convecsa.erp.soma.dto.SomaIpercFilaDTO;
 import com.convecsa.erp.soma.dto.SomaIpercFilaRequest;
+import com.convecsa.erp.soma.dto.SomaPetarChecklistItemDTO;
+import com.convecsa.erp.soma.dto.SomaPetarDTO;
+import com.convecsa.erp.soma.dto.SomaPetarFaltanteTareoDTO;
+import com.convecsa.erp.soma.dto.SomaPetarRequest;
 import com.convecsa.erp.soma.dto.SomaEmoDTO;
 import com.convecsa.erp.soma.dto.SomaEmoRequest;
 import com.convecsa.erp.soma.dto.SomaEntregaEppDTO;
@@ -34,6 +39,7 @@ import com.convecsa.erp.soma.service.InterfazSomaHabilitacionService;
 import com.convecsa.erp.soma.service.InterfazSomaInspeccionService;
 import com.convecsa.erp.soma.service.InterfazSomaIpercService;
 import com.convecsa.erp.soma.service.InterfazSomaObraService;
+import com.convecsa.erp.soma.service.InterfazSomaPetarService;
 import com.convecsa.erp.soma.service.InterfazSomaSctrService;
 import java.time.LocalDate;
 import java.nio.charset.StandardCharsets;
@@ -67,6 +73,7 @@ public class SomaObraController {
     private final InterfazSomaHabilitacionService somaHabilitacionService;
     private final InterfazSomaIpercService somaIpercService;
     private final InterfazSomaCharlaAtsService somaCharlaAtsService;
+    private final InterfazSomaPetarService somaPetarService;
     private final InterfazSomaInspeccionService somaInspeccionService;
 
     @GetMapping("/resumen")
@@ -213,6 +220,57 @@ public class SomaObraController {
     public SomaCharlaAtsDTO crearCharlaAts(
             @PathVariable Long proyectoId, @RequestBody SomaCharlaAtsRequest request) {
         return somaCharlaAtsService.crear(proyectoId, request);
+    }
+
+    @GetMapping("/petar")
+    public List<SomaPetarDTO> listarPetar(
+            @PathVariable Long proyectoId, @RequestParam(required = false) LocalDate fecha) {
+        return somaPetarService.listar(proyectoId, fecha);
+    }
+
+    @PostMapping("/petar")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SomaPetarDTO crearPetar(@PathVariable Long proyectoId, @RequestBody SomaPetarRequest request) {
+        return somaPetarService.crear(proyectoId, request);
+    }
+
+    @GetMapping("/petar/faltantes-tareo")
+    public List<SomaPetarFaltanteTareoDTO> faltantesTareoPetar(@PathVariable Long proyectoId) {
+        return somaPetarService.faltantesTareo(proyectoId);
+    }
+
+    @GetMapping("/petar/checklist/{tipo}")
+    public List<SomaPetarChecklistItemDTO> checklistPetar(
+            @PathVariable Long proyectoId, @PathVariable TipoTrabajoPetar tipo) {
+        return somaPetarService.checklist(tipo);
+    }
+
+    @PutMapping("/petar/{petarId}")
+    public SomaPetarDTO actualizarPetar(
+            @PathVariable Long proyectoId,
+            @PathVariable Long petarId,
+            @RequestBody SomaPetarRequest request) {
+        return somaPetarService.actualizar(proyectoId, petarId, request);
+    }
+
+    @PostMapping("/petar/{petarId}/autorizar")
+    public SomaPetarDTO autorizarPetar(@PathVariable Long proyectoId, @PathVariable Long petarId) {
+        return somaPetarService.autorizar(proyectoId, petarId);
+    }
+
+    @PostMapping("/petar/{petarId}/cerrar")
+    public SomaPetarDTO cerrarPetar(@PathVariable Long proyectoId, @PathVariable Long petarId) {
+        return somaPetarService.cerrar(proyectoId, petarId);
+    }
+
+    @PostMapping("/petar/{petarId}/suspender")
+    public SomaPetarDTO suspenderPetar(@PathVariable Long proyectoId, @PathVariable Long petarId) {
+        return somaPetarService.suspender(proyectoId, petarId);
+    }
+
+    @PostMapping("/petar/{petarId}/reanudar")
+    public SomaPetarDTO reanudarPetar(@PathVariable Long proyectoId, @PathVariable Long petarId) {
+        return somaPetarService.reanudar(proyectoId, petarId);
     }
 
     @GetMapping("/charlas-ats/precargar-cuadrilla")
